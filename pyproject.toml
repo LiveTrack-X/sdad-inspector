@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdad-inspector"
+version = "0.1.0"
+description = "Local, read-only inspection for SDAD repositories"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "LiveTrack-X" }]
+dependencies = ["PyYAML>=6.0,<7"]
+
+[project.optional-dependencies]
+desktop = ["pywebview>=5.4,<7"]
+build = ["pyinstaller>=6.11,<7"]
+
+[project.scripts]
+sdad-inspector = "sdad_inspector.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sdad_inspector*"]

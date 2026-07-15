@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "doctor_version": "3.2.2",
+  "state_version": 2,
+  "root": "<PROJECT_ROOT>",
+  "strict": false,
+  "summary": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "checks": {
+    "run": [
+      "state_schema",
+      "path_integrity",
+      "packet_coherence",
+      "owner_gates",
+      "review_state"
+    ],
+    "skipped": []
+  },
+  "findings": []
+}

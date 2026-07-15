@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "root": "<PROJECT_ROOT>",
+  "strict": false,
+  "summary": {
+    "errors": 1,
+    "warnings": 0
+  },
+  "checks": {
+    "run": [
+      "state_schema"
+    ],
+    "skipped": [
+      "path_integrity",
+      "packet_coherence",
+      "owner_gates",
+      "review_state"
+    ]
+  },
+  "findings": [
+    {
+      "id": "state.missing",
+      "severity": "error",
+      "path": "sdad-state.yaml",
+      "line": null,
+      "message": "The project does not have a readable regular sdad-state.yaml file.",
+      "evidence": "required state status: missing",
+      "remediation": "Create the root-level sdad-state.yaml for this stateful workflow."
+    }
+  ]
+}
