@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
 import http.client
 import json
@@ -78,8 +79,16 @@ def require(condition: bool, message: str) -> None:
         raise RuntimeError(message)
 
 
-def main() -> int:
-    engine = ROOT / ".runtime" / "sdad-v3.2.2"
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Validate the loopback browser contract.")
+    parser.add_argument(
+        "--sdad-checkout",
+        type=Path,
+        default=ROOT / ".runtime" / "sdad-v3.2.2",
+        help="Path to a clean authenticated SDAD v3.2.2 checkout.",
+    )
+    args = parser.parse_args(argv)
+    engine = args.sdad_checkout.resolve()
     web = ROOT / "web" / "dist"
     require(engine.is_dir(), "Clean v3.2.2 runtime archive is missing.")
     require((web / "index.html").is_file(), "Run npm --prefix web run build first.")

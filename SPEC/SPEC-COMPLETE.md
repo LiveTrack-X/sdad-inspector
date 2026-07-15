@@ -145,10 +145,13 @@ new compatibility packet and fixtures before its support claim is allowed.
 ## Active Scope
 
 Packet `SI-013-alpha-release` is the owner-directed 2026-07-15 public alpha
-release pass. The product package version is `0.0.1a1`, the immutable Git tag is
-`v0.0.1-alpha.1`, and the public release title is
+release pass. The product package version is `0.0.1a2`, the immutable release
+Git tag is `v0.0.1-alpha.2`, and the public release title is
 `SDAD Inspector 0.0.1 alpha`. The authoritative owner decision is recorded once
 in `docs/claim-registry.md`.
+
+The earlier `v0.0.1-alpha.1` tag is retained as failed validation history: its
+workflow published no GitHub Release or assets and the tag is never moved.
 
 The same tagged commit must run the bounded test, frontend build, native build,
 and launch-smoke path on GitHub-hosted Windows, macOS, and Linux runners. Native

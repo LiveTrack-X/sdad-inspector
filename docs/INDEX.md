@@ -77,7 +77,7 @@ decisions in their authoritative home.
 - Future update/migration: `UPDATE_AND_MIGRATION.md` for independent Inspector
   and engine versions, authenticated release caching, preview, owner-gated
   apply, verification, and rollback.
-- Current alpha release: `releases/v0.0.1-alpha.1.md` for assets, compatibility,
+- Current alpha release: `releases/v0.0.1-alpha.2.md` for assets, compatibility,
   usage, and unsigned limitations.
 - Continuity templates: `sdad/handoffs/`.
 - Decisions: `../SPEC/adr/`.
