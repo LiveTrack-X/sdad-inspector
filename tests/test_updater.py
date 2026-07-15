@@ -369,7 +369,10 @@ class ApplyPlanTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(target.read_bytes(), b"new")
             self.assertEqual(target.with_name(target.name + ".previous").read_bytes(), b"old")
-            self.assertEqual(launches, [[str(target), str(project)]])
+            self.assertEqual(
+                launches,
+                [[str(target.resolve(strict=True)), str(project.resolve(strict=True))]],
+            )
             payload = json.loads((plan_path.parent / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "success")
 

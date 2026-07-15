@@ -128,7 +128,12 @@ class DesktopResourceTests(WorkspaceCase):
             with self.subTest(platform=platform), patch(
                 "sdad_inspector.desktop.sys.platform", platform
             ):
-                self.assertEqual(desktop_icon_path(self.web, module_file), expected)
+                actual = desktop_icon_path(self.web, module_file)
+                self.assertIsNotNone(actual)
+                self.assertEqual(
+                    actual.resolve(strict=True),  # type: ignore[union-attr]
+                    expected.resolve(strict=True),
+                )
 
     def test_frozen_runtime_routes_only_the_bundled_engine_to_internal_runner(self) -> None:
         internal = self.root / "bundle" / "_internal"
