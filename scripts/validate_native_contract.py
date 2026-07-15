@@ -58,8 +58,8 @@ def main() -> int:
             raise AssertionError(f"protected action appears in CI: {pattern}")
     for portable_contract in (
         "portable-smoke",
-        "actions/upload-artifact@v4",
-        "actions/download-artifact@v4",
+        "actions/upload-artifact@v7",
+        "actions/download-artifact@v8",
         "scripts/smoke_release_archive.py",
         "retention-days: 3",
         "libegl1",

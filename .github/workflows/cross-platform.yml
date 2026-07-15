@@ -24,15 +24,15 @@ jobs:
             platform: linux
     steps:
       - name: Check out Inspector
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check out released SDAD v3.2.2
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: LiveTrack-X/spec-driven-ai-development
           ref: v3.2.2
           path: .ci/sdad-v3.2.2
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -41,7 +41,7 @@ jobs:
           python scripts/validate_public_repository.py
           python scripts/validate_release.py
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -90,7 +90,7 @@ jobs:
       - name: Package the single portable executable
         run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.1-alpha.1"
       - name: Upload the ephemeral portable archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sdad-inspector-${{ matrix.platform }}-${{ runner.arch }}
           path: release-artifacts/*
@@ -113,9 +113,9 @@ jobs:
             platform: linux
     steps:
       - name: Check out the smoke harness
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python for the smoke harness only
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Linux display dependencies
@@ -130,7 +130,7 @@ jobs:
             libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 \
             libxcb-xinerama0 libxcb-xkb1 libxkbcommon0 libxkbcommon-x11-0
       - name: Download the archive from the build job
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sdad-inspector-${{ matrix.platform }}-${{ runner.arch }}
           path: release-candidate
