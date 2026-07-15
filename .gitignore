@@ -30,3 +30,26 @@ Desktop.ini
 .vscode/
 *.swp
 *.swo
+
+# Owner-only SDAD control plane. Keep these files local and never publish them.
+AGENTS.md
+/sdad-state.yaml
+/review-findings.md
+/SDAD_INSPECTOR_PRODUCT_PLAN.md
+/SPEC/
+/design/reference/
+/docs/DESIGN_REFERENCE.md
+/docs/INDEX.md
+/docs/TODO-Open-Items.md
+/docs/claim-registry.md
+/docs/evidence-matrix.md
+/docs/implementation-notes.md
+/docs/OWNER_DECISIONS.md
+/docs/Repository-Operating-Rules.md
+/docs/UPDATE_AND_MIGRATION.md
+/docs/artifact-contracts.md
+/docs/readiness-assessment.md
+/docs/remote-import-record.md
+/docs/work-packet-state.md
+/docs/sdad/
+/docs/handoffs/

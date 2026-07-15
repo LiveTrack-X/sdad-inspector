@@ -36,6 +36,32 @@ SENSITIVE_NAMES = {
 }
 LOCAL_ONLY_NAMES = {".coverage", ".ds_store", "desktop.ini", "thumbs.db"}
 LOCAL_ONLY_PATHS = {PurePosixPath("design-qa.md")}
+PRIVATE_CONTROL_FILES = {
+    "sdad-state.yaml",
+    "review-findings.md",
+    "sdad_inspector_product_plan.md",
+    "docs/design_reference.md",
+    "docs/index.md",
+    "docs/todo-open-items.md",
+    "docs/claim-registry.md",
+    "docs/evidence-matrix.md",
+    "docs/implementation-notes.md",
+    "docs/owner_decisions.md",
+    "docs/repository-operating-rules.md",
+    "docs/update_and_migration.md",
+    "docs/artifact-contracts.md",
+    "docs/readiness-assessment.md",
+    "docs/remote-import-record.md",
+    "docs/work-packet-state.md",
+    "scripts/validate_packet_0.py",
+    "tests/test_packet_0.py",
+}
+PRIVATE_CONTROL_PREFIXES = (
+    "spec/",
+    "design/reference/",
+    "docs/sdad/",
+    "docs/handoffs/",
+)
 SENSITIVE_SUFFIXES = {
     ".jks",
     ".kdbx",
@@ -75,7 +101,14 @@ def audit_bytes(path: PurePosixPath, data: bytes) -> list[str]:
     issues: list[str] = []
     lowered_parts = [part.lower() for part in path.parts]
     name = path.name.lower()
+    normalized_path = path.as_posix().lower()
 
+    if (
+        name == "agents.md"
+        or normalized_path in PRIVATE_CONTROL_FILES
+        or normalized_path.startswith(PRIVATE_CONTROL_PREFIXES)
+    ):
+        issues.append(f"{path}: private SDAD control-plane path is included")
     if any(part in GENERATED_PARTS for part in lowered_parts):
         issues.append(f"{path}: generated or local-only directory is included")
     if tuple(lowered_parts[:2]) == ("design", "qa"):

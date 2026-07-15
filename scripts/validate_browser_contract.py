@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import http.client
 import json
+import shutil
 import sys
 import tempfile
 import threading
@@ -12,6 +13,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_PROJECT = ROOT / "tests" / "fixture-projects" / "state-v2"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -28,12 +30,12 @@ EXCLUDED_PARTS = {
 }
 
 
-def repository_fingerprint() -> dict[str, tuple[int, int, str]]:
+def project_fingerprint(project_root: Path) -> dict[str, tuple[int, int, str]]:
     result: dict[str, tuple[int, int, str]] = {}
-    for path in ROOT.rglob("*"):
+    for path in project_root.rglob("*"):
         if not path.is_file():
             continue
-        relative = path.relative_to(ROOT)
+        relative = path.relative_to(project_root)
         if any(part in EXCLUDED_PARTS for part in relative.parts):
             continue
         stat = path.stat()
@@ -92,13 +94,17 @@ def main(argv: list[str] | None = None) -> int:
     web = ROOT / "web" / "dist"
     require(engine.is_dir(), "Clean v3.2.2 runtime archive is missing.")
     require((web / "index.html").is_file(), "Run npm --prefix web run build first.")
-    before = repository_fingerprint()
+    require(FIXTURE_PROJECT.is_dir(), "Synthetic state-v2 fixture project is missing.")
+    project_data = tempfile.TemporaryDirectory(prefix="sdad-inspector-project-")
+    project_root = (Path(project_data.name) / "project").resolve()
+    shutil.copytree(FIXTURE_PROJECT, project_root)
+    before = project_fingerprint(project_root)
     app_data = tempfile.TemporaryDirectory(prefix="sdad-inspector-contract-")
     service = InspectorService(
-        ROOT,
+        project_root,
         engine,
         project_picker=lambda _initial: None,
-        clipboard_reader=lambda: f'"{ROOT}"',
+        clipboard_reader=lambda: f'"{project_root}"',
         preferences_store=RecentProjectsStore(Path(app_data.name) / "preferences.json"),
         rule_export_picker=lambda _suggested: None,
     )
@@ -155,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         require(activity_status == 200, "Authenticated activity route failed.")
         activity = json.loads(activity_body)
-        require(activity["project_root"] == str(ROOT), "Activity route crossed the project boundary.")
+        require(activity["project_root"] == str(project_root), "Activity route crossed the project boundary.")
         require(len(activity["files"]) <= 160, "Activity path history exceeded its bound.")
         require(len(activity["commits"]) <= 20, "Commit history exceeded its bound.")
         require(all("author" not in commit for commit in activity["commits"]), "Commit author identity leaked.")
@@ -232,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
             method="POST",
             token=token,
             origin=server.origin,
-            body={"initial_path": str(ROOT)},
+            body={"initial_path": str(project_root)},
         )
         require(picker_status == 200, "Explicit folder-picker route failed.")
         require(json.loads(picker_body)["selected"] is False, "Picker cancel was not preserved.")
@@ -245,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
             body={},
         )
         require(paste_status == 200, "Explicit clipboard route failed.")
-        require(json.loads(paste_body)["project_root"] == str(ROOT), "Clipboard path normalization failed.")
+        require(json.loads(paste_body)["project_root"] == str(project_root), "Clipboard path normalization failed.")
 
         progress_status, progress_headers, progress_body = request(
             server, "/api/progress", token=token
@@ -346,8 +352,9 @@ def main(argv: list[str] | None = None) -> int:
         thread.join(timeout=5)
         app_data.cleanup()
 
-    after = repository_fingerprint()
+    after = project_fingerprint(project_root)
     require(before == after, "Browser contract validation modified a project file.")
+    project_data.cleanup()
     print(
         "Browser contract OK: loopback-only, token/Host/Origin enforced, "
         "CSP/no-CORS present, fixed live document/activity/recent/Rule 5 routes, "

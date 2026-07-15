@@ -9,7 +9,40 @@ from scripts.validate_public_repository import audit_bytes
 class PublicRepositoryAuditTests(unittest.TestCase):
     def test_accepts_repository_relative_public_text(self) -> None:
         self.assertEqual(
-            audit_bytes(PurePosixPath("docs/guide.md"), b"See docs/INDEX.md for the route."),
+            audit_bytes(PurePosixPath("docs/guide.md"), b"Public product documentation."),
+            [],
+        )
+
+    def test_rejects_private_sdad_control_plane(self) -> None:
+        private_paths = (
+            "AGENTS.md",
+            "web/AGENTS.md",
+            "sdad-state.yaml",
+            "review-findings.md",
+            "SDAD_INSPECTOR_PRODUCT_PLAN.md",
+            "SPEC/SPEC-COMPLETE.md",
+            "design/reference/concept.png",
+            "docs/INDEX.md",
+            "docs/TODO-Open-Items.md",
+            "docs/evidence-matrix.md",
+            "docs/OWNER_DECISIONS.md",
+            "docs/work-packet-state.md",
+            "docs/sdad/playbooks/work-packets.md",
+        )
+        for raw_path in private_paths:
+            path = PurePosixPath(raw_path)
+            with self.subTest(path=raw_path):
+                self.assertIn(
+                    f"{path}: private SDAD control-plane path is included",
+                    audit_bytes(path, b"local-only control"),
+                )
+
+    def test_allows_synthetic_sdad_compatibility_fixture(self) -> None:
+        self.assertEqual(
+            audit_bytes(
+                PurePosixPath("tests/fixture-projects/state-v2/sdad-state.yaml"),
+                b"version: 2\n",
+            ),
             [],
         )
 
