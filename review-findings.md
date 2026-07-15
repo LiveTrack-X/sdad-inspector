@@ -5,14 +5,9 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-- [Medium] [packet:SI-013-alpha-release] FIND-SI-013-007 — Tagged alpha.2 run
-  `29412598223` published no Release or assets after macOS intermittently missed
-  the short Doctor stage in HTTP progress polling, even though the same exact
-  contract passed the preceding macOS PR run and the service has a deterministic
-  concurrent-progress unit test. Release remains blocked until the real-browser
-  harness records actual progress callback emissions for the exact Doctor-source
-  assertion, keeps HTTP polling responsible only for observing a live running
-  state, and a new immutable `v0.0.1-alpha.3` tag passes without moving alpha.2.
+None. The current candidate defects are closed below against exact same-commit
+hosted-runner evidence. The alpha.3 tag and published assets remain release
+verification work, not an open implementation defect.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
@@ -33,6 +28,16 @@ work or acceptance; do not keep two copies.
 - Release candidates should reach Critical 0 before owner acceptance.
 
 ## Recently Closed
+
+- [FIND-SI-013-007] [packet:SI-013-alpha-release] Fixed and externally
+  regression-tested on exact commit
+  `7eaec5c23311d3d0b2626aa0c5241a084d0c9cb8` in Actions run `29413136254`:
+  the browser harness records actual progress callback emissions for the exact
+  Doctor-source assertion while HTTP polling independently proves a live
+  running source. Windows, macOS, and Linux passed the full contract/build/
+  direct-launch/package path plus all three separate downloaded-archive
+  launches. Failed `v0.0.1-alpha.2` remains unchanged and published no Release
+  or assets; the publishable candidate advances to `v0.0.1-alpha.3`.
 
 - [FIND-SI-013-006] [packet:SI-013-alpha-release] Fixed and externally
   regression-tested on exact commit
