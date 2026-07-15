@@ -111,14 +111,24 @@ class DesktopResourceTests(WorkspaceCase):
         self.assertEqual(web, self.web)
         self.assertEqual(engine, self.engine)
 
-    def test_windows_window_icon_uses_ico_instead_of_the_web_png(self) -> None:
+    def test_window_icon_matches_each_platform_asset(self) -> None:
         module_file = self.root / "repo" / "sdad_inspector" / "desktop.py"
-        icon = self.root / "repo" / "packaging" / "sdad-inspector.ico"
-        icon.parent.mkdir(parents=True)
-        icon.write_bytes(b"fixture-ico")
-        (self.web / "sdad-inspector-logo.png").write_bytes(b"fixture-png")
-        with patch("sdad_inspector.desktop.sys.platform", "win32"):
-            self.assertEqual(desktop_icon_path(self.web, module_file), icon)
+        windows_icon = self.root / "repo" / "packaging" / "sdad-inspector.ico"
+        macos_icon = self.root / "repo" / "packaging" / "sdad-inspector.icns"
+        linux_icon = self.web / "sdad-inspector-logo.png"
+        windows_icon.parent.mkdir(parents=True)
+        windows_icon.write_bytes(b"fixture-ico")
+        macos_icon.write_bytes(b"fixture-icns")
+        linux_icon.write_bytes(b"fixture-png")
+        for platform, expected in (
+            ("win32", windows_icon),
+            ("darwin", macos_icon),
+            ("linux", linux_icon),
+        ):
+            with self.subTest(platform=platform), patch(
+                "sdad_inspector.desktop.sys.platform", platform
+            ):
+                self.assertEqual(desktop_icon_path(self.web, module_file), expected)
 
     def test_frozen_runtime_routes_only_the_bundled_engine_to_internal_runner(self) -> None:
         internal = self.root / "bundle" / "_internal"
@@ -144,14 +154,16 @@ class DesktopResourceTests(WorkspaceCase):
     def test_window_uses_loopback_without_a_javascript_bridge_and_stops(self) -> None:
         application = self.application()
         webview = FakeWebview()
-        result = application.run(webview_module=webview)
+        icon = self.root / "app-icon"
+        icon.write_bytes(b"fixture-icon")
+        with patch("sdad_inspector.desktop.desktop_icon_path", return_value=icon):
+            result = application.run(webview_module=webview)
         self.assertEqual(result, 0)
         self.assertEqual(webview.create_args[0], "SDAD Inspector")
         self.assertTrue(str(webview.create_args[1]).startswith("http://127.0.0.1:"))
         self.assertNotIn("js_api", webview.create_kwargs)
         self.assertFalse(webview.start_kwargs["private_mode"])
-        start_icon = Path(str(webview.start_kwargs["icon"]))
-        self.assertEqual((start_icon.parent.name, start_icon.name), ("packaging", "sdad-inspector.ico"))
+        self.assertEqual(Path(str(webview.start_kwargs["icon"])), icon)
         self.assertFalse(application._server_thread.is_alive())  # type: ignore[union-attr]
 
     def test_bounded_hidden_smoke_destroys_the_window(self) -> None:
