@@ -855,12 +855,33 @@ def _launch_application(
     launcher([str(target), str(project_root)], **kwargs)
 
 
+def refresh_windows_icon_cache() -> bool:
+    """Ask Explorer to refresh icons after a verified same-path replacement."""
+
+    if sys.platform != "win32":
+        return False
+    try:
+        shell32 = ctypes.OleDLL("shell32")
+        shell32.SHChangeNotify.argtypes = [
+            ctypes.c_long,
+            ctypes.c_uint,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+        ]
+        shell32.SHChangeNotify.restype = None
+        shell32.SHChangeNotify(0x08000000, 0x0000, None, None)
+        return True
+    except (AttributeError, OSError):
+        return False
+
+
 def apply_update_plan(
     plan_path: str | Path,
     *,
     update_root: str | Path | None = None,
     wait_for_exit: Callable[[int, float], None] = wait_for_process_exit,
     launcher: Callable[..., Any] = subprocess.Popen,
+    icon_cache_refresher: Callable[[], bool] = refresh_windows_icon_cache,
 ) -> int:
     root = Path(update_root or default_update_root())
     result_path: Path | None = None
@@ -964,6 +985,8 @@ def apply_update_plan(
                 "backup_path": str(backup),
             },
         )
+        if platform_name == "windows":
+            icon_cache_refresher()
         _launch_application(target, project_root, launcher=launcher)
         return 0
     except Exception as exc:

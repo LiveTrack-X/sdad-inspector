@@ -52,7 +52,7 @@ function relationshipLabel(kind: string, t: Translate): string {
 function relationshipSelectionId(snapshot: Snapshot, path: string | null): string | null {
   if (!path || !path.toLocaleLowerCase().endsWith(".md")) return null;
   if (path === snapshot.state.active_spec?.path) return "spec";
-  if (path === "docs/TODO-Open-Items.md") return "todo";
+  if (path === snapshot.protocol.todo_path) return "todo";
   const eligible = new Set([
     ...snapshot.state.routed_docs,
     snapshot.state.current_handoff?.path,
@@ -122,7 +122,7 @@ function StateView({ snapshot }: { snapshot: Snapshot }) {
         <h2 id="version-contract-heading">{t("versionContracts")}</h2>
         <FactList facts={[
           { label: t("inspectorVersion"), value: snapshot.inspector_version, mono: true },
-          { label: t("engineVersion"), value: `SDAD ${snapshot.engine.doctor_version}`, mono: true },
+          { label: t("engineVersion"), value: snapshot.protocol.engine_display_name, mono: true },
           { label: t("reportSchema"), value: snapshot.contracts.report_schema_version, mono: true },
           { label: t("snapshotSchemaLabel"), value: snapshot.snapshot_schema_version, mono: true },
         ]} />
@@ -241,10 +241,10 @@ function HandoffView({ snapshot }: { snapshot: Snapshot }) {
 }
 
 function evidencePath(selectedId: string, snapshot: Snapshot): string | null {
-  if (selectedId === "evidence-state") return "sdad-state.yaml";
+  if (selectedId === "evidence-state") return snapshot.protocol.state_path;
   if (selectedId === "evidence-spec") return snapshot.state.active_spec?.path ?? null;
-  if (selectedId === "evidence-todo") return "docs/TODO-Open-Items.md";
-  if (selectedId === "evidence-findings") return "review-findings.md";
+  if (selectedId === "evidence-todo") return snapshot.protocol.todo_path;
+  if (selectedId === "evidence-findings") return snapshot.protocol.findings_path;
   if (selectedId === "evidence-handoff") return snapshot.state.current_handoff?.path ?? null;
   return null;
 }
@@ -275,7 +275,7 @@ function EvidenceView({ snapshot, selectedId, selection }: { snapshot: Snapshot;
   const path = evidencePath(selectedId, snapshot);
   const metadata = path ? snapshot.evidence.files[path] : undefined;
   const facts: Fact[] = selectedId === "evidence-doctor" ? [
-    { label: t("engineVersion"), value: `SDAD ${snapshot.engine.doctor_version}`, mono: true },
+    { label: t("engineVersion"), value: snapshot.protocol.engine_display_name, mono: true },
     { label: t("reportSchema"), value: snapshot.contracts.report_schema_version, mono: true },
     { label: t("doctorExitCode"), value: snapshot.doctor.exit_code, mono: true },
     { label: t("observedValue"), value: snapshot.doctor.completed ? t("completed") : snapshot.inspection_status, mono: true },
@@ -321,6 +321,12 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
   const positive = errors === 0 && warnings === 0;
   return (
     <>
+      <section className="product-banner" aria-label="SDAD Inspector product banner">
+        <img
+          src="/sdad-inspector-banner.png"
+          alt="SDAD Inspector — Read-Only Control Plane for SPEC-Directed AI Development"
+        />
+      </section>
       <section className="packet-section" aria-labelledby="active-packet-heading">
         <p className="section-kicker">{t("activePacket")}</p>
         <div className="packet-heading-row">

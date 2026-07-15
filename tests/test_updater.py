@@ -90,6 +90,7 @@ class VersionAndReleaseTests(unittest.TestCase):
         self.assertLess(parse_public_version("v0.0.1-alpha.3"), parse_public_version("0.0.1-beta.1"))
         self.assertLess(parse_public_version("0.0.1-rc.2"), parse_public_version("0.0.1"))
         self.assertEqual(public_version_from_package("0.0.1a3"), "0.0.1-alpha.3")
+        self.assertEqual(public_version_from_package("0.0.1"), "0.0.1")
 
     def test_selects_exact_newer_immutable_platform_asset(self) -> None:
         selected = select_release(
@@ -355,6 +356,7 @@ class ApplyPlanTests(unittest.TestCase):
             root = Path(raw)
             update_root, plan_path, target, project = self._plan(root)
             launches: list[list[str]] = []
+            icon_refreshes: list[bool] = []
 
             def launcher(command: list[str], **_kwargs: object) -> object:
                 launches.append(command)
@@ -365,6 +367,7 @@ class ApplyPlanTests(unittest.TestCase):
                 update_root=update_root,
                 wait_for_exit=lambda _pid, _timeout: None,
                 launcher=launcher,
+                icon_cache_refresher=lambda: icon_refreshes.append(True) or True,
             )
             self.assertEqual(result, 0)
             self.assertEqual(target.read_bytes(), b"new")
@@ -373,6 +376,10 @@ class ApplyPlanTests(unittest.TestCase):
                 launches,
                 [[str(target.resolve(strict=True)), str(project.resolve(strict=True))]],
             )
+            if normalized_platform() == "windows":
+                self.assertEqual(icon_refreshes, [True])
+            else:
+                self.assertEqual(icon_refreshes, [])
             payload = json.loads((plan_path.parent / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "success")
 
@@ -389,6 +396,7 @@ class ApplyPlanTests(unittest.TestCase):
                 update_root=update_root,
                 wait_for_exit=lambda _pid, _timeout: None,
                 launcher=launcher,
+                icon_cache_refresher=lambda: True,
             )
             self.assertEqual(result, 2)
             self.assertEqual(target.read_bytes(), b"old")

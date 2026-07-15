@@ -25,6 +25,50 @@ remain undeclared/ambiguous. Packet status, Git, timestamps, TODO order, and TOD
 counts are never mapped to a current phase. These optional markers are
 Inspector presentation metadata, not additions to the SDAD state schema.
 
+## Protocol Adapter Boundary
+
+Inspector orchestration does not import the official SDAD engine, state reader,
+document reader, or Rule 5 implementation directly. It resolves one explicit
+`ProtocolAdapter` from the process-local registry and uses that adapter for:
+
+1. engine authentication and version bounds;
+2. Doctor invocation and raw report capture;
+3. Doctor report normalization;
+4. watched control paths and normalized state loading;
+5. live evidence documents and development activity;
+6. optional protocol-specific surfaces such as Rule 5 proposals.
+
+The normalized snapshot records `protocol.adapter_id`, names, source paths,
+capabilities, supported engine/report/state versions, and the canonical control
+loop. The React renderer uses this metadata for visible engine and source labels;
+it does not import adapter code or access the filesystem.
+
+The built-in adapter is `official-sdad-3`. It is the only adapter shipped in the
+0.0.1 portable executable and retains the exact compatibility lane documented
+below. A source-mode host may install another adapter by subclassing
+`sdad_inspector.protocols.ProtocolAdapter`, registering an already imported
+instance, and selecting it explicitly:
+
+```python
+from sdad_inspector import inspect_project, register_protocol_adapter
+
+adapter = MyOrganizationSdadAdapter()
+register_protocol_adapter(adapter)
+snapshot = inspect_project(
+    project_root,
+    engine_checkout,
+    protocol_adapter=adapter.descriptor.adapter_id,
+)
+```
+
+The equivalent CLI selector is `--protocol-adapter <adapter-id>`. Inspector has
+no entry-point discovery, project-local plugin folder, state field, environment
+variable, or routed-document instruction that imports adapter code. An inspected
+repository therefore cannot expand execution authority. Unknown adapters and
+unsupported engine versions fail closed before Doctor execution. Every new
+adapter needs its own immutable engine identity, schema fixtures, no-write tests,
+and bounded platform claims.
+
 ## Released Engine Identities
 
 | Engine | Annotated tag | Peeled commit | Release contract |
@@ -75,8 +119,11 @@ the headless core; they are not silently claimed by this corpus.
 
 The compatibility corpus does not propose or depend on a new SDAD snapshot CLI. The Inspector
 will invoke released Doctor JSON and combine it with separately bounded,
-read-only control-file metadata in an Inspector-owned snapshot schema. It must
-preserve raw Doctor JSON and actual exit code as separate evidence.
+read-only control-file metadata in Inspector-owned snapshot schema 2. Schema 2
+adds the required `protocol` descriptor while preserving raw Doctor JSON and the
+actual exit code as separate evidence. Inspector snapshot schema, Doctor report
+schema, state schema, adapter version lane, and product version remain
+independent contracts.
 
 ## Claim Boundary And Owner Gates
 

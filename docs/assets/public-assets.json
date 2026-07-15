@@ -20,6 +20,16 @@
       "bytes": 151300,
       "width": 512,
       "height": 512
+    },
+    {
+      "path": "web/public/sdad-inspector-banner.png",
+      "source": "imagegen-product-asset",
+      "contains_personal_paths": false,
+      "contains_private_controls": false,
+      "sha256": "b24e15de1bc1f25356348a5d209337432c5d3ca7f7107907c6bfc2ab8231a4bd",
+      "bytes": 789616,
+      "width": 1720,
+      "height": 530
     }
   ]
 }

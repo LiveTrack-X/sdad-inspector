@@ -11,17 +11,22 @@ URL in a native window. PyInstaller produces an unsigned one-file executable
 with CPython 3.12, the web bundle, and the authenticated SDAD 3.2.2 engine
 embedded.
 
+Inspector orchestration reaches that engine through the built-in
+`official-sdad-3` protocol adapter and emits Inspector snapshot schema 2. The
+adapter registry is separate from the renderer and from product update logic;
+the 0.0.1 portable packages do not discover or download additional adapters.
+
 The renderer receives no general Python bridge, filesystem bridge, or subprocess
 capability. The packaged product updater is exposed only through fixed
 authenticated loopback routes; source/browser mode reports it as unsupported.
 
-## Published alpha targets
+## Published release targets
 
 | Platform | UI engine | GitHub runner | Release asset |
 | --- | --- | --- | --- |
-| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.1-alpha.3-windows-x64.zip` |
-| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.1-alpha.3-macos-arm64.tar.gz` |
-| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.1-alpha.3-linux-x64.tar.gz` |
+| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.1-windows-x64.zip` |
+| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.1-macos-arm64.tar.gz` |
+| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.1-linux-x64.tar.gz` |
 
 The table names exact build targets, not every machine supported by the
 operating-system family. pywebview's platform dependencies are documented in
@@ -44,7 +49,7 @@ its [installation guide](https://pywebview.flowrl.com/guide/installation) and
    member type and name, extracts it without product dependency installation,
    and repeats the launch smoke.
 8. For a tagged release, write `SHA256SUMS`, attest all four assets, upload them
-   to a draft prerelease, and publish only after every platform job succeeds.
+   to a draft regular release, and publish only after every platform job succeeds.
 
 PyInstaller resource lookup follows its
 [runtime information guidance](https://pyinstaller.org/en/stable/runtime-information.html).
@@ -65,7 +70,7 @@ restores and relaunches the previous version when possible and blocks automatic
 retry loops.
 
 The product updater never changes the inspected repository or the bundled SDAD
-engine. It is an unsigned-alpha update path, not an installer, signing,
+engine. It is an unsigned-portable update path, not an installer, signing,
 notarization, upgrade/uninstall, or stable-support guarantee.
 
 ## Platform prerequisites
@@ -85,6 +90,6 @@ notarization, upgrade/uninstall, or stable-support guarantee.
 - A passing Windows/macOS/Linux matrix establishes the exact tagged artifacts
   and recorded runner images, not every OS version, security product, display
   server, GPU, filesystem, or physical computer.
-- This alpha remains unsigned and experimental. General support, installer,
+- This release remains unsigned. General support, installer,
   signing/notarization, deployment, package-registry, and stable claims require
   independent evidence and authorization.

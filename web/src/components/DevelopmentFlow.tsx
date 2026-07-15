@@ -40,7 +40,7 @@ function TimeLabel({ value }: { value: string | null }) {
   return <time className="time-label" dateTime={value} title={formatAbsolute(value, locale)}>{formatRelative(value, locale)}</time>;
 }
 
-function WorkChecklist({ work, showCurrent = true }: { work: PacketWorkItem[]; showCurrent?: boolean }) {
+function WorkChecklist({ work, todoPath, showCurrent = true }: { work: PacketWorkItem[]; todoPath: string; showCurrent?: boolean }) {
   const { t } = useI18n();
   const currentItems = work.filter((item) => item.current && !item.completed);
   const open = work.filter((item) => !item.completed && !item.current);
@@ -51,7 +51,7 @@ function WorkChecklist({ work, showCurrent = true }: { work: PacketWorkItem[]; s
     <section className="packet-work" aria-labelledby="packet-work-heading">
       <div className="section-heading-row">
         <h2 id="packet-work-heading">{t("packetTodo")}</h2>
-        <span className="source-chip">docs/TODO-Open-Items.md</span>
+        <span className="source-chip" title={todoPath}>{todoPath}</span>
       </div>
       {!work.length ? <p className="empty-copy">{t("noPacketTaggedWork")}</p> : (
         <>
@@ -114,7 +114,7 @@ function CurrentWorkPanel({ snapshot, work }: { snapshot: Snapshot; work: Packet
   const { t } = useI18n();
   const packet = snapshot.state.active_packet;
   const currentItems = work.filter((item) => item.current && !item.completed);
-  const currentStage = currentControlStage(work);
+  const currentStage = currentControlStage(work, snapshot.protocol.todo_path);
   const phaseLabel = currentStage.status === "declared" && currentStage.id
     ? controlStageLabel(currentStage.id, t)
     : currentStage.status === "ambiguous"
@@ -124,7 +124,7 @@ function CurrentWorkPanel({ snapshot, work }: { snapshot: Snapshot; work: Packet
     <section className="declared-work-section" aria-labelledby="declared-work-heading">
       <div className="section-heading-row flow-heading-row">
         <div><h2 id="declared-work-heading">{t("currentDeclaredWork")}</h2><p>{t("currentDeclaredWorkNote")}</p></div>
-        <span className="source-chip">sdad-state.yaml + TODO</span>
+        <span className="source-chip" title={`${snapshot.protocol.state_path} + ${snapshot.protocol.todo_path}`}>{snapshot.protocol.state_path} + TODO</span>
       </div>
       <div className="declared-work-grid">
         <article className="active-packet-card">
@@ -246,11 +246,11 @@ function ActivityLists({ activity, limit = 12, lensFilter = null, onClearLensFil
   );
 }
 
-export function PacketEvidencePanel({ activity, work }: { snapshot: Snapshot; documents: LiveDocuments | null; activity: DevelopmentActivity | null; work: PacketWorkItem[] }) {
+export function PacketEvidencePanel({ snapshot, activity, work }: { snapshot: Snapshot; documents: LiveDocuments | null; activity: DevelopmentActivity | null; work: PacketWorkItem[] }) {
   const { locale, t } = useI18n();
   return (
     <section className="overview-section packet-evidence-section" aria-label={t("packetTodo")}>
-      <WorkChecklist work={work} />
+      <WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} />
       <div className="observed-signal-row">
         <div><span className={`signal-dot ${activity?.worktree_status ?? "unavailable"}`} /><span>{activity?.worktree_status === "changed" ? t("worktreeChanged") : activity?.worktree_status === "clean" ? t("worktreeClean") : t("gitUnavailable")}</span></div>
         {activity && <small>{t("activityFreshness", { time: formatRelative(activity.scanned_at, locale), duration: activity.duration_ms })}</small>}
@@ -280,7 +280,7 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
   const { locale, t } = useI18n();
   const [selectedLens, setSelectedLens] = useState<WorktreeLensId | null>(null);
   const stages = controlLoopSignals(snapshot, documents, activity);
-  const currentStage = currentControlStage(work);
+  const currentStage = currentControlStage(work, snapshot.protocol.todo_path);
   const branches = conditionalBranchSignals(snapshot, documents, activity);
   const lenses = worktreeLensSignals(activity);
   const ownerGate = branches.find((branch) => branch.id === "owner_gate")!;
@@ -296,7 +296,7 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
       <CurrentWorkPanel snapshot={snapshot} work={work} />
 
       <section className="official-flow-section" aria-labelledby="official-flow-heading">
-        <div className="section-heading-row flow-heading-row"><div><h2 id="official-flow-heading">{t("officialControlLoop")}</h2><p>{t("officialControlLoopNote")}</p></div><span className="source-chip">SDAD</span></div>
+        <div className="section-heading-row flow-heading-row"><div><h2 id="official-flow-heading">{t("officialControlLoop")}</h2><p>{t("officialControlLoopNote")}</p></div><span className="source-chip" title={snapshot.protocol.adapter_id}>{snapshot.protocol.engine_name}</span></div>
         <div className="flow-rail official-flow-rail" aria-label={t("officialControlLoop")}>
           {stages.map((stage, index) => (
             <article className={`flow-stage evidence-${stage.status} ${currentStage.id === stage.id ? "is-current" : ""}`} key={stage.id} aria-current={currentStage.id === stage.id ? "step" : undefined}>
@@ -333,7 +333,7 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
         <div className={`flow-filter-status ${selectedLens ? "active" : ""}`}><FunnelSimple size={16} /><span>{selectedLens ? t("lensFilterActive", { lens: lensLabel(selectedLens, t) }) : t("lensFilterHint")}</span></div>
       </section>
 
-      <section className="development-work-section"><WorkChecklist work={work} showCurrent={false} /></section>
+      <section className="development-work-section"><WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} showCurrent={false} /></section>
       <ActivityLists activity={activity} limit={20} lensFilter={selectedLens} onClearLensFilter={() => setSelectedLens(null)} />
       <div className="info-note development-note"><Info size={20} /><p>{t("observedWhileActive")} {t("timestampBasis")}</p></div>
     </div>

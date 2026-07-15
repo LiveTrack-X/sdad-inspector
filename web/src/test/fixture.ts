@@ -1,13 +1,28 @@
 import type { DevelopmentActivity, LiveDocuments, Rule5Candidates, Snapshot } from "../types";
 
 export const snapshotFixture: Snapshot = {
-  snapshot_schema_version: 1,
-  inspector_version: "0.0.1a3",
+  snapshot_schema_version: 2,
+  inspector_version: "0.0.1",
   inspection_id: "fixture-inspection",
   inspected_at: "2026-07-15T06:00:00Z",
   inspection_status: "completed",
   read_only: true,
   project: { root: "C:\\work\\sdad-project", name: "sdad-project", identity: "fixture" },
+  protocol: {
+    adapter_id: "official-sdad-3",
+    protocol_name: "Official SDAD Protocol",
+    engine_name: "SDAD",
+    engine_display_name: "SDAD 3.2.2",
+    doctor_entrypoint: "scripts/sdad.py",
+    state_path: "sdad-state.yaml",
+    todo_path: "docs/TODO-Open-Items.md",
+    findings_path: "review-findings.md",
+    supported_engine_versions: ["3.2.1", "3.2.2"],
+    supported_report_schemas: [1, 2],
+    supported_state_schemas: [1, 2],
+    normalized_control_loop: ["Plan", "Route", "Implement", "Verify", "Report"],
+    capabilities: ["doctor", "control-state", "live-documents", "development-activity", "rule5-proposals"],
+  },
   engine: {
     checkout: "C:\\engines\\sdad-v3.2.2",
     doctor_version: "3.2.2",
@@ -21,7 +36,7 @@ export const snapshotFixture: Snapshot = {
     doctor_version: "3.2.2",
     report_schema_version: 2,
     state_schema_version: 2,
-    snapshot_schema_version: 1,
+    snapshot_schema_version: 2,
   },
   doctor: {
     report_schema_version: 2,

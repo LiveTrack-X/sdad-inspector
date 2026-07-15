@@ -28,6 +28,21 @@ export interface Snapshot {
     name: string;
     identity: string;
   };
+  protocol: {
+    adapter_id: string;
+    protocol_name: string;
+    engine_name: string;
+    engine_display_name: string;
+    doctor_entrypoint: string;
+    state_path: string;
+    todo_path: string;
+    findings_path: string;
+    supported_engine_versions: string[];
+    supported_report_schemas: number[];
+    supported_state_schemas: number[];
+    normalized_control_loop: string[];
+    capabilities: string[];
+  };
   engine: {
     checkout: string;
     doctor_version: string;

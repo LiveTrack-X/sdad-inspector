@@ -8,7 +8,7 @@ Status: Active implementation inventory
 - Workspace: three panes at desktop widths; repository 31%, overview 38%,
   inspector 31%, each separated by a 1 px cool-gray rule.
 - Provenance bar: 36 px high and pinned to the viewport bottom.
-- Below 1080 px the Inspector becomes a drawer/tab surface. Below 720 px the
+- Below 1180 px the Inspector becomes a drawer/tab surface. Below 760 px the
   repository becomes a dismissible navigation panel and the Overview remains
   primary.
 
@@ -35,16 +35,22 @@ size is 14 px, compact labels are 12 px, and the active packet title is 22 px.
 
 ## Components And States
 
-- `CommandBar`: app identity, current root, engine version, re-scan, reveal,
-  copy, overflow, and an explicit product-update check. Re-scan exposes busy
-  state and result announcement.
+- `CommandBar`: app identity, current root, adapter-supplied engine label,
+  re-scan, reveal, copy, overflow, and an explicit product-update check. The
+  path and engine label are shrink-safe and secondary action labels collapse
+  before they can overlap. Re-scan exposes busy state and result announcement.
 - `UpdateNotice`: compact checking/downloading/progress/ready/countdown/apply/
   success/error states. The verified-ready state defaults to automatic restart
   but keeps Update now and Later controls visible.
 - `RepositoryTree`: filter input, expandable groups, selection, counts, status
-  text, keyboard arrow navigation, empty-filter message.
+  text, keyboard arrow navigation, empty-filter message. Full label/value text
+  remains available through titles; at a resized pane width of 310 px or less,
+  values move below labels instead of colliding.
 - `Overview`: active packet/status, objective, Doctor summary, relationships,
-  and validation declarations with a persistent not-executed notice.
+  and validation declarations with a persistent not-executed notice. Its
+  generated one-line product banner uses the established navy/cyan identity and
+  four version-neutral capability chips, scales at its intrinsic aspect ratio,
+  and never replaces live packet/TODO evidence.
 - `DevelopmentFlow`: exact `Plan → Route → Implement → Verify → Report` rail,
   conditional Gate/Handoff cards, neutral evidence states, an active-packet
   summary, explicit-only current TODO/phase emphasis, openable bounded evidence
@@ -53,11 +59,12 @@ size is 14 px, compact labels are 12 px, and the active packet title is 22 px.
 - `DocumentViewer`: bounded Markdown content, routed-document navigation, safe
   image fallbacks, and no HTML/script or automatic remote-image execution.
 - `InspectorPane`: Inspector/Raw JSON tabs, selected field provenance, owner
-  gates, safe actions, copy feedback.
+  gates, safe actions, copy feedback. Long owner-gate names and unobserved
+  status text use two explicit rows so neither column can overlap the other.
 - `StatusBar`: Doctor/report/state versions, exit code, inspected time, lock.
 - `ProjectDialog`: canonical path input and explicit open action.
 - `StateSurface`: loading, unsupported/error, stale, no state, and retry.
 
-Phosphor is the UI control icon family; the generated PNG is the product brand
-mark rather than a control icon. State never relies on color alone. All
+Phosphor is the UI control icon family; the generated logo and banner PNGs are
+product brand assets rather than control icons. State never relies on color alone. All
 interactive elements expose a visible focus indicator and accessible name.

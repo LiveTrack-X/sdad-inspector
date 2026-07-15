@@ -69,7 +69,11 @@ export function InspectorPane({ snapshot, selection, onReveal, onCopy, mobileOpe
             </div>
             {gates.length ? (
               <ul>
-                {gates.map((gate) => <li key={gate}><span className="gate-square" /><span>{gateLabel(gate, t)}</span><strong>{t("approvalUnobserved")}</strong></li>)}
+                {gates.map((gate) => {
+                  const label = gateLabel(gate, t);
+                  const status = t("approvalUnobserved");
+                  return <li key={gate}><span className="gate-square" /><span className="gate-label" title={label}>{label}</span><strong className="gate-status" title={status}>{status}</strong></li>;
+                })}
               </ul>
             ) : <p className="empty-copy">{t("noOwnerGate")}</p>}
             <p className="gate-note">{t("ownerGateNote")}</p>

@@ -12,7 +12,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+-alpha\.\d+$")
+RELEASE_VERSION_PATTERN = re.compile(
+    r"^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$"
+)
 PLATFORMS = {"linux", "macos", "windows"}
 
 
@@ -90,7 +92,9 @@ def build_release_archive(
     if platform_name not in PLATFORMS:
         raise ValueError(f"Unsupported release platform: {platform_name}")
     if not RELEASE_VERSION_PATTERN.fullmatch(version):
-        raise ValueError(f"Release version must use X.Y.Z-alpha.N: {version}")
+        raise ValueError(
+            f"Release version must use X.Y.Z or X.Y.Z-alpha.N/beta.N/rc.N: {version}"
+        )
     architecture = normalized_architecture(architecture)
     source = release_source(dist_root.resolve(strict=True), platform_name)
     output_dir.mkdir(parents=True, exist_ok=True)

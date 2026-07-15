@@ -36,7 +36,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1-alpha.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     }));
   });
@@ -52,14 +52,28 @@ describe("Split Inspector", () => {
     expect(screen.getByRole("button", { name: "AUTO 15s" })).toHaveAttribute("aria-label", "AUTO 15s");
     expect(screen.getByRole("button", { name: "Re-scan" })).toHaveAttribute("aria-label", "Re-scan");
     expect(document.querySelector('.brand-mark img')).toHaveAttribute("src", "/sdad-inspector-logo.png");
+    expect(screen.getByRole("img", { name: "SDAD Inspector — Read-Only Control Plane for SPEC-Directed AI Development" })).toHaveAttribute("src", "/sdad-inspector-banner.png");
     const request = vi.mocked(fetch).mock.calls[0];
     const headers = new Headers(request[1]?.headers);
     expect(headers.get("X-SDAD-Session")).toBe("test-session-token");
   });
 
+  it("keeps crowded engine, tree, and owner-gate text available without collision-only labels", async () => {
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "SI-003-browser-mvp" })).toBeVisible();
+    expect(screen.getByTitle("Official SDAD Protocol · official-sdad-3")).toHaveTextContent("SDAD 3.2.2");
+
+    const tree = screen.getByRole("complementary", { name: "Repository controls" });
+    expect(within(tree).getByTitle("SPEC/SPEC-COMPLETE.md")).toBeVisible();
+    expect(within(tree).getByTitle("SI-003-browser-mvp")).toBeVisible();
+
+    const inspector = screen.getByRole("complementary", { name: "Inspector details" });
+    expect(within(inspector).getAllByTitle("Approval unobserved")).toHaveLength(4);
+  });
+
   it("shows a verified product update and starts the replacement handoff", async () => {
     const user = userEvent.setup();
-    const ready = { supported: true, automatic: true, current_version: "0.0.1-alpha.3", state: "ready", available_version: "0.0.1-alpha.4", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.4", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-15T00:00:00Z", message: "ready", error: null };
+    const ready = { supported: true, automatic: true, current_version: "0.0.1", state: "ready", available_version: "0.0.2", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.2", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-16T00:00:00Z", message: "ready", error: null };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
@@ -71,7 +85,7 @@ describe("Split Inspector", () => {
       return jsonResponse();
     });
     renderApp();
-    expect(await screen.findByText("SDAD Inspector 0.0.1-alpha.4 is verified and ready")).toBeVisible();
+    expect(await screen.findByText("SDAD Inspector 0.0.2 is verified and ready")).toBeVisible();
     expect(screen.getByText(/replace this portable executable in \d+ seconds/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Restart and update" }));
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([path]) => path === "/api/update/apply")).toBe(true));
@@ -440,7 +454,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1-alpha.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
 
@@ -567,7 +581,7 @@ describe("Split Inspector", () => {
     renderApp();
     await screen.findByRole("heading", { name: "SI-003-browser-mvp" });
     await user.click(screen.getByRole("tab", { name: "Raw JSON" }));
-    expect(screen.getByText(/"snapshot_schema_version": 1/)).toBeVisible();
+    expect(screen.getByText(/"snapshot_schema_version": 2/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Copy JSON" })).toBeEnabled();
   });
 
@@ -693,7 +707,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1-alpha.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
     renderApp();

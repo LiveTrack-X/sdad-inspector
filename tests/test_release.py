@@ -31,13 +31,13 @@ class ReleasePackagingTests(unittest.TestCase):
             dist_root=self.dist,
             output_dir=self.output,
             platform_name="windows",
-            version="0.0.1-alpha.3",
+            version="0.0.1",
             architecture="X64",
         )
 
         archive = Path(str(evidence["archive"]))
         self.assertEqual(
-            archive.name, "SDAD-Inspector-0.0.1-alpha.3-windows-x64.zip"
+            archive.name, "SDAD-Inspector-0.0.1-windows-x64.zip"
         )
         self.assertEqual(len(str(evidence["sha256"])), 64)
         self.assertTrue(evidence["unsigned"])
@@ -63,13 +63,13 @@ class ReleasePackagingTests(unittest.TestCase):
             dist_root=self.dist,
             output_dir=self.output,
             platform_name="macos",
-            version="0.0.1-alpha.3",
+            version="0.0.1",
             architecture="ARM64",
         )
 
         archive = Path(str(evidence["archive"]))
         self.assertEqual(
-            archive.name, "SDAD-Inspector-0.0.1-alpha.3-macos-arm64.tar.gz"
+            archive.name, "SDAD-Inspector-0.0.1-macos-arm64.tar.gz"
         )
         with tarfile.open(archive, "r:gz") as bundled:
             self.assertEqual(bundled.getnames(), ["SDAD-Inspector"])
@@ -91,9 +91,9 @@ class ReleasePackagingTests(unittest.TestCase):
     def test_checksum_manifest_requires_one_archive_per_platform(self) -> None:
         self.output.mkdir(parents=True)
         for name in (
-            "SDAD-Inspector-0.0.1-alpha.3-linux-x64.tar.gz",
-            "SDAD-Inspector-0.0.1-alpha.3-macos-arm64.tar.gz",
-            "SDAD-Inspector-0.0.1-alpha.3-windows-x64.zip",
+            "SDAD-Inspector-0.0.1-linux-x64.tar.gz",
+            "SDAD-Inspector-0.0.1-macos-arm64.tar.gz",
+            "SDAD-Inspector-0.0.1-windows-x64.zip",
         ):
             (self.output / name).write_text(name, encoding="utf-8")
 

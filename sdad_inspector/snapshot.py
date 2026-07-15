@@ -8,12 +8,11 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from . import __version__
-from .adapters import adapt_doctor_report
-from .engine import EngineInfo, probe_engine, run_doctor
+from .engine import EngineInfo
 from .paths import canonical_directory, control_fingerprint
-from .state import load_control_state, peek_control_paths
+from .protocols import ProtocolAdapterReference, resolve_protocol_adapter
 
-SNAPSHOT_SCHEMA_VERSION = 1
+SNAPSHOT_SCHEMA_VERSION = 2
 ProgressCallback = Callable[[str, str, str], None]
 
 
@@ -68,23 +67,30 @@ def inspect_project(
     timeout: float = 30,
     strict: bool = True,
     _engine_info: EngineInfo | None = None,
+    protocol_adapter: ProtocolAdapterReference = None,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     root = canonical_directory(project_root, label="Project root")
     _progress(progress_callback, "prepare", ".", "project_boundary_ready")
-    engine = _engine_info or probe_engine(sdad_checkout, timeout=min(timeout, 10))
-    watched_paths = peek_control_paths(root)
+    adapter = resolve_protocol_adapter(protocol_adapter)
+    engine = _engine_info or adapter.probe_engine(
+        sdad_checkout,
+        timeout=min(timeout, 10),
+    )
+    adapter.validate_engine(engine)
+    watched_paths = adapter.peek_control_paths(root)
     before = control_fingerprint(root, watched_paths)
 
-    _progress(progress_callback, "doctor", "scripts/sdad.py", "doctor_started")
-    doctor_run = run_doctor(engine, root, timeout=timeout, strict=strict)
-    doctor = adapt_doctor_report(
+    doctor_source = adapter.descriptor.doctor_entrypoint
+    _progress(progress_callback, "doctor", doctor_source, "doctor_started")
+    doctor_run = adapter.run_doctor(engine, root, timeout=timeout, strict=strict)
+    doctor = adapter.adapt_doctor_report(
         doctor_run.report,
         engine_version=engine.doctor_version,
         expected_root=root,
     )
-    _progress(progress_callback, "doctor", "scripts/sdad.py", "doctor_completed")
-    state, evidence_files = load_control_state(
+    _progress(progress_callback, "doctor", doctor_source, "doctor_completed")
+    state, evidence_files = adapter.load_control_state(
         root,
         observer=lambda source: _progress(
             progress_callback, "controls", source, "control_source_read"
@@ -130,6 +136,9 @@ def inspect_project(
             "name": root.name,
             "identity": _project_identity(root),
         },
+        "protocol": adapter.descriptor.to_snapshot(
+            engine_version=engine.doctor_version,
+        ),
         "engine": engine.to_dict(),
         "contracts": {
             "doctor_version": engine.doctor_version,

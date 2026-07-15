@@ -136,6 +136,16 @@ def main(argv: list[str] | None = None) -> int:
         require(snapshot_status == 200, "Authenticated snapshot route failed.")
         snapshot = json.loads(snapshot_body)
         require(snapshot["read_only"] is True, "Snapshot lost its read-only marker.")
+        require(snapshot["snapshot_schema_version"] == 2, "Snapshot schema 2 is missing.")
+        require(
+            snapshot["protocol"]["adapter_id"] == "official-sdad-3",
+            "The built-in protocol adapter identity was lost.",
+        )
+        require(
+            snapshot["protocol"]["normalized_control_loop"]
+            == ["Plan", "Route", "Implement", "Verify", "Report"],
+            "The protocol adapter control-loop contract changed.",
+        )
         require(snapshot["doctor"]["exit_code"] in {0, 1, 2}, "Doctor exit code was lost.")
         require(api_headers.get("Cache-Control") == "no-store", "API caching is not disabled.")
 
@@ -146,8 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         documents = json.loads(documents_body)
         allowed_paths = {
             snapshot["state"]["active_spec"]["path"],
-            "docs/TODO-Open-Items.md",
-            "review-findings.md",
+            snapshot["protocol"]["todo_path"],
+            snapshot["protocol"]["findings_path"],
             *snapshot["state"]["routed_docs"],
         }
         require(

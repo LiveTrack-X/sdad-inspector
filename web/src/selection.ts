@@ -8,7 +8,7 @@ function inspected(snapshot: Snapshot): string {
 
 export function documentPathForSelection(snapshot: Snapshot, id: string): string | null {
   if (id === "spec") return snapshot.state.active_spec?.path ?? null;
-  if (id === "todo") return "docs/TODO-Open-Items.md";
+  if (id === "todo") return snapshot.protocol.todo_path;
   if (id.startsWith("doc:")) {
     try { return decodeURIComponent(id.slice(4)); } catch { return null; }
   }
@@ -17,7 +17,7 @@ export function documentPathForSelection(snapshot: Snapshot, id: string): string
 
 export function documentSelectionId(snapshot: Snapshot, path: string): string {
   if (path === snapshot.state.active_spec?.path) return "spec";
-  if (path === "docs/TODO-Open-Items.md") return "todo";
+  if (path === snapshot.protocol.todo_path) return "todo";
   return `doc:${encodeURIComponent(path)}`;
 }
 
@@ -25,6 +25,9 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
   const packet = snapshot.state.active_packet;
   const spec = snapshot.state.active_spec;
   const handoff = snapshot.state.current_handoff;
+  const statePath = snapshot.protocol.state_path;
+  const todoPath = snapshot.protocol.todo_path;
+  const findingsPath = snapshot.protocol.findings_path;
   const base = {
     id,
     freshness: inspected(snapshot),
@@ -36,11 +39,11 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
     return {
       ...base,
       label: documentPath ?? t("documents"),
-      authority: "sdad-state.yaml#routed_docs",
+      authority: `${statePath}#routed_docs`,
       observed: t("liveDocument"),
-      sourcePath: documentPath ?? "sdad-state.yaml",
+      sourcePath: documentPath ?? statePath,
       remediation: t("clickToRead"),
-      revealPath: documentPath ?? "sdad-state.yaml",
+      revealPath: documentPath ?? statePath,
     };
   }
   switch (id) {
@@ -48,11 +51,11 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
       return {
         ...base,
         label: t("overview"),
-        authority: "sdad-state.yaml#active_packet",
+        authority: `${statePath}#active_packet`,
         observed: packet?.status ?? t("notDeclared"),
-        sourcePath: "sdad-state.yaml",
+        sourcePath: statePath,
         remediation: packet ? t("statusDeclared") : t("declareActivePacket"),
-        revealPath: "sdad-state.yaml",
+        revealPath: statePath,
       };
     case "development":
       return {
@@ -68,42 +71,42 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
       return {
         ...base,
         label: t("rule5Title"),
-        authority: "review-findings.md#Active Findings",
+        authority: `${findingsPath}#Active Findings`,
         observed: t("rule5CandidateCaveat"),
-        sourcePath: "review-findings.md",
+        sourcePath: findingsPath,
         remediation: t("rule5Description"),
-        revealPath: "review-findings.md",
+        revealPath: findingsPath,
       };
     case "state":
       return {
         ...base,
         label: t("state"),
-        authority: "sdad-state.yaml",
+        authority: statePath,
         observed: packet?.status ?? t("unavailable"),
-        sourcePath: "sdad-state.yaml#active_packet.status",
+        sourcePath: `${statePath}#active_packet.status`,
         remediation: packet ? t("stateReadSuccess") : t("createReadableState"),
-        revealPath: "sdad-state.yaml",
+        revealPath: statePath,
       };
     case "spec":
       return {
         ...base,
         label: t("activeSpec"),
-        authority: "sdad-state.yaml#active_spec",
+        authority: `${statePath}#active_spec`,
         observed: spec?.path ?? t("notDeclared"),
-        sourcePath: spec?.path ?? "sdad-state.yaml",
+        sourcePath: spec?.path ?? statePath,
         remediation: spec?.exists ? t("declaredSpecExists") : t("restoreDeclaredSpec"),
-        revealPath: spec?.path ?? "sdad-state.yaml",
+        revealPath: spec?.path ?? statePath,
       };
     case "todo":
       const packetOpen = packetWork.filter((item) => !item.completed).length;
       return {
         ...base,
         label: t("activeTodo"),
-        authority: "docs/TODO-Open-Items.md#Active Work",
+        authority: `${todoPath}#Active Work`,
         observed: t(packetOpen === 1 ? "openItemOne" : "openItemMany", { count: packetOpen }),
-        sourcePath: "docs/TODO-Open-Items.md",
+        sourcePath: todoPath,
         remediation: t("reviewOpenWork"),
-        revealPath: "docs/TODO-Open-Items.md",
+        revealPath: todoPath,
       };
     case "findings-errors":
     case "findings-warnings":
@@ -138,17 +141,17 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
       return {
         ...base,
         label: t("currentHandoff"),
-        authority: "sdad-state.yaml#current_handoff",
+        authority: `${statePath}#current_handoff`,
         observed: handoff?.declared ? (handoff.exists ? t("declaredPresent") : t("declaredMissing")) : t("notDeclared"),
-        sourcePath: handoff?.path ?? "sdad-state.yaml",
+        sourcePath: handoff?.path ?? statePath,
         remediation: handoff?.declared && !handoff.exists ? t("restoreOrClearHandoff") : t("noHandoffAction"),
-        revealPath: handoff?.path ?? "sdad-state.yaml",
+        revealPath: handoff?.path ?? statePath,
       };
     case "evidence-doctor":
       return {
         ...base,
         label: t("doctorReport"),
-        authority: `SDAD Doctor ${snapshot.engine.doctor_version}`,
+        authority: `${snapshot.protocol.engine_display_name} Doctor`,
         observed: t("exitAndSchema", { exit: snapshot.doctor.exit_code, schema: snapshot.contracts.report_schema_version }),
         sourcePath: t("inMemoryDoctorJson"),
         remediation: t("rawEvidencePreserved"),
@@ -170,9 +173,9 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         label: t("stateEvidence"),
         authority: t("repositoryControlState"),
         observed: snapshot.state.available ? t("stateSchemaValue", { schema: snapshot.state.schema_version ?? "—" }) : t("missing"),
-        sourcePath: "sdad-state.yaml",
+        sourcePath: statePath,
         remediation: snapshot.state.available ? t("boundedStateRead") : t("createReadableStateShort"),
-        revealPath: "sdad-state.yaml",
+        revealPath: statePath,
       };
     case "evidence-spec":
       return { ...selectionFor(snapshot, "spec", t, packetWork), id };
@@ -182,11 +185,11 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
       return {
         ...base,
         label: t("reviewFindingsEvidence"),
-        authority: "review-findings.md#Active Findings",
+        authority: `${findingsPath}#Active Findings`,
         observed: t("openCount", { count: snapshot.state.ledger.review_findings_open }),
-        sourcePath: "review-findings.md",
+        sourcePath: findingsPath,
         remediation: t("reviewPacketFindings"),
-        revealPath: "review-findings.md",
+        revealPath: findingsPath,
       };
     case "evidence-handoff":
       return { ...selectionFor(snapshot, "handoff", t, packetWork), id };
@@ -206,11 +209,11 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         ...base,
         id: "packet",
         label: t("activePacket"),
-        authority: "sdad-state.yaml#active_packet",
+        authority: `${statePath}#active_packet`,
         observed: packet?.status ?? t("notDeclared"),
-        sourcePath: "sdad-state.yaml#active_packet.status",
+        sourcePath: `${statePath}#active_packet.status`,
         remediation: packet ? t("statusDeclared") : t("declareActivePacket"),
-        revealPath: "sdad-state.yaml",
+        revealPath: statePath,
       };
   }
 }

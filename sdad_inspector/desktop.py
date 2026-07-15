@@ -10,6 +10,7 @@ from typing import Any
 from .engine import EngineInfo
 from .dialogs import read_clipboard_text
 from .errors import InspectorError
+from .protocols import ProtocolAdapterReference
 from .server import InspectorHTTPServer, InspectorService, create_server
 
 
@@ -70,11 +71,13 @@ class DesktopApplication:
         *,
         port: int = 0,
         engine_info: EngineInfo | None = None,
+        protocol_adapter: ProtocolAdapterReference = None,
     ) -> None:
         service = InspectorService(
             project_root,
             sdad_checkout,
             engine_info=engine_info,
+            protocol_adapter=protocol_adapter,
         )
         self.service = service
         self.server: InspectorHTTPServer = create_server(service, web_root, port=port)
@@ -198,6 +201,7 @@ def run_desktop(
     hidden: bool = False,
     smoke_seconds: float | None = None,
     port: int = 0,
+    protocol_adapter: ProtocolAdapterReference = None,
 ) -> int:
     resolved_web, resolved_engine = resolve_resources(
         sdad_checkout=sdad_checkout,
@@ -208,5 +212,6 @@ def run_desktop(
         resolved_engine,
         resolved_web,
         port=port,
+        protocol_adapter=protocol_adapter,
     )
     return application.run(hidden=hidden, smoke_seconds=smoke_seconds)

@@ -73,7 +73,9 @@ export function CommandBar({
       <span className="command-divider engine-divider" />
       <div className="engine-label">
         <span>{t("engine")}</span>
-        <strong>SDAD {snapshot.engine.doctor_version}</strong>
+        <strong title={`${snapshot.protocol.protocol_name} · ${snapshot.protocol.adapter_id}`}>
+          {snapshot.protocol.engine_display_name}
+        </strong>
       </div>
       <div className="command-actions">
         <div className="scan-mode-control" role="group" aria-label={t("autoRescan")}>

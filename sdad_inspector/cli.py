@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from . import __version__
 from .errors import InspectorError
+from .protocols import DEFAULT_PROTOCOL_ADAPTER_ID
 from .report import generate_static_report
 from .server import serve_browser
 from .snapshot import inspect_project
@@ -25,6 +26,11 @@ def _parser() -> argparse.ArgumentParser:
         "--sdad-checkout", required=True, help="clean released SDAD checkout or release archive"
     )
     inspect.add_argument("--timeout", type=float, default=30.0)
+    inspect.add_argument(
+        "--protocol-adapter",
+        default=DEFAULT_PROTOCOL_ADAPTER_ID,
+        help="explicitly installed protocol adapter ID",
+    )
     inspect.add_argument("--no-strict", action="store_true")
     inspect.add_argument("--pretty", action="store_true")
     serve = subcommands.add_parser("serve", help="run the loopback browser application")
@@ -35,6 +41,11 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument("--web-root", default="web/dist", help="built frontend directory")
     serve.add_argument("--port", type=int, default=0, help="loopback port; 0 chooses a free port")
     serve.add_argument("--no-browser", action="store_true")
+    serve.add_argument(
+        "--protocol-adapter",
+        default=DEFAULT_PROTOCOL_ADAPTER_ID,
+        help="explicitly installed protocol adapter ID",
+    )
     report = subcommands.add_parser("report", help="write an offline sanitized HTML report")
     report.add_argument("project_root", help="SDAD project root to inspect")
     report.add_argument(
@@ -44,6 +55,11 @@ def _parser() -> argparse.ArgumentParser:
     report.add_argument("--redact-paths", action="store_true")
     report.add_argument("--redact-evidence", action="store_true")
     report.add_argument("--overwrite", action="store_true")
+    report.add_argument(
+        "--protocol-adapter",
+        default=DEFAULT_PROTOCOL_ADAPTER_ID,
+        help="explicitly installed protocol adapter ID",
+    )
     desktop = subcommands.add_parser("desktop", help="run the optional native preview")
     desktop.add_argument("project_root", help="SDAD project root to inspect")
     desktop.add_argument(
@@ -54,6 +70,11 @@ def _parser() -> argparse.ArgumentParser:
     desktop.add_argument("--hidden", action="store_true", help=argparse.SUPPRESS)
     desktop.add_argument("--smoke-seconds", type=float, help=argparse.SUPPRESS)
     desktop.add_argument("--port", type=int, default=0, help=argparse.SUPPRESS)
+    desktop.add_argument(
+        "--protocol-adapter",
+        default=DEFAULT_PROTOCOL_ADAPTER_ID,
+        help="explicitly installed protocol adapter ID",
+    )
     return parser
 
 
@@ -66,6 +87,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 arguments.sdad_checkout,
                 timeout=arguments.timeout,
                 strict=not arguments.no_strict,
+                protocol_adapter=arguments.protocol_adapter,
             )
         elif arguments.command == "serve":
             return serve_browser(
@@ -74,6 +96,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 arguments.web_root,
                 port=arguments.port,
                 open_browser=not arguments.no_browser,
+                protocol_adapter=arguments.protocol_adapter,
             )
         elif arguments.command == "report":
             payload = generate_static_report(
@@ -83,6 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 redact_paths=arguments.redact_paths,
                 redact_evidence=arguments.redact_evidence,
                 overwrite=arguments.overwrite,
+                protocol_adapter=arguments.protocol_adapter,
             )
         elif arguments.command == "desktop":
             from .desktop import run_desktop
@@ -94,6 +118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 hidden=arguments.hidden,
                 smoke_seconds=arguments.smoke_seconds,
                 port=arguments.port,
+                protocol_adapter=arguments.protocol_adapter,
             )
         else:  # pragma: no cover - argparse enforces the command set.
             raise AssertionError(arguments.command)

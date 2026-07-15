@@ -15,16 +15,15 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import unquote, urlsplit
 
-from .activity import load_development_activity
 from .dialogs import normalize_clipboard_path, read_clipboard_text, select_markdown_export_path, select_project_directory
-from .engine import EngineInfo, probe_engine
+from .engine import EngineInfo
 from .errors import InspectorError
 from .paths import canonical_directory, safe_project_path
 from .preferences import PREFERENCES_SCHEMA_VERSION, RecentProjectsStore
 from .progress import InspectionProgress
-from .rule5 import build_rule5_proposal, extract_rule5_candidates, write_rule5_export
-from .snapshot import inspect_project
-from .state import load_live_documents
+from .protocols import ProtocolAdapterReference, resolve_protocol_adapter
+from .rule5 import write_rule5_export
+from .snapshot import SNAPSHOT_SCHEMA_VERSION, inspect_project
 from .updater import ProductUpdateManager
 
 MAX_REQUEST_BYTES = 64 * 1024
@@ -38,6 +37,7 @@ class InspectorService:
         *,
         timeout: float = 30,
         engine_info: EngineInfo | None = None,
+        protocol_adapter: ProtocolAdapterReference = None,
         project_picker: Callable[[str | None], str | None] | None = None,
         clipboard_reader: Callable[[], str] | None = None,
         preferences_store: RecentProjectsStore | None = None,
@@ -49,7 +49,12 @@ class InspectorService:
         self._progress = InspectionProgress()
         self.timeout = timeout
         self.sdad_checkout = canonical_directory(sdad_checkout, label="SDAD checkout")
-        self.engine = engine_info or probe_engine(self.sdad_checkout)
+        self.protocol_adapter = resolve_protocol_adapter(protocol_adapter)
+        self.engine = engine_info or self.protocol_adapter.probe_engine(
+            self.sdad_checkout,
+            timeout=min(timeout, 10),
+        )
+        self.protocol_adapter.validate_engine(self.engine)
         self._project_picker = project_picker
         self._clipboard_reader = clipboard_reader
         self._recent_projects = preferences_store or RecentProjectsStore()
@@ -69,6 +74,7 @@ class InspectorService:
                 self.sdad_checkout,
                 timeout=self.timeout,
                 _engine_info=self.engine,
+                protocol_adapter=self.protocol_adapter,
                 progress_callback=self._progress.emit,
             )
         except Exception as exc:
@@ -124,12 +130,12 @@ class InspectorService:
     def documents(self) -> dict[str, Any]:
         with self._lock:
             root = self._project_root
-        return load_live_documents(root)
+        return self.protocol_adapter.load_live_documents(root)
 
     def activity(self) -> dict[str, Any]:
         with self._lock:
             root = self._project_root
-        return load_development_activity(root)
+        return self.protocol_adapter.load_development_activity(root)
 
     def recent_projects(self) -> dict[str, Any]:
         return {
@@ -147,7 +153,7 @@ class InspectorService:
     def rule5_candidates(self) -> dict[str, Any]:
         with self._lock:
             root = self._project_root
-        return extract_rule5_candidates(root)
+        return self.protocol_adapter.extract_rule5_candidates(root)
 
     def rule5_preview(self, payload: dict[str, Any]) -> dict[str, str]:
         current = self.rule5_candidates()
@@ -156,7 +162,7 @@ class InspectorService:
         finding_id = payload.get("finding_id")
         if finding_id not in {candidate["finding_id"] for candidate in current["candidates"]}:
             raise InspectorError("The Rule 5 finding is no longer active.")
-        return build_rule5_proposal(payload)
+        return self.protocol_adapter.build_rule5_proposal(payload)
 
     def export_rule5(self, payload: dict[str, Any]) -> dict[str, Any]:
         if payload.get("confirmed") is not True:
@@ -379,7 +385,7 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                     {
                         "status": "ok",
                         "read_only": True,
-                        "snapshot_schema_version": 1,
+                        "snapshot_schema_version": SNAPSHOT_SCHEMA_VERSION,
                     },
                 )
                 return
@@ -568,6 +574,7 @@ def serve_browser(
     *,
     port: int = 0,
     open_browser: bool = True,
+    protocol_adapter: ProtocolAdapterReference = None,
 ) -> int:
     service = InspectorService(
         project_root,
@@ -575,6 +582,7 @@ def serve_browser(
         project_picker=lambda initial: select_project_directory(initial),
         clipboard_reader=read_clipboard_text,
         rule_export_picker=select_markdown_export_path,
+        protocol_adapter=protocol_adapter,
     )
     server = create_server(service, static_root, port=port)
     url = server.origin + "/"

@@ -5,7 +5,7 @@ import subprocess
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .errors import BoundedReadError, InspectorError, PathSafetyError
 from .paths import canonical_directory, read_bounded_text, safe_project_path
@@ -16,6 +16,7 @@ MAX_STATUS_ENTRIES = 160
 MAX_COMMITS = 20
 MAX_HANDOFFS = 16
 GIT_TIMEOUT_SECONDS = 3.0
+StateLoader = Callable[[Path], tuple[dict[str, Any], dict[str, dict[str, object]]]]
 
 
 def _now() -> str:
@@ -257,9 +258,9 @@ def _handoff_candidates(root: Path, state: dict[str, Any]) -> tuple[list[str], s
     return list(dict.fromkeys(candidates)), current_path if isinstance(current_path, str) else None
 
 
-def _handoff_history(root: Path) -> list[dict[str, Any]]:
+def _handoff_history(root: Path, state_loader: StateLoader) -> list[dict[str, Any]]:
     try:
-        state, _ = load_control_state(root)
+        state, _ = state_loader(root)
     except InspectorError:
         return []
     candidates, current_path = _handoff_candidates(root, state)
@@ -300,7 +301,11 @@ def _handoff_history(root: Path) -> list[dict[str, Any]]:
     return records[:MAX_HANDOFFS]
 
 
-def load_development_activity(root: Path) -> dict[str, Any]:
+def load_development_activity(
+    root: Path,
+    *,
+    state_loader: StateLoader = load_control_state,
+) -> dict[str, Any]:
     started = time.perf_counter()
     scanned_at = _now()
     git_root: Path | None = None
@@ -354,6 +359,6 @@ def load_development_activity(root: Path) -> dict[str, Any]:
         "counts": counts,
         "files": files,
         "commits": commits,
-        "handoffs": _handoff_history(root),
+        "handoffs": _handoff_history(root, state_loader),
         "error": error,
     }

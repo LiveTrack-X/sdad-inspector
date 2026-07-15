@@ -34,7 +34,7 @@ export interface CurrentControlStageSignal {
   status: "declared" | "undeclared" | "ambiguous";
   id: ControlLoopStageId | null;
   itemCount: number;
-  sourcePath: "docs/TODO-Open-Items.md";
+  sourcePath: string;
 }
 
 export type WorktreeLensId = "control" | "implementation" | "verification" | "evidence" | "documentation";
@@ -48,16 +48,16 @@ export interface WorktreeLensSignal {
 export const CONTROL_LOOP: ControlLoopStageId[] = ["plan", "route", "implement", "verify", "report"];
 export const WORKTREE_LENSES: WorktreeLensId[] = ["control", "implementation", "verification", "evidence", "documentation"];
 
-export function currentControlStage(work: PacketWorkItem[]): CurrentControlStageSignal {
+export function currentControlStage(work: PacketWorkItem[], todoPath = "docs/TODO-Open-Items.md"): CurrentControlStageSignal {
   const current = work.filter((item) => item.current && !item.completed);
   if (current.length === 0) {
-    return { status: "undeclared", id: null, itemCount: 0, sourcePath: "docs/TODO-Open-Items.md" };
+    return { status: "undeclared", id: null, itemCount: 0, sourcePath: todoPath };
   }
   const phases = new Set(current.map((item) => item.phase).filter((phase): phase is ControlLoopStageId => phase !== null));
   if (current.some((item) => item.phaseConflict || item.phase === null) || phases.size !== 1) {
-    return { status: "ambiguous", id: null, itemCount: current.length, sourcePath: "docs/TODO-Open-Items.md" };
+    return { status: "ambiguous", id: null, itemCount: current.length, sourcePath: todoPath };
   }
-  return { status: "declared", id: Array.from(phases)[0], itemCount: current.length, sourcePath: "docs/TODO-Open-Items.md" };
+  return { status: "declared", id: Array.from(phases)[0], itemCount: current.length, sourcePath: todoPath };
 }
 
 function unique(paths: Array<string | null | undefined>): string[] {
@@ -117,7 +117,7 @@ export function controlLoopSignals(
   activity: DevelopmentActivity | null,
 ): ControlLoopSignal[] {
   const planSources = unique([
-    snapshot.state.available ? "sdad-state.yaml" : null,
+    snapshot.state.available ? snapshot.protocol.state_path : null,
     snapshot.state.active_spec?.path,
   ]);
   const planDeclarations = Number(Boolean(snapshot.state.active_packet)) + Number(Boolean(snapshot.state.active_spec));
@@ -184,7 +184,7 @@ export function controlLoopSignals(
       declaredCount: declaredValidationCount,
       observedCount: executedValidationCount,
       verifiedCount: Number(doctorVerified),
-      sourcePaths: unique(["sdad-state.yaml", snapshot.doctor.root ? "Doctor JSON" : null]),
+      sourcePaths: unique([snapshot.protocol.state_path, snapshot.doctor.root ? "Doctor JSON" : null]),
     };
     return {
       id,
@@ -220,7 +220,7 @@ export function conditionalBranchSignals(
       ),
       declaredCount: snapshot.state.owner_gates.length,
       observedCount: 0,
-      sourcePaths: snapshot.state.owner_gates.length > 0 ? ["sdad-state.yaml#owner_gates"] : [],
+      sourcePaths: snapshot.state.owner_gates.length > 0 ? [`${snapshot.protocol.state_path}#owner_gates`] : [],
     },
     {
       id: "handoff",

@@ -10,8 +10,10 @@ ROOT = Path(SPECPATH).resolve().parent
 ENGINE = Path(os.environ["SDAD_INSPECTOR_ENGINE_DIR"]).resolve(strict=True)
 WEB = (ROOT / "web" / "dist").resolve(strict=True)
 ICON = None
+VERSION_INFO = None
 if sys.platform == "win32":
     ICON = str((ROOT / "packaging" / "sdad-inspector.ico").resolve(strict=True))
+    VERSION_INFO = str((ROOT / "packaging" / "sdad-inspector-version.txt").resolve(strict=True))
 elif sys.platform == "darwin":
     ICON = str((ROOT / "packaging" / "sdad-inspector.icns").resolve(strict=True))
 
@@ -56,4 +58,5 @@ executable = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=ICON,
+    version=VERSION_INFO,
 )

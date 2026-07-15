@@ -10,6 +10,7 @@ from typing import Any
 from .errors import ReportError
 from .paths import canonical_directory
 from .snapshot import inspect_project
+from .protocols import ProtocolAdapterReference
 
 
 def _redact_strings(value: Any, replacements: list[tuple[str, str]]) -> Any:
@@ -88,6 +89,7 @@ def render_static_report(
     packet = state.get("active_packet") or {}
     doctor = data["doctor"]
     project = data["project"]
+    protocol = data.get("protocol") or {}
     contracts = data["contracts"]
     validations = "".join(
         "<li><code>"
@@ -144,7 +146,7 @@ def render_static_report(
     .packet {{ padding:20px }} .kicker {{ margin:0 0 6px; color:#526176; font-weight:700 }} h1 {{ margin:0 0 16px; font-size:24px }} .status {{ color:var(--green); font-family:Consolas,monospace }}
     dl {{ display:grid; grid-template-columns:145px 1fr; margin:0 }} dt,dd {{ margin:0; padding:11px 14px; border-bottom:1px solid #e7ebf1 }} dt {{ color:#526176 }} dd {{ overflow-wrap:anywhere }}
     ul,ol {{ margin:0; padding:0; list-style:none }} .gates li,.validations li {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 16px; padding:11px 14px; border-bottom:1px solid #e7ebf1 }}
-    .gates li {{ grid-template-columns:14px minmax(0,1fr) auto }} .gate-square {{ width:9px; height:9px; margin-top:6px; background:var(--amber) }} .gates strong {{ color:var(--amber) }}
+    .gates li {{ grid-template-columns:14px minmax(0,1fr) }} .gate-square {{ grid-row:1/3; width:9px; height:9px; margin-top:6px; background:var(--amber) }} .gates strong {{ grid-column:2; color:var(--amber); overflow-wrap:anywhere }}
     .validations code {{ overflow-wrap:anywhere }} .validations span {{ grid-column:1; color:#526176; font-size:12px }} .validations strong {{ grid-column:2; grid-row:1/3; align-self:center; color:#526176; font-size:11px }}
     .findings li {{ display:grid; gap:5px; padding:12px 14px; border-bottom:1px solid #e7ebf1 }} .findings code {{ color:var(--blue) }} .findings p {{ margin:0; color:#526176 }} .empty {{ display:block!important; color:#526176 }}
     .limits {{ padding:12px 32px; list-style:disc }} .limits li {{ margin:5px 0 }} details {{ border:1px solid var(--line); background:#fff }} summary {{ padding:14px 16px; cursor:pointer; font-weight:700 }}
@@ -160,6 +162,8 @@ def render_static_report(
       <section><div class="packet"><p class="kicker">Active Packet</p><h1>{_escape(packet.get('id', 'Not declared'))}</h1><p class="status">{_escape(status)}</p><h2>Objective</h2><p>{_escape(packet.get('objective', 'No objective is declared.'))}</p></div></section>
       <section><h2>Provenance</h2><dl>
         <dt>Inspected at</dt><dd>{_escape(data.get('inspected_at'))}</dd>
+        <dt>Protocol adapter</dt><dd><code>{_escape(protocol.get('adapter_id'))}</code></dd>
+        <dt>Engine</dt><dd>{_escape(protocol.get('engine_display_name'))}</dd>
         <dt>Doctor</dt><dd>{_escape(contracts.get('doctor_version'))}</dd>
         <dt>Report schema</dt><dd>{_escape(contracts.get('report_schema_version'))}</dd>
         <dt>State schema</dt><dd>{_escape(contracts.get('state_schema_version'))}</dd>
@@ -267,8 +271,13 @@ def generate_static_report(
     redact_paths: bool = False,
     redact_evidence: bool = False,
     overwrite: bool = False,
+    protocol_adapter: ProtocolAdapterReference = None,
 ) -> dict[str, Any]:
-    snapshot = inspect_project(project_root, sdad_checkout)
+    snapshot = inspect_project(
+        project_root,
+        sdad_checkout,
+        protocol_adapter=protocol_adapter,
+    )
     return write_static_report(
         snapshot,
         output_path,

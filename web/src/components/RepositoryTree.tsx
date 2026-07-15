@@ -49,6 +49,7 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
   const errorCount = snapshot.doctor.findings.filter((item) => item.severity === "error").length;
   const warningCount = snapshot.doctor.findings.filter((item) => item.severity === "warning").length;
   const handoff = snapshot.state.current_handoff;
+  const supportsRule5 = snapshot.protocol.capabilities.includes("rule5-proposals");
   const routedDocuments = Array.from(new Set(snapshot.state.routed_docs.filter((path) => path.toLocaleLowerCase().endsWith(".md"))));
   const nodes = useMemo<NodeData[]>(() => [
     { id: "overview", label: t("overview"), icon: <House size={19} weight="duotone" />, tone: "accent" },
@@ -69,7 +70,7 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
       value: activity ? activity.changed_count : t("liveInspection"),
       tone: activity?.changed_count ? "warning" : activity?.available ? "success" : "muted",
     },
-    { id: "rule5", label: t("rule5Title"), icon: <FunnelSimple size={19} weight="duotone" />, value: rule5?.candidates.length ?? 0, tone: rule5?.candidates.length ? "warning" : "muted" },
+    ...(supportsRule5 ? [{ id: "rule5", label: t("rule5Title"), icon: <FunnelSimple size={19} weight="duotone" />, value: rule5?.candidates.length ?? 0, tone: rule5?.candidates.length ? "warning" as const : "muted" as const }] : []),
     {
       id: "documents",
       label: t("documents"),
@@ -116,7 +117,7 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
         { id: "evidence-snapshot", label: t("snapshotJson"), icon: <FileCode size={18} />, value: 1, tone: "muted" },
       ],
     },
-  ], [snapshot, handoff, errorCount, warningCount, routedDocuments, activity, packetWork, rule5, t]);
+  ], [snapshot, handoff, errorCount, warningCount, routedDocuments, activity, packetWork, rule5, supportsRule5, t]);
 
   const visibleNodes = useMemo(() => {
     const query = filter.trim().toLocaleLowerCase();
@@ -178,8 +179,8 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
               >
                 <span className="tree-caret">{node.children ? (open ? <CaretDown size={13} /> : <CaretRight size={13} />) : null}</span>
                 <span className="tree-icon">{node.icon}</span>
-                <span className="tree-label">{node.label}</span>
-                {node.value !== undefined && <span className={`tree-value ${node.tone ?? ""}`}>{node.value}</span>}
+                <span className="tree-label" title={node.label}>{node.label}</span>
+                {node.value !== undefined && <span className={`tree-value ${node.tone ?? ""}`} title={String(node.value)}>{node.value}</span>}
               </button>
               {open && node.children && (
                 <div role="group" className="tree-children">
@@ -194,8 +195,8 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
                     >
                       <span className="tree-caret" />
                       <span className="tree-icon child-marker">{child.icon}</span>
-                      <span className="tree-label">{child.label}</span>
-                      <span className={`tree-value ${child.tone ?? ""}`}>{child.value}</span>
+                      <span className="tree-label" title={child.label}>{child.label}</span>
+                      <span className={`tree-value ${child.tone ?? ""}`} title={child.value === undefined ? undefined : String(child.value)}>{child.value}</span>
                     </button>
                   ))}
                 </div>
