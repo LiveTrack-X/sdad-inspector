@@ -43,11 +43,13 @@ Scope: Active bugs and review findings only
 
 - [Medium] [packet:SI-013-alpha-release] FIND-SI-013-005 — Actions run
   `29409811078` built, smoke-launched, and archived the Windows/macOS one-file
-  binaries and built the Linux binary, but the Linux smoke failed because the
-  ordinary cross-platform build job omitted `libEGL.so.1` and related Qt system
-  libraries already declared in the release and downloaded-artifact jobs. CI
-  is blocked until all Linux jobs share the same EGL/GL/XCB baseline and public
-  limitations distinguish embedded Python from required OS display services.
+  binaries and built the Linux binary, but Linux first failed on missing
+  `libEGL.so.1`. Run `29410068845` then reached the Linux launch after adding a
+  minimal EGL/GL/XCB set, but Qt's `xcb` plugin still could not load because its
+  remaining X11/XCB runtime dependencies were absent. CI is blocked until every
+  Linux build and downloaded-artifact job installs the same complete Qt X11
+  runtime baseline and public limitations distinguish embedded Python from
+  required operating-system display services.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
