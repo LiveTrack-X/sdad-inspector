@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_VERSION = "0.0.1a2"
-RELEASE_VERSION = "0.0.1-alpha.2"
+PACKAGE_VERSION = "0.0.1a3"
+RELEASE_VERSION = "0.0.1-alpha.3"
 RELEASE_TAG = f"v{RELEASE_VERSION}"
 
 
@@ -41,7 +41,7 @@ def validate_release_contract() -> list[str]:
     package = _read("sdad_inspector/__init__.py")
     readme = _read("README.md")
     workflow = _read(".github/workflows/release.yml")
-    notes = _read("docs/releases/v0.0.1-alpha.2.md")
+    notes = _read("docs/releases/v0.0.1-alpha.3.md")
     ignore = _read(".gitignore")
     packager = _read("scripts/package_release.py")
     native_builder = _read("scripts/build_native.py")
@@ -89,12 +89,12 @@ def validate_release_contract() -> list[str]:
     for needle in (
         "# SDAD Inspector 0.0.1 alpha",
         "Unsigned alpha",
-        "exact `v0.0.1-alpha.2` tag",
+        "exact `v0.0.1-alpha.3` tag",
         "SHA256SUMS",
         "SDAD Protocol `v3.2.2`",
         "single portable executable",
     ):
-        _require(issues, notes, needle, source="docs/releases/v0.0.1-alpha.2.md")
+        _require(issues, notes, needle, source="docs/releases/v0.0.1-alpha.3.md")
 
     for needle in ("design/qa/", "design-qa.md", "web/.npmrc", "release-artifacts/"):
         _require(issues, ignore, needle, source=".gitignore")

@@ -6,7 +6,7 @@ Scope: Active bugs and review findings only
 ## Active Findings
 
 None. The current candidate defects are closed below against exact same-commit
-hosted-runner evidence. The alpha.2 tag and published assets remain release
+hosted-runner evidence. The alpha.3 tag and published assets remain release
 verification work, not an open implementation defect.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
@@ -29,6 +29,16 @@ work or acceptance; do not keep two copies.
 
 ## Recently Closed
 
+- [FIND-SI-013-007] [packet:SI-013-alpha-release] Fixed and externally
+  regression-tested on exact commit
+  `7eaec5c23311d3d0b2626aa0c5241a084d0c9cb8` in Actions run `29413136254`:
+  the browser harness records actual progress callback emissions for the exact
+  Doctor-source assertion while HTTP polling independently proves a live
+  running source. Windows, macOS, and Linux passed the full contract/build/
+  direct-launch/package path plus all three separate downloaded-archive
+  launches. Failed `v0.0.1-alpha.2` remains unchanged and published no Release
+  or assets; the publishable candidate advances to `v0.0.1-alpha.3`.
+
 - [FIND-SI-013-006] [packet:SI-013-alpha-release] Fixed and externally
   regression-tested on exact commit
   `5c3ad3c72970a8d090b30d2760a4f1424b93538d` in Actions run `29411980968`:
@@ -37,7 +47,8 @@ work or acceptance; do not keep two copies.
   `.ci/sdad-v3.2.2` on Windows, macOS, and Linux before packaging. All three
   direct one-file launches and all three separate downloaded-archive launches
   passed. Failed tag `v0.0.1-alpha.1` remains unchanged and published no Release
-  or assets; the publishable candidate advances to `v0.0.1-alpha.2`.
+  or assets; that fix advanced to `v0.0.1-alpha.2`, whose independent progress-
+  harness timing defect is tracked separately as FIND-SI-013-007.
 
 - [FIND-SI-013-005] [packet:SI-013-alpha-release] Fixed and externally
   exercised on exact commit `0466e764969a31cff658c681337c134d12549075` in

@@ -268,6 +268,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         require(missing_origin == 403, "POST route accepted a missing Origin.")
         rescan_result: list[tuple[int, dict[str, str], bytes]] = []
+        emitted_progress: list[tuple[str, str, str]] = []
+        original_progress_emit = service._progress.emit
+
+        def capture_progress(stage: str, source: str, event: str) -> None:
+            emitted_progress.append((stage, source, event))
+            original_progress_emit(stage, source, event)
+
+        service._progress.emit = capture_progress  # type: ignore[method-assign]
 
         def run_rescan() -> None:
             rescan_result.append(
@@ -290,6 +298,7 @@ def main(argv: list[str] | None = None) -> int:
             observed_progress.append(json.loads(live_body))
             time.sleep(0.01)
         rescan_worker.join(timeout=5)
+        service._progress.emit = original_progress_emit  # type: ignore[method-assign]
         require(not rescan_worker.is_alive(), "Re-scan worker did not finish.")
         require(len(rescan_result) == 1, "Re-scan response was not captured.")
         rescanned, _, rescan_body = rescan_result[0]
@@ -301,11 +310,18 @@ def main(argv: list[str] | None = None) -> int:
         require(
             any(
                 progress["status"] == "running"
-                and progress["stage"] == "doctor"
-                and progress["current_source"] == "scripts/sdad.py"
+                and isinstance(progress["current_source"], str)
+                and bool(progress["current_source"])
                 for progress in observed_progress
             ),
-            "Live progress did not expose the actual Doctor source.",
+            "Live progress endpoint never exposed a running source.",
+        )
+        require(
+            any(
+                stage == "doctor" and source == "scripts/sdad.py"
+                for stage, source, _event in emitted_progress
+            ),
+            "Inspection progress did not emit the actual Doctor source.",
         )
         completed_status, _, completed_body = request(
             server, "/api/progress", token=token

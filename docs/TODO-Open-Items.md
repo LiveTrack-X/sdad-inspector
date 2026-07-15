@@ -5,7 +5,7 @@ Scope: Current implementation backlog only
 
 ## Current Priority
 
-1. Ship the owner-authorized unsigned `v0.0.1-alpha.2` GitHub prerelease from
+1. Ship the owner-authorized unsigned `v0.0.1-alpha.3` GitHub prerelease from
    one tested commit under `SI-013-alpha-release`.
 2. Make the public README, repository contents, single-file portable platform
    archives, checksums, and limitations coherent while keeping
@@ -22,7 +22,7 @@ Scope: Current implementation backlog only
 - [x] [packet:SI-013-alpha-release] Remove historical QA captures/ledger and
   local npm configuration; extend ignore/public-preflight rules for local,
   editor, build, and release outputs.
-- [x] [packet:SI-013-alpha-release] Set package version `0.0.1a2`; add release
+- [x] [packet:SI-013-alpha-release] Set package version `0.0.1a3`; add release
   notes, deterministic single-file platform packaging, CPython 3.12 build
   enforcement, release validation, and a tagged Windows/macOS/Linux prerelease
   workflow whose downloaded artifacts smoke on separate clean runners.
