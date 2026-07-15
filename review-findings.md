@@ -41,6 +41,14 @@ Scope: Active bugs and review findings only
   both released engine constants are recaptured from official archives, and the
   copied engine authenticates on all three runners.
 
+- [Medium] [packet:SI-013-alpha-release] FIND-SI-013-005 — Actions run
+  `29409811078` built, smoke-launched, and archived the Windows/macOS one-file
+  binaries and built the Linux binary, but the Linux smoke failed because the
+  ordinary cross-platform build job omitted `libEGL.so.1` and related Qt system
+  libraries already declared in the release and downloaded-artifact jobs. CI
+  is blocked until all Linux jobs share the same EGL/GL/XCB baseline and public
+  limitations distinguish embedded Python from required OS display services.
+
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
 

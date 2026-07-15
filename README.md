@@ -317,6 +317,10 @@ smoke jobs pass.
 - A one-file executable expands its embedded runtime into an OS temporary
   directory at startup. Linux systems whose temporary filesystem is mounted
   `noexec` are outside this alpha's verified environments.
+- The executable embeds Python and application dependencies, not the operating
+  system's browser/display stack. Windows needs WebView2; Linux needs a working
+  desktop plus EGL/GL/XCB libraries (the CI baseline installs `libegl1`,
+  `libgl1`, and the listed XCB runtime packages).
 - The product is intentionally an Inspector, not an SDAD editor or autonomous
   repair tool.
 - Public visibility does not itself add a license grant; check repository terms
