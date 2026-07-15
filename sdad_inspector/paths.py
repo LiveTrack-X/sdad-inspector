@@ -68,8 +68,9 @@ def safe_project_path(
             f"{purpose} points to a sensitive file class.", details={"path": relative}
         )
 
-    candidate = root.joinpath(*supplied.parts)
-    cursor = root
+    canonical_root = canonical_directory(root, label="Selected project")
+    candidate = canonical_root.joinpath(*supplied.parts)
+    cursor = canonical_root
     for part in supplied.parts:
         cursor = cursor / part
         if cursor.is_symlink():
@@ -79,7 +80,7 @@ def safe_project_path(
 
     try:
         resolved = candidate.resolve(strict=must_exist)
-        resolved.relative_to(root)
+        resolved.relative_to(canonical_root)
     except (OSError, RuntimeError, ValueError) as exc:
         raise PathSafetyError(
             f"{purpose} escapes the selected project.", details={"path": relative}

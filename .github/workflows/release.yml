@@ -1,16 +1,20 @@
-name: Cross-platform preview checks
+name: Release 0.0.1 alpha
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
+    tags:
+      - v0.0.1-alpha.1
 
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  preview:
-    name: ${{ matrix.platform }} unsigned preview
+  build:
+    name: ${{ matrix.platform }} unsigned alpha
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -23,7 +27,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux
     steps:
-      - name: Check out Inspector
+      - name: Check out tagged Inspector
         uses: actions/checkout@v4
       - name: Check out released SDAD v3.2.2
         uses: actions/checkout@v4
@@ -36,10 +40,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Validate public repository boundary
-        run: |
-          python scripts/validate_public_repository.py
-          python scripts/validate_release.py
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -48,7 +48,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Install Linux display dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb libxcb-cursor0 libxkbcommon-x11-0
+        run: sudo apt-get update && sudo apt-get install -y xvfb libegl1 libgl1 libxcb-cursor0 libxcb-keysyms1 libxcb-xinerama0 libxkbcommon-x11-0
       - name: Install Python dependencies
         if: runner.os != 'Linux'
         run: python -m pip install -e ".[desktop,build]"
@@ -59,39 +59,45 @@ jobs:
           python -m pip install "pywebview[qt]>=5.4,<7"
       - name: Install frontend dependencies
         run: npm --prefix web ci
+      - name: Validate source and release contracts
+        run: |
+          python scripts/validate_public_repository.py
+          python scripts/validate_release.py
       - name: Test Python core
         run: python -m unittest discover -s tests -v
-      - name: Typecheck frontend
-        run: npm --prefix web run typecheck
-      - name: Test frontend
-        run: npm --prefix web test -- --run
+      - name: Typecheck and test frontend
+        run: |
+          npm --prefix web run typecheck
+          npm --prefix web test -- --run
       - name: Build frontend
         run: npm --prefix web run build
-      - name: Validate native contract
-        run: python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.2
-      - name: Check native prerequisites
-        run: python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.2
-      - name: Build unsigned one-file preview
+      - name: Validate browser, report, and native contracts
+        run: |
+          python scripts/validate_browser_contract.py
+          python scripts/validate_static_report.py
+          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.2
+          python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.2
+      - name: Build unsigned one-file alpha
         run: python scripts/build_native.py --skip-frontend --sdad-checkout .ci/sdad-v3.2.2
-      - name: Smoke native preview
+      - name: Smoke native alpha
         if: runner.os != 'Linux'
         run: python scripts/smoke_native.py .
-      - name: Smoke native preview under Xvfb
+      - name: Smoke native alpha under Xvfb
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_native.py .
-      - name: Package the single portable executable
+      - name: Package platform archive
         run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.1-alpha.1"
-      - name: Upload the ephemeral portable archive
+      - name: Upload platform archive
         uses: actions/upload-artifact@v4
         with:
           name: sdad-inspector-${{ matrix.platform }}-${{ runner.arch }}
           path: release-artifacts/*
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 7
 
   portable-smoke:
     name: ${{ matrix.platform }} downloaded portable smoke
-    needs: preview
+    needs: build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -104,7 +110,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux
     steps:
-      - name: Check out the smoke harness
+      - name: Check out tagged Inspector smoke harness
         uses: actions/checkout@v4
       - name: Set up Python for the smoke harness only
         uses: actions/setup-python@v5
@@ -113,7 +119,7 @@ jobs:
       - name: Install Linux display dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y xvfb libegl1 libgl1 libxcb-cursor0 libxcb-keysyms1 libxcb-xinerama0 libxkbcommon-x11-0
-      - name: Download the archive from the build job
+      - name: Download the platform archive from the build job
         uses: actions/download-artifact@v4
         with:
           name: sdad-inspector-${{ matrix.platform }}-${{ runner.arch }}
@@ -124,3 +130,37 @@ jobs:
       - name: Inspect, extract, and smoke the single executable under Xvfb
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_release_archive.py . --artifact-dir release-candidate
+
+  release:
+    name: Publish GitHub prerelease
+    needs: [build, portable-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tagged Inspector
+        uses: actions/checkout@v4
+      - name: Download platform archives
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+      - name: Write and verify SHA-256 manifest
+        run: python scripts/write_checksums.py release-artifacts --expected 3
+      - name: Publish or refresh prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS)
+          if [[ ${#assets[@]} -ne 4 ]]; then
+            echo "Expected three platform archives and SHA256SUMS; found ${#assets[@]} assets." >&2
+            exit 1
+          fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+            gh release edit "$GITHUB_REF_NAME" --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.1.md --prerelease
+          else
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.1.md --prerelease
+          fi

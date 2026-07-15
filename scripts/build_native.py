@@ -35,6 +35,31 @@ def _required_paths() -> dict[str, Path]:
     }
 
 
+def require_release_python(
+    *,
+    implementation: str | None = None,
+    version: tuple[int, int] | None = None,
+    executable: str | None = None,
+) -> dict[str, object]:
+    implementation = implementation or sys.implementation.name
+    version = version or sys.version_info[:2]
+    executable = executable or sys.executable
+    if implementation != "cpython" or version != (3, 12):
+        raise PackageError(
+            "Portable native builds require official CPython 3.12.",
+            details={
+                "implementation": implementation,
+                "python": f"{version[0]}.{version[1]}",
+                "executable": executable,
+            },
+        )
+    return {
+        "python_implementation": implementation,
+        "python_version": f"{version[0]}.{version[1]}",
+        "python_executable": executable,
+    }
+
+
 def check_prerequisites(checkout: str | Path) -> dict[str, object]:
     engine = probe_engine(checkout)
     missing = [name for name, path in _required_paths().items() if not path.is_file()]
@@ -48,7 +73,7 @@ def check_prerequisites(checkout: str | Path) -> dict[str, object]:
         "revision": engine.revision,
         "trust": engine.trust,
         "web_bundle": str(_required_paths()["web_bundle"]),
-        "package_mode": "unsigned-one-folder-preview",
+        "package_mode": "unsigned-one-file-portable",
     }
 
 
@@ -65,6 +90,7 @@ def main() -> int:
     arguments = _parser().parse_args()
     try:
         evidence = check_prerequisites(arguments.sdad_checkout)
+        evidence.update(require_release_python())
         if arguments.check:
             print(json.dumps(evidence, ensure_ascii=False, indent=2))
             return 0

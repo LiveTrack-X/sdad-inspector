@@ -5,7 +5,23 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-None currently tracked.
+- [High] [packet:SI-013-alpha-release] FIND-SI-013-001 — GitHub Actions run
+  `29401532720` failed all three jobs because `safe_project_path` resolved each
+  candidate but compared it to a noncanonical temporary root. macOS exposed
+  `/var` versus `/private/var`; Windows exposed an 8.3 alias versus the long
+  profile name. Valid contained Git paths were filtered, live documents were
+  rejected, and tests compared canonical production outputs to alias fixtures.
+  Release is blocked until the root is canonicalized before containment and
+  symlink checks, canonical expectations are regression-tested, and the same
+  commit passes the Windows/macOS/Linux matrix.
+
+- [High] [packet:SI-013-alpha-release] FIND-SI-013-002 — A Windows one-folder
+  preview copied to another computer failed before application startup with
+  `Failed to load Python DLL ... _internal\\python313.dll`; the subsequent local
+  Conda Python 3.13 rebuild also timed out in bounded native smoke. Release is
+  blocked until packaging uses official CPython 3.12 one-file mode, every
+  platform archive contains exactly one executable, and a separate clean
+  hosted-runner job downloads, extracts, and smoke-launches that exact archive.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.

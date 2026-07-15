@@ -36,7 +36,15 @@ class PublicRepositoryAuditTests(unittest.TestCase):
 
     def test_rejects_sensitive_filename_and_generated_directory(self) -> None:
         self.assertTrue(audit_bytes(PurePosixPath(".env.local"), b"placeholder"))
+        self.assertTrue(audit_bytes(PurePosixPath("web/.npmrc"), b"placeholder"))
         self.assertTrue(audit_bytes(PurePosixPath("build/output.txt"), b"placeholder"))
+
+    def test_rejects_historical_qa_and_local_machine_files(self) -> None:
+        self.assertTrue(
+            audit_bytes(PurePosixPath("design/qa/capture.png"), b"not-a-real-png")
+        )
+        self.assertTrue(audit_bytes(PurePosixPath("design-qa.md"), b"local ledger"))
+        self.assertTrue(audit_bytes(PurePosixPath(".DS_Store"), b"metadata"))
 
 
 if __name__ == "__main__":

@@ -12,9 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 def native_executable(dist_root: Path) -> Path:
     candidates: list[Path]
     if sys.platform == "win32":
-        candidates = [dist_root / "SDAD-Inspector" / "SDAD-Inspector.exe"]
+        candidates = [
+            dist_root / "SDAD-Inspector.exe",
+            dist_root / "SDAD-Inspector" / "SDAD-Inspector.exe",
+        ]
     elif sys.platform == "darwin":
         candidates = [
+            dist_root / "SDAD-Inspector",
             dist_root
             / "SDAD Inspector.app"
             / "Contents"
@@ -23,7 +27,10 @@ def native_executable(dist_root: Path) -> Path:
             dist_root / "SDAD-Inspector" / "SDAD-Inspector",
         ]
     else:
-        candidates = [dist_root / "SDAD-Inspector" / "SDAD-Inspector"]
+        candidates = [
+            dist_root / "SDAD-Inspector",
+            dist_root / "SDAD-Inspector" / "SDAD-Inspector",
+        ]
     for candidate in candidates:
         if candidate.is_file():
             return candidate

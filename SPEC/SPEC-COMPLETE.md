@@ -144,25 +144,53 @@ new compatibility packet and fixtures before its support claim is allowed.
 
 ## Active Scope
 
-Packet `SI-012-public-source-repository` is the owner-directed 2026-07-15 public
-source publication pass. It authorizes creation of and source push to the public
-GitHub repository `LiveTrack-X/sdad-inspector` from this checkout after bounded
-publication preflight and regression validation. The authoritative owner
-decision is recorded once in `docs/claim-registry.md`.
+Packet `SI-013-alpha-release` is the owner-directed 2026-07-15 public alpha
+release pass. The product package version is `0.0.1a1`, the immutable Git tag is
+`v0.0.1-alpha.1`, and the public release title is
+`SDAD Inspector 0.0.1 alpha`. The authoritative owner decision is recorded once
+in `docs/claim-registry.md`.
 
-The public boundary contains the intended source, documentation, tests, design
-evidence, and CI workflow. It excludes ignored runtime, dependency, cache,
-virtual-environment, build, native-preview, and distribution artifacts. Public
-files must not contain personal absolute user paths, sensitive filenames,
-private-key material, or high-confidence credential markers. A reusable local
-validator and the checked-in workflow enforce that bounded preflight; this is
-not a claim that every possible secret form can be detected.
+The same tagged commit must run the bounded test, frontend build, native build,
+and launch-smoke path on GitHub-hosted Windows, macOS, and Linux runners. Native
+release builds use CPython 3.12 and PyInstaller one-file mode so the selected
+platform archive contains exactly one self-contained executable and no adjacent
+`_internal` runtime tree. A separate clean hosted-runner job must download,
+extract, inspect, and bounded-smoke that archive without installing the product's
+Python dependencies. The workflow publishes exactly three platform archives and
+one `SHA256SUMS` file to an explicitly marked GitHub prerelease. Every archive
+and the release notes must say that this alpha is unsigned and experimental;
+evidence from the hosted runners is not a general stable-support claim.
 
-This source publication is not a GitHub Release, installer, signed or notarized
-artifact, package-registry publication, deployment, automatic project write, or
-new Windows/macOS/Linux support claim. Those independent actions and claims stay
-outside this packet and behind their existing evidence and owner gates. No
-license grant is inferred from public visibility.
+The public README must explain what the Inspector does, how to attach it to an
+SDAD project, its read-only boundary, supported SDAD contract versions, release
+and source-run instructions, repository architecture, validation commands, and
+known alpha limitations. A compatible project has a root `sdad-state.yaml` and
+the active SPEC/routed documents named by that state. The bundled runtime and
+primary baseline are official SDAD Protocol `v3.2.2`; Doctor reports from
+`3.2.1` and `3.2.2` plus state schemas 1 and 2 remain the bounded compatibility
+lane already covered by fixtures.
+
+Repository cleanup removes historical `design/qa` captures, their local QA
+ledger, and machine-local npm configuration while retaining the owner-selected design reference,
+normative SPEC/SDAD controls, product source, tests, scripts, and public release
+automation. Runtime, dependency, cache, editor, build, and release-output files
+remain ignored and outside source publication.
+
+Cross-platform path containment must compare canonical roots and candidates so
+macOS `/var` versus `/private/var` aliases and Windows long-name versus 8.3-name
+aliases do not hide Git status or reject an otherwise contained project. Tests
+must compare canonical production outputs without weakening traversal or
+symlink protections.
+
+This packet is a one-off owner-authorized unsigned GitHub alpha prerelease. It
+does not authorize a stable release, installer, updater, code signing,
+notarization, package-registry publication, deployment, automatic project
+write, or broad operating-system support claim. No license grant is inferred
+from public visibility.
+
+Prior packet `SI-012-public-source-repository` created, preflighted, and pushed
+the public `LiveTrack-X/sdad-inspector` source repository. Its first hosted
+matrix exposed the canonical-path defect now routed into this packet.
 
 Prior packet `SI-011-reader-navigation-and-flow-drilldown` was the owner-directed
 UI/UX and functionality improvement pass. It preserved the selected Split
@@ -323,7 +351,9 @@ width preference; drawer behavior replaces resizing at narrow widths.
   evidence; code, paths, packet IDs, commands, raw JSON, and owner-authored text
   stay in their source language.
 - No support claim for languages beyond Korean and English in this packet.
-- No installer, updater, signing, notarization, publishing, or public release.
+- No installer, updater, signing, notarization, stable release, package-registry
+  publication, or deployment. The only distribution in this packet is the
+  explicitly labeled unsigned `0.0.1 alpha` GitHub prerelease.
 - No owner-declared validation command execution, auto-fix, or project write;
   the explicitly confirmed Rule 5 export writes only the owner-selected local
   `.md` destination. No network or telemetry. The only new subprocesses are the fixed read-only Git
@@ -368,20 +398,23 @@ surprise a future maintainer without context, and represents a real tradeoff.
 
 ## Completion Criteria
 
-Packet `SI-012-public-source-repository` is evidence-ready when the public-file
-validator and its regression tests pass, all candidate files are intentionally
-in scope, generated/local artifacts remain ignored, local personal paths and
-high-confidence credential markers are absent, the existing Python and frontend
-suites plus browser/native contracts and strict Doctor pass, and staged diff
-hygiene is clean. The public GitHub repository must report `PUBLIC`, its default
-branch must be `main`, remote `main` must resolve to the pushed local HEAD, and
-the checked-in cross-platform workflow must start for that commit. Public README
-claims must remain within the claim registry.
+Packet `SI-013-alpha-release` is evidence-ready when the README and source tree
+match the active release boundary; canonical-path regressions pass on all three
+hosted operating systems; public-file, Python, frontend, browser, native,
+release-contract, and strict Doctor checks pass locally; and the exact tagged
+commit builds one CPython 3.12-based executable per platform and each downloaded
+single-file archive smoke-launches in a separate clean Windows, macOS, or Linux
+job. The release job must publish three intentionally named platform archives
+and `SHA256SUMS` to a GitHub prerelease titled `SDAD Inspector 0.0.1 alpha`.
+Completion requires
+remote verification that the tag targets the tested commit, every expected
+asset exists, downloaded asset hashes match the published checksum file, and
+the release prominently states its unsigned experimental limitations.
 
-The publication authorization applies only to this public source repository.
-No GitHub Release, artifact upload, package publication, signing, notarization,
-deployment, automatic project write, license grant, or new cross-platform
-support claim is part of completion.
+Prior packet `SI-012-public-source-repository` was complete when the bounded
+public source tree was pushed to a `PUBLIC` repository on `main`, local and
+remote source commits matched, and the first checked-in matrix started. That
+matrix was configuration evidence only until its failures were handled here.
 
 Prior packet `SI-011-reader-navigation-and-flow-drilldown` was locally evidence-
 ready when desktop and narrow rendered QA showed the selected Split Inspector
@@ -456,9 +489,17 @@ remain gated.
 
 ## Release / Production Readiness Gate
 
-A public release requires the same release candidate to pass install/launch,
-project selection, Doctor probing, exit 0/1/2 inspection, findings rendering,
-no-write assertion, and clean shutdown on Windows, macOS, and Linux. Package
-identity, security review, upgrade/uninstall/rollback evidence, signing or
-notarization, known limitations, fresh review, and explicit owner authorization
-are additional gates. Packet 0 satisfies none of them.
+A stable or signed public release requires the same release candidate to pass
+install/launch, project selection, Doctor probing, exit 0/1/2 inspection,
+findings rendering, no-write assertion, and clean shutdown on Windows, macOS,
+and Linux. Package identity, security review, upgrade/uninstall/rollback
+evidence, signing or notarization, known limitations, fresh review, and explicit
+owner authorization are additional gates.
+
+For SI-013 only, the owner explicitly authorized an unsigned alpha prerelease.
+Its narrower gate requires a same-commit three-OS CI matrix, bounded native
+launch smoke, one CPython 3.12-based executable inside each of three archives,
+post-download smoke on separate clean hosted runners, published SHA-256 hashes,
+prominent unsigned and experimental limitations, and remote tag/asset/hash
+verification. This exception does not weaken the stable, signed, installer,
+updater, or deployment gate. Packet 0 satisfies none of those broader gates.
