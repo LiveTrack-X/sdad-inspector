@@ -18,10 +18,24 @@ RELEASE_COMMITS = {
     "3.2.2": "cd1b1ddb3e6bcb19b531034742c7d67b4257768e",
 }
 RELEASE_TREE_SHA256 = {
-    "3.2.1": "11e6a572a4a3dd8b9465fe1222e1ef66da39550b2a84b1d09d9e4d9802cfa437",
-    "3.2.2": "d475bd6d5428ac7a00de0dc62b4230124ecd5b42a9f8d7789459ee47e4b1c16b",
+    "3.2.1": "0e2bc4324cf247c173b1b5fdbb711c3ccbd2e46b02e0108b01bb16a4ef8b44cb",
+    "3.2.2": "a2658b011844a5ee4f3683a90bac3d8135da56579aecf29ef4f3b031ddf79401",
 }
 MAX_DOCTOR_OUTPUT_BYTES = 1024 * 1024
+RELEASE_TEXT_SUFFIXES = {
+    ".html",
+    ".json",
+    ".md",
+    ".mdc",
+    ".ps1",
+    ".py",
+    ".sh",
+    ".svg",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+RELEASE_TEXT_NAMES = {".gitattributes", ".gitignore", "LICENSE"}
 
 
 @dataclass(frozen=True)
@@ -110,10 +124,17 @@ def _release_tree_digest(checkout: Path) -> str:
             raise EngineError("The SDAD release archive contains a symbolic link.")
         files.append(path)
     for path in sorted(files, key=lambda value: value.relative_to(checkout).as_posix()):
-        relative = path.relative_to(checkout).as_posix()
+        relative_path = path.relative_to(checkout)
+        relative = relative_path.as_posix()
+        content = path.read_bytes()
+        if (
+            relative_path.suffix.casefold() in RELEASE_TEXT_SUFFIXES
+            or relative_path.name in RELEASE_TEXT_NAMES
+        ):
+            content = content.replace(b"\r\n", b"\n")
         digest.update(relative.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(hashlib.sha256(path.read_bytes()).digest())
+        digest.update(hashlib.sha256(content).digest())
     return digest.hexdigest()
 
 

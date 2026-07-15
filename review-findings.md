@@ -32,6 +32,15 @@ Scope: Active bugs and review findings only
   until working-tree fingerprints exclude Git-internal metadata, explicit empty
   mappings remain authoritative, and the same tests pass on all three runners.
 
+- [High] [packet:SI-013-alpha-release] FIND-SI-013-004 — Actions run
+  `29409284793` passed all three Python/frontend suites and the complete Windows
+  one-file build, but macOS/Linux stopped while reauthenticating the copied SDAD
+  engine. The frozen whole-tree hash treated CRLF and LF checkouts of
+  Git-declared text as different releases. Release is blocked until supported
+  text paths hash with CRLF normalized to LF, binary assets remain byte-exact,
+  both released engine constants are recaptured from official archives, and the
+  copied engine authenticates on all three runners.
+
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
 
