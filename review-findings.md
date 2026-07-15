@@ -5,15 +5,9 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-- [High] [packet:SI-013-alpha-release] FIND-SI-013-006 — Tagged release run
-  `29411387001` published no Release or assets: Windows completed, but macOS
-  and Linux stopped before native packaging because the browser and static-
-  report validators hard-coded the local `.runtime/sdad-v3.2.2` path while CI
-  staged the authenticated engine at `.ci/sdad-v3.2.2`. Release remains blocked
-  until both validators accept an explicit engine checkout, the tagged workflow
-  passes that path on all three platforms, and the failed immutable
-  `v0.0.1-alpha.1` tag is superseded by a green `v0.0.1-alpha.2` without moving
-  the failed tag.
+None. The current candidate defects are closed below against exact same-commit
+hosted-runner evidence. The alpha.2 tag and published assets remain release
+verification work, not an open implementation defect.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
@@ -34,6 +28,16 @@ work or acceptance; do not keep two copies.
 - Release candidates should reach Critical 0 before owner acceptance.
 
 ## Recently Closed
+
+- [FIND-SI-013-006] [packet:SI-013-alpha-release] Fixed and externally
+  regression-tested on exact commit
+  `5c3ad3c72970a8d090b30d2760a4f1424b93538d` in Actions run `29411980968`:
+  browser and static-report validators accept the explicit authenticated engine
+  checkout, and the ordinary PR matrix now runs those release contracts against
+  `.ci/sdad-v3.2.2` on Windows, macOS, and Linux before packaging. All three
+  direct one-file launches and all three separate downloaded-archive launches
+  passed. Failed tag `v0.0.1-alpha.1` remains unchanged and published no Release
+  or assets; the publishable candidate advances to `v0.0.1-alpha.2`.
 
 - [FIND-SI-013-005] [packet:SI-013-alpha-release] Fixed and externally
   exercised on exact commit `0466e764969a31cff658c681337c134d12549075` in
