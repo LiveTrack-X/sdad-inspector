@@ -23,6 +23,15 @@ Scope: Active bugs and review findings only
   platform archive contains exactly one executable, and a separate clean
   hosted-runner job downloads, extracts, and smoke-launches that exact archive.
 
+- [Medium] [packet:SI-013-alpha-release] FIND-SI-013-003 — Actions run
+  `29409019274` passed the complete Windows one-file build path but stopped in
+  Python tests on macOS and Linux before native packaging. The macOS no-write
+  fingerprint raced with Git's transient `.git/objects/maintenance.lock`; the
+  Linux preference-path helper treated an explicitly supplied empty environment
+  mapping as absent and read the runner's real `XDG_CONFIG_HOME`. CI is blocked
+  until working-tree fingerprints exclude Git-internal metadata, explicit empty
+  mappings remain authoritative, and the same tests pass on all three runners.
+
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
 

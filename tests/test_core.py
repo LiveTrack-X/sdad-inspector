@@ -78,9 +78,15 @@ raise SystemExit(exit_code)
 
 def tree_fingerprint(root: Path) -> dict[str, tuple[int, int, str]]:
     result: dict[str, tuple[int, int, str]] = {}
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        # Read-only product claims cover the inspected working tree. Git may
+        # create and remove internal maintenance locks asynchronously even when
+        # probes set GIT_OPTIONAL_LOCKS=0, so .git is not stable content evidence.
+        if relative.parts[:1] == (".git",) or not path.is_file():
+            continue
         stat = path.stat()
-        result[path.relative_to(root).as_posix()] = (
+        result[relative.as_posix()] = (
             stat.st_size,
             stat.st_mtime_ns,
             hashlib.sha256(path.read_bytes()).hexdigest(),
