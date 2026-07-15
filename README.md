@@ -21,6 +21,26 @@ Each OS archive contains one **single portable executable** with the Python
 not need Python installed and there is no `_internal` folder to copy alongside
 the executable.
 
+## Interface overview
+
+![SDAD Inspector with repository navigation on the left, the active packet and TODO evidence in the center, and the field provenance Inspector on the right](docs/assets/sdad-inspector-overview-ko.png)
+
+*SDAD Inspector 0.0.1 alpha inspecting an SDAD 3.2.2 repository. The screenshot
+uses the Korean locale; English is available from the language menu in the top
+right.*
+
+- **Top bar:** confirms the selected repository and bundled SDAD engine, then
+  provides manual or automatic refresh, folder access, path copy, language, and
+  theme controls.
+- **Left navigation:** routes directly to state, active SPEC and packet, TODO,
+  development flow, Rule 5 proposals, routed documents, and review findings.
+- **Center workspace:** keeps the active packet objective and status beside its
+  remaining/completed TODOs, observed working-tree changes, recent commits, and
+  handoff history.
+- **Right Inspector:** explains the selected field's authority, observed value,
+  source path and scan time, related findings, paused owner gates, and safe
+  read-only actions.
+
 ## What it does
 
 - Opens an SDAD repository without modifying it.
