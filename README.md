@@ -98,7 +98,7 @@ authority from filenames or turn a routed document into authority.
 ## Use the 0.0.1 alpha release
 
 1. Open the
-   [`v0.0.1-alpha.2` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.2).
+   [`v0.0.1-alpha.3` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.3).
 2. Download `SHA256SUMS` and exactly one archive for your operating system.
    The filename records the OS and the architecture of the GitHub-hosted runner.
 3. Verify the archive before extracting it.
@@ -116,7 +116,7 @@ On Windows PowerShell, compute the archive hash and compare it with the matching
 line in `SHA256SUMS`:
 
 ```powershell
-Get-FileHash .\SDAD-Inspector-0.0.1-alpha.2-windows-*.zip -Algorithm SHA256
+Get-FileHash .\SDAD-Inspector-0.0.1-alpha.3-windows-*.zip -Algorithm SHA256
 Get-Content .\SHA256SUMS
 ```
 
@@ -299,7 +299,7 @@ The normal `cross-platform.yml` workflow runs source, frontend, one-file native
 build, direct smoke, and separate downloaded-archive smoke checks on Windows,
 macOS, and Ubuntu. Its archives are short-lived CI evidence, not releases.
 Pushing the exact
-tag `v0.0.1-alpha.2` invokes `release.yml`, repeats those gates on the tagged
+tag `v0.0.1-alpha.3` invokes `release.yml`, repeats those gates on the tagged
 commit with CPython 3.12, packages one executable per OS, and then downloads and
 smoke-launches each archive in a separate clean hosted-runner job. It writes
 `SHA256SUMS` and publishes a GitHub prerelease only after all build and portable

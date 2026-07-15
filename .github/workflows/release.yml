@@ -3,7 +3,7 @@ name: Release 0.0.1 alpha
 on:
   push:
     tags:
-      - v0.0.1-alpha.2
+      - v0.0.1-alpha.3
 
 permissions:
   contents: read
@@ -94,7 +94,7 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_native.py .
       - name: Package platform archive
-        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.1-alpha.2"
+        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.1-alpha.3"
       - name: Upload platform archive
         uses: actions/upload-artifact@v7
         with:
@@ -176,7 +176,7 @@ jobs:
           fi
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
-            gh release edit "$GITHUB_REF_NAME" --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.2.md --prerelease
+            gh release edit "$GITHUB_REF_NAME" --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.3.md --prerelease
           else
-            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.2.md --prerelease
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.3.md --prerelease
           fi
