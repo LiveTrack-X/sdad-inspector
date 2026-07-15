@@ -62,6 +62,7 @@ def main() -> int:
         "actions/download-artifact@v4",
         "scripts/smoke_release_archive.py",
         "retention-days: 3",
+        "libegl1",
     ):
         if portable_contract not in workflow:
             raise AssertionError(f"missing portable CI contract: {portable_contract}")
