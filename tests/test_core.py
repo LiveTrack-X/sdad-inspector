@@ -346,6 +346,19 @@ class CoreInspectionTests(WorkspaceCase):
 
 
 class EngineTrustTests(WorkspaceCase):
+    def test_release_tree_digest_normalizes_text_eol_but_not_binary(self) -> None:
+        text = self.engine / "LICENSE"
+        binary = self.engine / "asset.png"
+        text.write_bytes(b"alpha\nbeta\n")
+        binary.write_bytes(b"image\r\nbytes")
+        lf_digest = _release_tree_digest(self.engine)
+
+        text.write_bytes(b"alpha\r\nbeta\r\n")
+        self.assertEqual(_release_tree_digest(self.engine), lf_digest)
+
+        binary.write_bytes(b"image\nbytes")
+        self.assertNotEqual(_release_tree_digest(self.engine), lf_digest)
+
     def test_release_archive_tree_is_authenticated_before_execution(self) -> None:
         observed = _release_tree_digest(self.engine)
         with patch.dict(RELEASE_TREE_SHA256, {"3.2.2": observed}):

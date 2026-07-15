@@ -30,7 +30,10 @@ its [runtime information guidance](https://pyinstaller.org/en/stable/runtime-inf
 ## Build contract
 
 1. Authenticate the supplied checkout as a supported clean tagged commit or a
-   marker-backed archive with the frozen whole-tree digest.
+   marker-backed archive with the frozen whole-tree digest. The digest
+   canonicalizes CRLF to LF only for the release's declared text surfaces while
+   retaining byte-exact binary hashes, so equivalent Git checkouts authenticate
+   on every OS.
 2. Copy the tree to a new staging directory, excluding Git and bytecode only.
 3. Write a normalized release marker and reauthenticate the staged tree.
 4. Bundle `web/dist` and the staged engine as PyInstaller data directories.
@@ -70,7 +73,8 @@ The matrix uses independent GitHub-hosted runners, as described by GitHub's
   Authenticode status `NotSigned`.
 - Bundled engine: release `v3.2.2`, peeled commit
   `cd1b1ddb3e6bcb19b531034742c7d67b4257768e`, full-tree SHA-256
-  `d475bd6d5428ac7a00de0dc62b4230124ecd5b42a9f8d7789459ee47e4b1c16b`;
+  `d475bd6d5428ac7a00de0dc62b4230124ecd5b42a9f8d7789459ee47e4b1c16b`
+  under the historical Windows byte-exact algorithm;
   reprobe returned `clean: true` and `trust: release-marker`.
 - Runtime: the rebuilt executable launched the current repository through the
   hidden bounded native lifecycle and exited `0` after two seconds before the
