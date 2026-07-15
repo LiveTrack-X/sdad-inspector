@@ -60,6 +60,8 @@ def main() -> int:
         "portable-smoke",
         "actions/upload-artifact@v7",
         "actions/download-artifact@v8",
+        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.2",
+        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.2",
         "scripts/smoke_release_archive.py",
         "retention-days: 3",
         "libegl1",
