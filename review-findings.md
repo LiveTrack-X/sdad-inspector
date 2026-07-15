@@ -5,9 +5,15 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-None. The current candidate defects are closed below against exact same-commit
-hosted-runner evidence. Tag and published-asset checks remain release
-verification work, not an open implementation defect.
+- [High] [packet:SI-013-alpha-release] FIND-SI-013-006 — Tagged release run
+  `29411387001` published no Release or assets: Windows completed, but macOS
+  and Linux stopped before native packaging because the browser and static-
+  report validators hard-coded the local `.runtime/sdad-v3.2.2` path while CI
+  staged the authenticated engine at `.ci/sdad-v3.2.2`. Release remains blocked
+  until both validators accept an explicit engine checkout, the tagged workflow
+  passes that path on all three platforms, and the failed immutable
+  `v0.0.1-alpha.1` tag is superseded by a green `v0.0.1-alpha.2` without moving
+  the failed tag.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
