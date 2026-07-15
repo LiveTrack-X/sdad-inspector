@@ -5,30 +5,14 @@ Scope: Current implementation backlog only
 
 ## Current Priority
 
-1. Ship the owner-authorized unsigned `v0.0.1-alpha.3` GitHub prerelease from
-   one tested commit under `SI-013-alpha-release`.
-2. Make the public README, repository contents, single-file portable platform
-   archives, checksums, and limitations coherent while keeping
-   stable/signing/installer claims out.
+1. No active SI-013 implementation item remains; the exact unsigned
+   `v0.0.1-alpha.3` prerelease and its bounded evidence are recorded below.
+2. Any signed beta, installer, updater, or broader support work remains a future
+   owner-gated packet.
 
 ## Active Work
 
-- [x] [packet:SI-013-alpha-release] Fix the canonical-root containment defect
-  exposed by Actions run `29401532720` on macOS `/var` aliases and Windows 8.3
-  aliases, retaining traversal and symlink rejection.
-- [x] [packet:SI-013-alpha-release] Rewrite README usage, SDAD compatibility,
-  architecture, source setup, release archive, security, and alpha-limitations
-  guidance.
-- [x] [packet:SI-013-alpha-release] Remove historical QA captures/ledger and
-  local npm configuration; extend ignore/public-preflight rules for local,
-  editor, build, and release outputs.
-- [x] [packet:SI-013-alpha-release] Set package version `0.0.1a3`; add release
-  notes, deterministic single-file platform packaging, CPython 3.12 build
-  enforcement, release validation, and a tagged Windows/macOS/Linux prerelease
-  workflow whose downloaded artifacts smoke on separate clean runners.
-- [ ] [packet:SI-013-alpha-release] Verify local gates, a green same-commit
-  hosted matrix, immutable tag, prerelease assets, downloaded hashes, and clean
-  repository state.
+None.
 
 ## Future / Deferred
 
@@ -49,6 +33,23 @@ updater, and auto-fix/write remain gated. Hosted-runner evidence must be
 described as exact-alpha evidence, not broad platform support.
 
 ## Recently Closed
+
+- [x] [packet:SI-013-alpha-release] Fixed the canonical-root containment defect
+  exposed by Actions run `29401532720` on macOS `/var` aliases and Windows 8.3
+  aliases, retaining traversal and symlink rejection.
+- [x] [packet:SI-013-alpha-release] Rewrote README usage, SDAD compatibility,
+  architecture, source setup, release archive, security, and alpha-limitations
+  guidance.
+- [x] [packet:SI-013-alpha-release] Removed historical QA captures/ledger and
+  local npm configuration; extended ignore/public-preflight rules for local,
+  editor, build, and release outputs.
+- [x] [packet:SI-013-alpha-release] Set package version `0.0.1a3`; added release
+  notes, deterministic single-file platform packaging, CPython 3.12 build
+  enforcement, release validation, and a tagged Windows/macOS/Linux prerelease
+  workflow whose downloaded artifacts smoke on separate clean runners.
+- [x] [packet:SI-013-alpha-release] Verified local gates, tagged Actions run
+  `29413712979`, immutable `v0.0.1-alpha.3`, published prerelease assets, fresh
+  downloaded hashes/member counts, and clean repository state.
 
 - [x] [packet:SI-012-public-source-repository] Created and pushed public
   `https://github.com/LiveTrack-X/sdad-inspector`, verified `PUBLIC`, `main`, and

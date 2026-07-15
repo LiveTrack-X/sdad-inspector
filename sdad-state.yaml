@@ -11,7 +11,7 @@ active_packet:
   id: SI-013-alpha-release
   objective: Publish the owner-authorized unsigned SDAD Inspector 0.0.1 alpha GitHub prerelease as CPython 3.12-based single-file portable executables for Windows, macOS, and Linux, each packaged alone with SHA-256 checksums and smoke-tested after download on a separate clean hosted runner, alongside a complete public README, a minimal intentional source tree, and repaired cross-platform path handling, without claiming signing, installer, updater, stable support, package-registry publication, deployment, or automatic project writes.
   # Current dominant checkpoint only; evidence and acceptance history live elsewhere.
-  status: in_progress
+  status: release_candidate
 
 # Must equal active_packet.id after the validation contract is reviewed.
 validation_for: SI-013-alpha-release
