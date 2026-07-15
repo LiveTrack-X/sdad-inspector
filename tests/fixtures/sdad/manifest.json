@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "packet_id": "SI-001-contract-and-fixtures",
+  "captured_on": "2026-07-15",
+  "capture_environment": "Windows local software evidence",
+  "normalization": {
+    "project_root": "<PROJECT_ROOT>",
+    "changed_fields": [
+      "root"
+    ],
+    "preserved_fields": "All schema, version, check, finding, diagnostic, severity, message, and exit-code semantics"
+  },
+  "releases": {
+    "3.2.1": {
+      "tag": "v3.2.1",
+      "tag_object": "9833401b72e2913777ed860009967fdcdadcb219",
+      "commit": "1ec10141782c33e6c2ea8be641a7ef95206f10bd",
+      "source_clean": true,
+      "capture_checkout_mode": "clean detached annotated tag",
+      "reports": [
+        {
+          "scenario": "exit-0-state-v1-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.1/exit-0-state-v1-unguarded.json",
+          "command": "doctor <STATE_V1_PROJECT> --json",
+          "exit_code": 0,
+          "report_schema": 1,
+          "state_schema": 1,
+          "sha256": "3d8c20d7180e17ccb3b29504478cd477b70fb05cf365c43d46e853445414c1be"
+        },
+        {
+          "scenario": "exit-0-state-v2-guarded",
+          "path": "tests/fixtures/sdad/v3.2.1/exit-0-state-v2-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.1 --json",
+          "exit_code": 0,
+          "report_schema": 2,
+          "state_schema": 2,
+          "sha256": "85a53490a0b8765daa2a2c7862b342d2cccfd59ddccc73e399330e3a348dcbf4"
+        },
+        {
+          "scenario": "exit-1-missing-state-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.1/exit-1-missing-state-unguarded.json",
+          "command": "doctor <MISSING_STATE_PROJECT> --json",
+          "exit_code": 1,
+          "report_schema": 1,
+          "state_schema": null,
+          "sha256": "5562fbb78c85ab9f0c450a616dbe21a7f1b4ac18579edced1fd9dbe441cdbf54"
+        },
+        {
+          "scenario": "exit-2-invalid-invocation-guarded",
+          "path": "tests/fixtures/sdad/v3.2.1/exit-2-invalid-invocation-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.1 --json --unknown",
+          "exit_code": 2,
+          "report_schema": 2,
+          "state_schema": null,
+          "sha256": "fe71af88dec7212f06f909488d76cc37e277faf206d8d5156c00f904cff4a0e4"
+        }
+      ]
+    },
+    "3.2.2": {
+      "tag": "v3.2.2",
+      "tag_object": "66b8ec1c4cfd7c1fe913190d007f3cea85a4b214",
+      "commit": "cd1b1ddb3e6bcb19b531034742c7d67b4257768e",
+      "source_clean": true,
+      "capture_checkout_mode": "clean detached annotated tag",
+      "reports": [
+        {
+          "scenario": "exit-0-state-v1-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.2/exit-0-state-v1-unguarded.json",
+          "command": "doctor <STATE_V1_PROJECT> --json",
+          "exit_code": 0,
+          "report_schema": 1,
+          "state_schema": 1,
+          "sha256": "3d8c20d7180e17ccb3b29504478cd477b70fb05cf365c43d46e853445414c1be"
+        },
+        {
+          "scenario": "exit-0-state-v2-guarded",
+          "path": "tests/fixtures/sdad/v3.2.2/exit-0-state-v2-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.2 --json",
+          "exit_code": 0,
+          "report_schema": 2,
+          "state_schema": 2,
+          "sha256": "5266e4ad75b240205d798428acad6b812aa23b1cd1263097437b47da3f381580"
+        },
+        {
+          "scenario": "exit-1-missing-state-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.2/exit-1-missing-state-unguarded.json",
+          "command": "doctor <MISSING_STATE_PROJECT> --json",
+          "exit_code": 1,
+          "report_schema": 1,
+          "state_schema": null,
+          "sha256": "5562fbb78c85ab9f0c450a616dbe21a7f1b4ac18579edced1fd9dbe441cdbf54"
+        },
+        {
+          "scenario": "exit-2-invalid-invocation-guarded",
+          "path": "tests/fixtures/sdad/v3.2.2/exit-2-invalid-invocation-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.2 --json --unknown",
+          "exit_code": 2,
+          "report_schema": 2,
+          "state_schema": null,
+          "sha256": "381a29b815e958c969be42aca916ff950699e190e8b1ab7862278b043decea6a"
+        }
+      ]
+    }
+  }
+}

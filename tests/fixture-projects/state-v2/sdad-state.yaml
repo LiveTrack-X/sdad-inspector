@@ -1,0 +1,17 @@
+version: 2
+updated: 2026-07-15
+scale: standard
+execution_scope: packet
+active_spec: SPEC/SPEC-COMPLETE.md
+active_packet:
+  id: fixture-contract
+  objective: Provide a deterministic valid state-v2 Doctor input.
+  status: in_progress
+validation_for: fixture-contract
+owner_gates: []
+validation:
+  - command: python -m unittest discover -s tests -v
+    proves: The fixture project test contract passes.
+routed_docs:
+  - docs/TODO-Open-Items.md
+  - review-findings.md

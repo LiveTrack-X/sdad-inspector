@@ -1,0 +1,158 @@
+import type { DevelopmentActivity, LiveDocuments, Rule5Candidates, Snapshot } from "../types";
+
+export const snapshotFixture: Snapshot = {
+  snapshot_schema_version: 1,
+  inspector_version: "0.1.0",
+  inspection_id: "fixture-inspection",
+  inspected_at: "2026-07-15T06:00:00Z",
+  inspection_status: "completed",
+  read_only: true,
+  project: { root: "C:\\work\\sdad-project", name: "sdad-project", identity: "fixture" },
+  engine: {
+    checkout: "C:\\engines\\sdad-v3.2.2",
+    doctor_version: "3.2.2",
+    release_tag: "v3.2.2",
+    revision: "cd1b1ddb3e6bcb19b531034742c7d67b4257768e",
+    source: "https://github.com/LiveTrack-X/spec-driven-ai-development",
+    trust: "release-marker",
+    clean: true,
+  },
+  contracts: {
+    doctor_version: "3.2.2",
+    report_schema_version: 2,
+    state_schema_version: 2,
+    snapshot_schema_version: 1,
+  },
+  doctor: {
+    report_schema_version: 2,
+    doctor_version: "3.2.2",
+    state_schema_version: 2,
+    root: "C:\\work\\sdad-project",
+    strict: true,
+    summary: { errors: 0, warnings: 0 },
+    checks: { run: ["state_schema", "path_integrity"], skipped: [] },
+    findings: [],
+    diagnostic_error: null,
+    exit_code: 0,
+    completed: true,
+    argv_shape: ["python", "scripts/sdad.py", "doctor", "<PROJECT_ROOT>", "--json"],
+    stderr_present: false,
+  },
+  state: {
+    available: true,
+    schema_version: 2,
+    updated: "2026-07-15",
+    scale: "standard",
+    execution_scope: "packet",
+    legacy_controls: { intensity: null, autonomy: null },
+    active_spec: { path: "SPEC/SPEC-COMPLETE.md", exists: true },
+    active_packet: {
+      id: "SI-003-browser-mvp",
+      objective: "Build the selected Split Inspector browser UI.",
+      status: "software_verified",
+    },
+    validation_for: "SI-003-browser-mvp",
+    validation: [
+      { command: "npm run build", proves: "The browser bundle builds.", executed: false },
+      { command: "npm test", proves: "Frontend interactions pass.", executed: false },
+    ],
+    owner_gates: ["release", "signing", "publishing", "auto-fix/write"],
+    routed_docs: ["docs/TODO-Open-Items.md", "review-findings.md"],
+    current_handoff: { path: null, declared: false, exists: false },
+    ledger: {
+      todo_open: 2,
+      review_findings_open: 0,
+      review_findings_by_severity: { Critical: 0, High: 0, Medium: 0, Low: 0 },
+    },
+  },
+  relationships: [
+    { kind: "active_spec_to_packet", from: "SPEC/SPEC-COMPLETE.md", to: "SI-003-browser-mvp", status: "declared" },
+    { kind: "validation_for_packet", from: "SI-003-browser-mvp", to: "SI-003-browser-mvp", status: "matches" },
+    { kind: "handoff_to_packet", from: null, to: "SI-003-browser-mvp", status: "absent" },
+  ],
+  integrity: {
+    watched_control_paths: ["sdad-state.yaml", "SPEC/SPEC-COMPLETE.md"],
+    control_files_unchanged_during_inspection: true,
+  },
+  evidence: {
+    files: { "sdad-state.yaml": { exists: true } },
+    doctor_report: { schema_version: 2, summary: { errors: 0, warnings: 0 } },
+    doctor_exit_code: 0,
+  },
+  limitations: ["Declared validation commands are presented but never executed."],
+};
+
+export const liveDocumentsFixture: LiveDocuments = {
+  project_root: snapshotFixture.project.root,
+  read_at: "2026-07-15T06:01:00Z",
+  truncated: false,
+  documents: [
+    {
+      path: "SPEC/SPEC-COMPLETE.md",
+      exists: true,
+      roles: ["active_spec"],
+      content: "# Active Product SPEC\n\nThe **current contract** is readable.\n\n<script>window.BAD = true</script>\n",
+      error: null,
+    },
+    {
+      path: "docs/TODO-Open-Items.md",
+      exists: true,
+      roles: ["todo", "routed"],
+      content: "# Open Implementation Items\n\n## Active Work\n\n- [ ] [packet:SI-003-browser-mvp] Build the live workspace.\n- [x] [packet:SI-003-browser-mvp] Select the Split Inspector.\n",
+      error: null,
+    },
+    {
+      path: "review-findings.md",
+      exists: true,
+      roles: ["findings", "routed"],
+      content: "# Review Findings\n\nNo active finding.\n",
+      error: null,
+    },
+  ],
+};
+
+export const activityFixture: DevelopmentActivity = {
+  project_root: snapshotFixture.project.root,
+  available: true,
+  worktree_status: "changed",
+  scanned_at: "2026-07-15T06:02:00Z",
+  duration_ms: 18,
+  changed_count: 2,
+  truncated: false,
+  counts: { modified: 1, untracked: 1 },
+  files: [
+    { path: "web/src/App.tsx", previous_path: null, status: " M", kind: "modified", modified_at: "2026-07-15T06:01:30Z" },
+    { path: "docs/handoff.md", previous_path: null, status: "??", kind: "untracked", modified_at: "2026-07-15T06:01:20Z" },
+  ],
+  commits: [
+    { revision: "0123456789012345678901234567890123456789", short_revision: "0123456", committed_at: "2026-07-15T05:30:00Z", subject: "Build the browser MVP" },
+  ],
+  handoffs: [
+    { path: "docs/handoffs/progress.md", title: "Progress handoff", summary: "Continue the packet.", modified_at: "2026-07-15T05:45:00Z", current: true },
+  ],
+  error: null,
+};
+
+export const rule5CandidatesFixture: Rule5Candidates = {
+  source_path: "review-findings.md",
+  source_sha256: "a".repeat(64),
+  candidates: [
+    {
+      candidate_id: "R5-FIND-SI-010-001",
+      finding_id: "FIND-SI-010-001",
+      source_path: "review-findings.md",
+      source_sha256: "a".repeat(64),
+      observed_failure: "Independent refresh loops made the visible workspace move while it was being read.",
+      root_cause: "Live surfaces used separate timers instead of one inspection cycle.",
+      operational_rule: "Refresh snapshot, documents, activity, and Rule 5 candidates in one non-overlapping cycle.",
+      trigger: "A live surface introduces an independent background refresh timer.",
+      non_trigger: "A user explicitly requests a one-time refresh.",
+      exceptions: "Inspection progress may poll only while an explicit operation is running.",
+      enforcement: "Frontend timer tests and the browser contract gate.",
+      regression_evidence: "Manual mode stays idle and AUTO refreshes all surfaces once per 15 seconds.",
+      limits: "This does not prove external files did not change between scans.",
+      review_condition: "Keep after field use; refine or merge if another refresh rule overlaps it.",
+      complete: true,
+    },
+  ],
+};
