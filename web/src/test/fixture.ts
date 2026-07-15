@@ -2,7 +2,7 @@ import type { DevelopmentActivity, LiveDocuments, Rule5Candidates, Snapshot } fr
 
 export const snapshotFixture: Snapshot = {
   snapshot_schema_version: 1,
-  inspector_version: "0.0.1a1",
+  inspector_version: "0.0.1a2",
   inspection_id: "fixture-inspection",
   inspected_at: "2026-07-15T06:00:00Z",
   inspection_status: "completed",

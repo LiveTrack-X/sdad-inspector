@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
 import sys
 import tempfile
@@ -56,8 +57,16 @@ def require(condition: bool, message: str) -> None:
         raise RuntimeError(message)
 
 
-def main() -> int:
-    engine = ROOT / ".runtime" / "sdad-v3.2.2"
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Validate the static report contract.")
+    parser.add_argument(
+        "--sdad-checkout",
+        type=Path,
+        default=ROOT / ".runtime" / "sdad-v3.2.2",
+        help="Path to a clean authenticated SDAD v3.2.2 checkout.",
+    )
+    args = parser.parse_args(argv)
+    engine = args.sdad_checkout.resolve()
     require(engine.is_dir(), "Clean v3.2.2 runtime archive is missing.")
     before = fingerprint()
     with tempfile.TemporaryDirectory(prefix="sdad-inspector-report-") as directory:

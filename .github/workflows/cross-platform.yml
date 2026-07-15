@@ -75,8 +75,11 @@ jobs:
         run: npm --prefix web test -- --run
       - name: Build frontend
         run: npm --prefix web run build
-      - name: Validate native contract
-        run: python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.2
+      - name: Validate browser, report, and native contracts
+        run: |
+          python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.2
+          python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.2
+          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.2
       - name: Check native prerequisites
         run: python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.2
       - name: Build unsigned one-file preview
@@ -88,7 +91,7 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_native.py .
       - name: Package the single portable executable
-        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.1-alpha.1"
+        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.1-alpha.2"
       - name: Upload the ephemeral portable archive
         uses: actions/upload-artifact@v7
         with:
