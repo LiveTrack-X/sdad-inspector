@@ -78,9 +78,15 @@ raise SystemExit(exit_code)
 
 def tree_fingerprint(root: Path) -> dict[str, tuple[int, int, str]]:
     result: dict[str, tuple[int, int, str]] = {}
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        # Read-only product claims cover the inspected working tree. Git may
+        # create and remove internal maintenance locks asynchronously even when
+        # probes set GIT_OPTIONAL_LOCKS=0, so .git is not stable content evidence.
+        if relative.parts[:1] == (".git",) or not path.is_file():
+            continue
         stat = path.stat()
-        result[path.relative_to(root).as_posix()] = (
+        result[relative.as_posix()] = (
             stat.st_size,
             stat.st_mtime_ns,
             hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -293,6 +299,15 @@ class CoreInspectionTests(WorkspaceCase):
         with self.assertRaises(PathSafetyError):
             inspect_project(self.project, self.engine, _engine_info=self.engine_info)
 
+    def test_project_root_alias_is_canonicalized_before_containment(self) -> None:
+        active_spec = safe_project_path(
+            self.project,
+            "SPEC/SPEC-COMPLETE.md",
+            purpose="active SPEC",
+            must_exist=True,
+        )
+        self.assertEqual(active_spec, (self.project / "SPEC/SPEC-COMPLETE.md").resolve())
+
     def test_symlink_control_file_is_rejected(self) -> None:
         outside = self.root / "outside.md"
         outside.write_text("secret\n", encoding="utf-8")
@@ -331,6 +346,19 @@ class CoreInspectionTests(WorkspaceCase):
 
 
 class EngineTrustTests(WorkspaceCase):
+    def test_release_tree_digest_normalizes_text_eol_but_not_binary(self) -> None:
+        text = self.engine / "LICENSE"
+        binary = self.engine / "asset.png"
+        text.write_bytes(b"alpha\nbeta\n")
+        binary.write_bytes(b"image\r\nbytes")
+        lf_digest = _release_tree_digest(self.engine)
+
+        text.write_bytes(b"alpha\r\nbeta\r\n")
+        self.assertEqual(_release_tree_digest(self.engine), lf_digest)
+
+        binary.write_bytes(b"image\nbytes")
+        self.assertNotEqual(_release_tree_digest(self.engine), lf_digest)
+
     def test_release_archive_tree_is_authenticated_before_execution(self) -> None:
         observed = _release_tree_digest(self.engine)
         with patch.dict(RELEASE_TREE_SHA256, {"3.2.2": observed}):

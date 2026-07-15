@@ -47,7 +47,6 @@ def main() -> int:
         if runner not in workflow:
             raise AssertionError(f"missing CI runner: {runner}")
     forbidden = (
-        "actions/upload-artifact",
         "gh release",
         "twine upload",
         "codesign",
@@ -57,17 +56,32 @@ def main() -> int:
     for pattern in forbidden:
         if pattern.casefold() in workflow.casefold():
             raise AssertionError(f"protected action appears in CI: {pattern}")
+    for portable_contract in (
+        "portable-smoke",
+        "actions/upload-artifact@v7",
+        "actions/download-artifact@v8",
+        "scripts/smoke_release_archive.py",
+        "retention-days: 3",
+        "libegl1",
+    ):
+        if portable_contract not in workflow:
+            raise AssertionError(f"missing portable CI contract: {portable_contract}")
 
     spec = (ROOT / "packaging" / "sdad-inspector.spec").read_text(encoding="utf-8")
-    for resource in ("web/dist", "sdad-engine"):
+    for resource in ("web/dist", "sdad-engine", "analysis.binaries", "analysis.datas", '"webview"'):
         if resource not in spec:
             raise AssertionError(f"missing bundled resource: {resource}")
+    for one_folder_construct in ("COLLECT(", "BUNDLE(", "exclude_binaries=True"):
+        if one_folder_construct in spec:
+            raise AssertionError(
+                f"portable spec contains one-folder construct: {one_folder_construct}"
+            )
     desktop_source = (ROOT / "sdad_inspector" / "desktop.py").read_text(encoding="utf-8")
     if "js_api" in desktop_source:
         raise AssertionError("desktop shell must not expose a JavaScript bridge")
 
-    simulated = ROOT / "bundle" / "_internal" / "sdad_inspector" / "desktop.py"
-    if resource_root(simulated) != ROOT / "bundle" / "_internal":
+    simulated = ROOT / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
+    if resource_root(simulated) != ROOT / "bundle" / "_MEI12345":
         raise AssertionError("frozen resource root is not deterministic")
 
     with tempfile.TemporaryDirectory(prefix="sdad-inspector-native-") as temporary:
@@ -88,8 +102,10 @@ def main() -> int:
                 "engine_revision": reprobe.revision,
                 "engine_tree_sha256": staged.tree_sha256,
                 "ci_matrix": ["windows-latest", "macos-latest", "ubuntu-latest"],
+                "package_mode": "unsigned-one-file-portable",
                 "platform_execution_claim": "not established by this validator",
-                "protected_actions": "absent",
+                "ephemeral_ci_artifacts": "3-day retention",
+                "public_release_actions": "absent",
             },
             ensure_ascii=False,
             indent=2,

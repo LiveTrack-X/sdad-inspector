@@ -5,7 +5,9 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-None currently tracked.
+None. The current candidate defects are closed below against exact same-commit
+hosted-runner evidence. Tag and published-asset checks remain release
+verification work, not an open implementation defect.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
@@ -26,6 +28,40 @@ work or acceptance; do not keep two copies.
 - Release candidates should reach Critical 0 before owner acceptance.
 
 ## Recently Closed
+
+- [FIND-SI-013-005] [packet:SI-013-alpha-release] Fixed and externally
+  exercised on exact commit `0466e764969a31cff658c681337c134d12549075` in
+  Actions run `29410445059`: all Linux build and downloaded-artifact jobs now
+  install the same complete Qt X11 EGL/GL/XCB runtime baseline. The Linux
+  one-file executable launched directly and launched again under Xvfb after
+  archive download and extraction on a separate hosted runner. Public
+  limitations still distinguish embedded Python from operating-system display
+  services.
+
+- [FIND-SI-013-004] [packet:SI-013-alpha-release] Fixed and regression-tested:
+  supported text paths normalize CRLF to LF for release-engine identity while
+  binary assets stay byte-exact. The v3.2.1 and v3.2.2 constants were
+  recaptured, and Actions run `29410445059` authenticated v3.2.2 and passed the
+  full Python/frontend/native path on Windows, macOS, and Linux.
+
+- [FIND-SI-013-003] [packet:SI-013-alpha-release] Fixed and regression-tested:
+  an explicitly supplied empty preference environment remains authoritative,
+  and inspected-project write fingerprints exclude transient `.git` internals.
+  The complete suites passed on all three hosted platforms in Actions run
+  `29410445059` without the former environment or maintenance-lock failures.
+
+- [FIND-SI-013-002] [packet:SI-013-alpha-release] Fixed for the exact unsigned
+  alpha candidate: packaging uses official CPython 3.12 one-file mode, each
+  platform archive contains exactly one executable, and Actions run
+  `29410445059` built and directly smoke-launched all three binaries before
+  separate clean hosted runners downloaded, inspected, extracted, and launched
+  the same archives. This removes the adjacent `_internal\\python313.dll`
+  dependency that caused the reported cross-PC failure.
+
+- [FIND-SI-013-001] [packet:SI-013-alpha-release] Fixed and regression-tested:
+  the project root is canonicalized before containment and symlink checks, with
+  macOS `/var` aliases and Windows 8.3 aliases covered. The complete same-commit
+  Windows/macOS/Linux matrix passed in Actions run `29410445059`.
 
 - [FIND-SI-012-001] [packet:SI-012-public-source-repository] Fixed and
   regression-tested before publication: public candidate files contained local

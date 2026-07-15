@@ -12,17 +12,30 @@ GENERATED_PARTS = {
     ".npm-cache",
     ".runtime",
     ".venv",
+    ".agents",
+    ".codex",
+    ".idea",
+    ".vscode",
     "__pycache__",
+    "artifacts",
     "build",
     "dist",
+    "htmlcov",
     "node_modules",
+    "release-artifacts",
 }
 SENSITIVE_NAMES = {
     ".env",
+    ".npmrc",
+    ".pypirc",
+    "credentials",
+    "credentials.json",
     "id_dsa",
     "id_ed25519",
     "id_rsa",
 }
+LOCAL_ONLY_NAMES = {".coverage", ".ds_store", "desktop.ini", "thumbs.db"}
+LOCAL_ONLY_PATHS = {PurePosixPath("design-qa.md")}
 SENSITIVE_SUFFIXES = {
     ".jks",
     ".kdbx",
@@ -65,6 +78,12 @@ def audit_bytes(path: PurePosixPath, data: bytes) -> list[str]:
 
     if any(part in GENERATED_PARTS for part in lowered_parts):
         issues.append(f"{path}: generated or local-only directory is included")
+    if tuple(lowered_parts[:2]) == ("design", "qa"):
+        issues.append(f"{path}: historical QA capture is included")
+    if path in LOCAL_ONLY_PATHS:
+        issues.append(f"{path}: historical local QA ledger is included")
+    if name in LOCAL_ONLY_NAMES:
+        issues.append(f"{path}: local-only file is included")
     if name in SENSITIVE_NAMES or name.startswith(".env.") or path.suffix.lower() in SENSITIVE_SUFFIXES:
         issues.append(f"{path}: sensitive filename is included")
     if len(data) > MAX_PUBLIC_FILE_BYTES:

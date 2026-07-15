@@ -21,9 +21,9 @@ def default_preferences_path(
     environ: Mapping[str, str] | None = None,
     home: Path | None = None,
 ) -> Path:
-    platform = platform or sys.platform
-    environ = environ or os.environ
-    home = home or Path.home()
+    platform = sys.platform if platform is None else platform
+    environ = os.environ if environ is None else environ
+    home = Path.home() if home is None else home
     if platform == "win32":
         base = Path(environ.get("LOCALAPPDATA") or (home / "AppData" / "Local"))
         return base / "SDAD Inspector" / "preferences.json"

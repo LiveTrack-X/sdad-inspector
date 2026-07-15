@@ -2,23 +2,24 @@
 
 Status: Active implementation contract
 Packets: `SI-005-native-preview`, `SI-006-korean-localization`,
-`SI-008-context-workspace-progress-theme`
+`SI-008-context-workspace-progress-theme`, `SI-013-alpha-release`
 
 ## Architecture
 
 One Python codebase owns inspection, release-engine authentication, and the
 loopback HTTP boundary. React/Vite produces one static frontend. pywebview hosts
 that same loopback URL in a native window, and PyInstaller produces an unsigned
-one-folder preview. The renderer receives no Python bridge and no direct file or
+one-file executable with the CPython 3.12 runtime and application resources
+embedded. The renderer receives no Python bridge and no direct file or
 subprocess capability.
 
 ## Platform adapters
 
 | Platform | pywebview engine | Build runner | Current evidence |
 | --- | --- | --- | --- |
-| Windows | Edge Chromium / WebView2 | `windows-latest` | Local unsigned one-folder build and bounded launch/close smoke passed |
-| macOS | Cocoa / WKWebView | `macos-latest` | Workflow configured; runner result not observed |
-| Linux | Qt WebEngine under Xvfb in CI | `ubuntu-latest` | Workflow configured; runner result not observed |
+| Windows | Edge Chromium / WebView2 | `windows-latest` | One-file build and separate downloaded-archive smoke configured; result pending |
+| macOS | Cocoa / WKWebView | `macos-latest` | One-file build and separate downloaded-archive smoke configured; result pending |
+| Linux | Qt WebEngine under Xvfb in CI | `ubuntu-latest` | One-file build and separate downloaded-archive smoke configured; result pending |
 
 pywebview's current platform requirements are documented in its
 [installation guide](https://pywebview.flowrl.com/guide/installation) and
@@ -29,13 +30,21 @@ its [runtime information guidance](https://pyinstaller.org/en/stable/runtime-inf
 ## Build contract
 
 1. Authenticate the supplied checkout as a supported clean tagged commit or a
-   marker-backed archive with the frozen whole-tree digest.
+   marker-backed archive with the frozen whole-tree digest. The digest
+   canonicalizes CRLF to LF only for the release's declared text surfaces while
+   retaining byte-exact binary hashes, so equivalent Git checkouts authenticate
+   on every OS.
 2. Copy the tree to a new staging directory, excluding Git and bytecode only.
 3. Write a normalized release marker and reauthenticate the staged tree.
 4. Bundle `web/dist` and the staged engine as PyInstaller data directories.
-5. Build a one-folder preview on the current OS; never cross-compile a claim.
-6. Launch the built artifact against the repository and close it through a
+5. Build one executable on the current OS with official CPython 3.12; never
+   cross-compile a claim.
+6. Archive only that executable and preserve the POSIX executable bit.
+7. Launch the built artifact against the repository and close it through a
    bounded hidden smoke path.
+8. In a separate clean hosted-runner job, download the archive, require exactly
+   one regular file, extract it without product dependency installation, and
+   repeat the bounded hidden smoke.
 
 The matrix uses independent GitHub-hosted runners, as described by GitHub's
 [matrix job documentation](https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).
@@ -45,12 +54,13 @@ The matrix uses independent GitHub-hosted runners, as described by GitHub's
 - A local Windows pass establishes only that exact Windows environment and
   artifact. It does not establish macOS or Linux execution.
 - A configured workflow is not a completed runner result.
-- No installer, updater, signing, notarization, artifact upload, publishing, or
-  release action is part of this packet.
+- SI-013 authorizes only the exact unsigned alpha archives, checksum manifest,
+  and GitHub prerelease. Installer, updater, signing, notarization, deployment,
+  package-registry publication, and stable claims remain excluded.
 - Same-release-candidate evidence on all three operating systems plus explicit
   owner authorization is required before a general cross-platform claim.
 
-## Local Windows evidence — 2026-07-15
+## Historical local Windows one-folder evidence — 2026-07-15
 
 - Environment: Windows 11 build `10.0.26200`, Python `3.13.11`, pywebview
   `6.2.1`, PyInstaller `6.21.0`.
@@ -63,7 +73,8 @@ The matrix uses independent GitHub-hosted runners, as described by GitHub's
   Authenticode status `NotSigned`.
 - Bundled engine: release `v3.2.2`, peeled commit
   `cd1b1ddb3e6bcb19b531034742c7d67b4257768e`, full-tree SHA-256
-  `d475bd6d5428ac7a00de0dc62b4230124ecd5b42a9f8d7789459ee47e4b1c16b`;
+  `d475bd6d5428ac7a00de0dc62b4230124ecd5b42a9f8d7789459ee47e4b1c16b`
+  under the historical Windows byte-exact algorithm;
   reprobe returned `clean: true` and `trust: release-marker`.
 - Runtime: the rebuilt executable launched the current repository through the
   hidden bounded native lifecycle and exited `0` after two seconds before the
@@ -83,3 +94,8 @@ The matrix uses independent GitHub-hosted runners, as described by GitHub's
   artifacts because `-I` ignores Python environment variables. The final
   source uses `-I -B`, rejects contaminated stages, and records the closure as
   `FIND-SI-005-002`.
+
+This older evidence does not validate the SI-013 one-file release. A later
+Conda Python 3.13 rebuild failed the portability gate and timed out during smoke;
+`FIND-SI-013-002` keeps the release blocked until exact CPython 3.12 archives
+pass the separate downloaded-artifact jobs.

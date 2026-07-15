@@ -5,31 +5,33 @@ Scope: Current implementation backlog only
 
 ## Current Priority
 
-1. Publish the audited current source tree as public
-   `LiveTrack-X/sdad-inspector` under the explicitly authorized
-   `SI-012-public-source-repository` boundary.
-2. Keep GitHub Releases, artifact/package distribution, signing, deployment,
-   auto-fix/write, and unsupported platform claims outside this source-only
-   publication.
+1. Ship the owner-authorized unsigned `v0.0.1-alpha.1` GitHub prerelease from
+   one tested commit under `SI-013-alpha-release`.
+2. Make the public README, repository contents, single-file portable platform
+   archives, checksums, and limitations coherent while keeping
+   stable/signing/installer claims out.
 
 ## Active Work
 
-- [x] [packet:SI-012-public-source-repository] Replace personal absolute paths
-  and machine-specific npm cache configuration with public, reproducible
-  repository-relative references.
-- [x] [packet:SI-012-public-source-repository] Added a bounded public-file
-  validator to local and CI paths. It checked 129 candidate files; 68 Python
-  tests with one environment-limited symlink skip, 36 frontend interactions,
-  typecheck/build, browser/static/native contracts, native prerequisites, and
-  strict Doctor 0/0 passed before publication. Browser/static/native contract
-  probes reported inspected-project writes 0.
-- [ ] [packet:SI-012-public-source-repository] Create the public GitHub
-  repository, push `main`, and verify visibility, remote HEAD, and workflow state.
+- [x] [packet:SI-013-alpha-release] Fix the canonical-root containment defect
+  exposed by Actions run `29401532720` on macOS `/var` aliases and Windows 8.3
+  aliases, retaining traversal and symlink rejection.
+- [x] [packet:SI-013-alpha-release] Rewrite README usage, SDAD compatibility,
+  architecture, source setup, release archive, security, and alpha-limitations
+  guidance.
+- [x] [packet:SI-013-alpha-release] Remove historical QA captures/ledger and
+  local npm configuration; extend ignore/public-preflight rules for local,
+  editor, build, and release outputs.
+- [x] [packet:SI-013-alpha-release] Set package version `0.0.1a1`; add release
+  notes, deterministic single-file platform packaging, CPython 3.12 build
+  enforcement, release validation, and a tagged Windows/macOS/Linux prerelease
+  workflow whose downloaded artifacts smoke on separate clean runners.
+- [ ] [packet:SI-013-alpha-release] Verify local gates, a green same-commit
+  hosted matrix, immutable tag, prerelease assets, downloaded hashes, and clean
+  repository state.
 
 ## Future / Deferred
 
-- Execute the checked-in matrix on macOS and Ubuntu only when a shared same-RC
-  repository run is available; configuration alone is not platform evidence.
 - Split future SDAD update work into authenticated engine registry/download,
   read-only project migration preview, Full owner-gated transactional apply,
   and separately signed Inspector product updater packets. Follow
@@ -39,12 +41,22 @@ Scope: Current implementation backlog only
 
 ## Release / Production Readiness
 
-Public source-repository creation and push are authorized only for SI-012.
-GitHub Releases, signing, artifact/package publishing, deployment, and auto-fix/
-write remain owner-gated. Cross-platform and package claims remain blocked until
-same-RC evidence exists.
+Public source creation completed in SI-012. SI-013 explicitly authorizes only an
+unsigned GitHub `0.0.1 alpha` prerelease with three same-commit hosted-runner
+archives, each containing one portable executable, plus hashes. Signing,
+notarization, installers, stable/package-registry publishing, deployment,
+updater, and auto-fix/write remain gated. Hosted-runner evidence must be
+described as exact-alpha evidence, not broad platform support.
 
 ## Recently Closed
+
+- [x] [packet:SI-012-public-source-repository] Created and pushed public
+  `https://github.com/LiveTrack-X/sdad-inspector`, verified `PUBLIC`, `main`, and
+  matching source HEAD, and started the first Windows/macOS/Ubuntu matrix. Its
+  canonical-path failures were preserved as SI-013 finding evidence.
+- [x] [packet:SI-012-public-source-repository] Replaced personal absolute paths
+  and machine-specific cache references and added a bounded public-file
+  validator before source publication.
 
 - [x] [packet:SI-011-reader-navigation-and-flow-drilldown] Added a compact,
   localized heading navigator with deterministic safe-rendered heading IDs and

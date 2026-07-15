@@ -347,7 +347,7 @@ Inspector version과 SDAD version은 분리한다.
 예:
 
 ```text
-SDAD Inspector 0.1.0
+SDAD Inspector 0.0.1 alpha
 Supported Doctor core: 3.2.1, 3.2.2
 Supported report schemas: 1, 2
 Supported state schemas: 1, 2
@@ -460,7 +460,7 @@ dirty worktree 결과는 탐색 자료로만 쓰고 golden fixture로 고정하�
 ### Packet 5 — Native Preview
 
 - pywebview wrapper
-- PyInstaller one-folder부터 검증
+- PyInstaller one-file 포터블 실행 파일 검증
 - Windows/macOS/Linux build matrix
 - installer/package smoke
 
