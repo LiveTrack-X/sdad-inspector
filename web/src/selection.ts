@@ -15,6 +15,12 @@ export function documentPathForSelection(snapshot: Snapshot, id: string): string
   return null;
 }
 
+export function documentSelectionId(snapshot: Snapshot, path: string): string {
+  if (path === snapshot.state.active_spec?.path) return "spec";
+  if (path === "docs/TODO-Open-Items.md") return "todo";
+  return `doc:${encodeURIComponent(path)}`;
+}
+
 export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packetWork: PacketWorkItem[] = []): FieldSelection {
   const packet = snapshot.state.active_packet;
   const spec = snapshot.state.active_spec;

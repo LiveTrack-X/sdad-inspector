@@ -2,7 +2,7 @@
 
 ## Active Work
 
-- [ ] [packet:fixture-contract] Preserve the state-v2 fixture contract.
+- [ ] [packet:fixture-contract] [phase:Implement] [current] Preserve the state-v2 fixture contract.
 
 ## Release / Production Readiness
 

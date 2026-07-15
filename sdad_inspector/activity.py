@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .errors import BoundedReadError, InspectorError, PathSafetyError
-from .paths import read_bounded_text, safe_project_path
+from .paths import canonical_directory, read_bounded_text, safe_project_path
 from .state import load_control_state
 
 MAX_GIT_OUTPUT_BYTES = 256 * 1024
@@ -75,8 +75,30 @@ def _run_git(root: Path, arguments: list[str], *, output_limit: int) -> bytes:
     return completed.stdout
 
 
-def _safe_observed_path(root: Path, relative: str) -> tuple[str, str | None] | None:
+def _project_relative_path(relative: str, git_scope: str) -> str | None:
     normalized = relative.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    normalized = normalized.lstrip("/")
+    if git_scope == ".":
+        return normalized
+    prefix = f"{git_scope.rstrip('/')}/"
+    if not normalized.startswith(prefix):
+        return None
+    scoped = normalized[len(prefix) :]
+    return scoped or None
+
+
+def _safe_observed_path(
+    root: Path,
+    relative: str,
+    *,
+    git_scope: str = ".",
+) -> tuple[str, str | None] | None:
+    scoped = _project_relative_path(relative, git_scope)
+    if scoped is None:
+        return None
+    normalized = scoped
     try:
         candidate = safe_project_path(
             root,
@@ -112,7 +134,12 @@ def _kind(status: str) -> str:
     return "modified"
 
 
-def parse_porcelain(root: Path, output: bytes) -> tuple[list[dict[str, Any]], bool]:
+def parse_porcelain(
+    root: Path,
+    output: bytes,
+    *,
+    git_scope: str = ".",
+) -> tuple[list[dict[str, Any]], bool]:
     tokens = output.split(b"\x00")
     entries: list[dict[str, Any]] = []
     index = 0
@@ -130,11 +157,15 @@ def parse_porcelain(root: Path, output: bytes) -> tuple[list[dict[str, Any]], bo
         if any(code in status for code in ("R", "C")) and index < len(tokens):
             previous_path = tokens[index].decode("utf-8", "replace")
             index += 1
-        safe = _safe_observed_path(root, path)
+        safe = _safe_observed_path(root, path, git_scope=git_scope)
         if safe is None:
             continue
         normalized, modified_at = safe
-        safe_previous = _safe_observed_path(root, previous_path) if previous_path else None
+        safe_previous = (
+            _safe_observed_path(root, previous_path, git_scope=git_scope)
+            if previous_path
+            else None
+        )
         entries.append(
             {
                 "path": normalized,
@@ -174,6 +205,24 @@ def parse_commits(output: bytes) -> list[dict[str, str]]:
         if len(commits) >= MAX_COMMITS:
             break
     return commits
+
+
+def _git_roots(project_root: Path) -> tuple[Path, str]:
+    raw_root = _run_git(
+        project_root,
+        ["rev-parse", "--show-toplevel"],
+        output_limit=16 * 1024,
+    ).decode("utf-8", "replace").strip()
+    git_root = canonical_directory(raw_root, label="Git repository root")
+    canonical_project = canonical_directory(project_root, label="project root")
+    try:
+        relative = canonical_project.relative_to(git_root)
+    except ValueError as exc:
+        raise InspectorError(
+            "The selected project is outside the reported Git root.",
+            details={"code": "git_scope_invalid"},
+        ) from exc
+    return git_root, relative.as_posix() if relative.parts else "."
 
 
 def _handoff_candidates(root: Path, state: dict[str, Any]) -> tuple[list[str], str | None]:
@@ -254,17 +303,27 @@ def _handoff_history(root: Path) -> list[dict[str, Any]]:
 def load_development_activity(root: Path) -> dict[str, Any]:
     started = time.perf_counter()
     scanned_at = _now()
+    git_root: Path | None = None
+    git_scope: str | None = None
     try:
+        git_root, git_scope = _git_roots(root)
         status_output = _run_git(
-            root,
-            ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
+            git_root,
+            ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--", git_scope],
             output_limit=MAX_GIT_OUTPUT_BYTES,
         )
-        files, truncated = parse_porcelain(root, status_output)
+        files, truncated = parse_porcelain(root, status_output, git_scope=git_scope)
         try:
             commit_output = _run_git(
-                root,
-                ["log", f"-n{MAX_COMMITS}", "--date=iso-strict", "--format=%x1e%H%x1f%h%x1f%cI%x1f%s"],
+                git_root,
+                [
+                    "log",
+                    f"-n{MAX_COMMITS}",
+                    "--date=iso-strict",
+                    "--format=%x1e%H%x1f%h%x1f%cI%x1f%s",
+                    "--",
+                    git_scope,
+                ],
                 output_limit=64 * 1024,
             )
             commits = parse_commits(commit_output)
@@ -284,6 +343,8 @@ def load_development_activity(root: Path) -> dict[str, Any]:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
     return {
         "project_root": str(root),
+        "git_root": str(git_root) if git_root is not None else None,
+        "git_scope": git_scope,
         "available": available,
         "worktree_status": "changed" if files else ("clean" if available else "unavailable"),
         "scanned_at": scanned_at,

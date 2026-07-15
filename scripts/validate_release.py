@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -23,7 +24,7 @@ def _require(issues: list[str], text: str, needle: str, *, source: str) -> None:
 
 def _tracked_paths() -> set[str]:
     result = subprocess.run(
-        ["git", "ls-files", "-z"],
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
         cwd=ROOT,
         check=True,
         stdout=subprocess.PIPE,
@@ -47,6 +48,8 @@ def validate_release_contract() -> list[str]:
     native_builder = _read("scripts/build_native.py")
     native_spec = _read("packaging/sdad-inspector.spec")
     portable_smoke = _read("scripts/smoke_release_archive.py")
+    updater = _read("sdad_inspector/updater.py")
+    web_package = json.loads(_read("web/package.json"))
 
     if not re.search(rf'^version = "{re.escape(PACKAGE_VERSION)}"$', pyproject, re.MULTILINE):
         issues.append(f"pyproject.toml: project version is not {PACKAGE_VERSION}")
@@ -82,9 +85,17 @@ def validate_release_contract() -> list[str]:
         "needs: [build, portable-smoke]",
         "scripts/write_checksums.py",
         "--prerelease",
+        "--draft",
+        "--draft=false",
+        "actions/attest@v4",
+        "id-token: write",
+        "attestations: write",
         "contents: write",
+        "npm --prefix web audit --audit-level=high",
     ):
         _require(issues, workflow, needle, source=".github/workflows/release.yml")
+    if "--clobber" in workflow:
+        issues.append(".github/workflows/release.yml: immutable release assets may not be refreshed with --clobber")
 
     for needle in (
         "# SDAD Inspector 0.0.1 alpha",
@@ -93,6 +104,7 @@ def validate_release_contract() -> list[str]:
         "SHA256SUMS",
         "SDAD Protocol `v3.2.2`",
         "single portable executable",
+        "automatic product update",
     ):
         _require(issues, notes, needle, source="docs/releases/v0.0.1-alpha.3.md")
 
@@ -110,7 +122,7 @@ def validate_release_contract() -> list[str]:
         _require(issues, packager, needle, source="scripts/package_release.py")
     for needle in ("CPython 3.12", 'version != (3, 12)', "require_release_python"):
         _require(issues, native_builder, needle, source="scripts/build_native.py")
-    for needle in ("analysis.binaries", "analysis.datas", '"webview"'):
+    for needle in ("analysis.binaries", "analysis.datas", '"webview"', "sdad-inspector.ico", "sdad-inspector.icns", "icon=ICON"):
         _require(issues, native_spec, needle, source="packaging/sdad-inspector.spec")
     for forbidden in ("COLLECT(", "BUNDLE(", "exclude_binaries=True"):
         if forbidden in native_spec:
@@ -121,6 +133,19 @@ def validate_release_contract() -> list[str]:
         "python_runtime_installed_for_product",
     ):
         _require(issues, portable_smoke, needle, source="scripts/smoke_release_archive.py")
+    for needle in (
+        'release.get("immutable") is not True',
+        "asset_sha256",
+        "INTERNAL_UPDATE_FLAG",
+        "apply_update_plan",
+        "PARENT_EXIT_TIMEOUT_SECONDS",
+    ):
+        _require(issues, updater, needle, source="sdad_inspector/updater.py")
+
+    vite_raw = str((web_package.get("dependencies") or {}).get("vite") or "")
+    vite_match = re.fullmatch(r"[~^]?(\d+)\.(\d+)\.(\d+)", vite_raw)
+    if not vite_match or tuple(map(int, vite_match.groups())) < (6, 4, 3):
+        issues.append("web/package.json: Vite must be locked at 6.4.3 or later")
 
     tracked = _tracked_paths()
     forbidden = sorted(
@@ -130,6 +155,13 @@ def validate_release_contract() -> list[str]:
     )
     if forbidden:
         issues.append("tracked local-only release files: " + ", ".join(forbidden))
+    for required_asset in (
+        "web/public/sdad-inspector-logo.png",
+        "packaging/sdad-inspector.ico",
+        "packaging/sdad-inspector.icns",
+    ):
+        if required_asset not in tracked:
+            issues.append(f"missing tracked brand asset: {required_asset}")
     return issues
 
 

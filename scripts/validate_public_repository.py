@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
+import struct
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
@@ -8,6 +11,8 @@ from pathlib import Path, PurePosixPath
 
 MAX_PUBLIC_FILE_BYTES = 50 * 1024 * 1024
 MAX_TEXT_SCAN_BYTES = 2 * 1024 * 1024
+PUBLIC_IMAGE_MANIFEST = PurePosixPath("docs/assets/public-assets.json")
+PUBLIC_IMAGE_SUFFIXES = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
 GENERATED_PARTS = {
     ".npm-cache",
     ".runtime",
@@ -137,12 +142,84 @@ def audit_bytes(path: PurePosixPath, data: bytes) -> list[str]:
     return issues
 
 
+def _png_dimensions(data: bytes) -> tuple[int, int] | None:
+    if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+        return None
+    width, height = struct.unpack(">II", data[16:24])
+    return (width, height) if width > 0 and height > 0 else None
+
+
+def audit_public_images(files: dict[PurePosixPath, bytes]) -> list[str]:
+    issues: list[str] = []
+    images = {
+        path: data
+        for path, data in files.items()
+        if path.suffix.lower() in PUBLIC_IMAGE_SUFFIXES
+    }
+    manifest_bytes = files.get(PUBLIC_IMAGE_MANIFEST)
+    if manifest_bytes is None:
+        return [f"{PUBLIC_IMAGE_MANIFEST}: public image integrity manifest is missing"]
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return [f"{PUBLIC_IMAGE_MANIFEST}: public image integrity manifest is invalid"]
+    if manifest.get("schema_version") != 1 or not isinstance(manifest.get("assets"), list):
+        return [f"{PUBLIC_IMAGE_MANIFEST}: expected schema_version 1 and an assets list"]
+
+    entries: dict[PurePosixPath, dict[str, object]] = {}
+    for raw_entry in manifest["assets"]:
+        if not isinstance(raw_entry, dict) or not isinstance(raw_entry.get("path"), str):
+            issues.append(f"{PUBLIC_IMAGE_MANIFEST}: every asset needs a string path")
+            continue
+        path = PurePosixPath(raw_entry["path"])
+        if path in entries:
+            issues.append(f"{PUBLIC_IMAGE_MANIFEST}: duplicate asset {path}")
+            continue
+        entries[path] = raw_entry
+
+    missing_entries = sorted(images.keys() - entries.keys())
+    extra_entries = sorted(entries.keys() - images.keys())
+    for path in missing_entries:
+        issues.append(f"{path}: public image is not integrity-manifested")
+    for path in extra_entries:
+        issues.append(f"{path}: image manifest entry has no matching public image")
+
+    for path in sorted(images.keys() & entries.keys()):
+        data = images[path]
+        entry = entries[path]
+        digest = hashlib.sha256(data).hexdigest()
+        if entry.get("sha256") != digest:
+            issues.append(f"{path}: public image SHA-256 does not match its manifest")
+        if entry.get("bytes") != len(data):
+            issues.append(f"{path}: public image byte count does not match its manifest")
+        if entry.get("contains_personal_paths") is not False:
+            issues.append(f"{path}: public image must declare no personal paths")
+        if entry.get("contains_private_controls") is not False:
+            issues.append(f"{path}: public image must declare no private controls")
+        source = entry.get("source")
+        if path.as_posix().startswith("docs/assets/") and source != "synthetic-fixture":
+            issues.append(f"{path}: public documentation screenshot must come from a synthetic fixture")
+        if source not in {"synthetic-fixture", "imagegen-product-asset"}:
+            issues.append(f"{path}: public image source is not allowlisted")
+        if path.suffix.lower() == ".png":
+            dimensions = _png_dimensions(data)
+            if dimensions is None:
+                issues.append(f"{path}: invalid PNG header")
+            elif entry.get("width") != dimensions[0] or entry.get("height") != dimensions[1]:
+                issues.append(f"{path}: public image dimensions do not match its manifest")
+    return issues
+
+
 def audit_repository(root: Path) -> tuple[list[str], int]:
     issues: list[str] = []
     paths = repository_paths(root)
+    files: dict[PurePosixPath, bytes] = {}
     for relative_path in paths:
         full_path = root.joinpath(*relative_path.parts)
-        issues.extend(audit_bytes(relative_path, full_path.read_bytes()))
+        data = full_path.read_bytes()
+        files[relative_path] = data
+        issues.extend(audit_bytes(relative_path, data))
+    issues.extend(audit_public_images(files))
     return issues, len(paths)
 
 

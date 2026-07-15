@@ -91,7 +91,7 @@ export const liveDocumentsFixture: LiveDocuments = {
       path: "SPEC/SPEC-COMPLETE.md",
       exists: true,
       roles: ["active_spec"],
-      content: "# Active Product SPEC\n\nThe **current contract** is readable.\n\n<script>window.BAD = true</script>\n",
+      content: "# Active Product SPEC\n\nThe **current contract** is readable.\n\n![Build badge](https://img.shields.io/badge/build-pass-green)\n\n![Local diagram](docs/assets/diagram.png)\n\n<script>window.BAD = true</script>\n",
       error: null,
     },
     {
@@ -113,6 +113,8 @@ export const liveDocumentsFixture: LiveDocuments = {
 
 export const activityFixture: DevelopmentActivity = {
   project_root: snapshotFixture.project.root,
+  git_root: snapshotFixture.project.root,
+  git_scope: ".",
   available: true,
   worktree_status: "changed",
   scanned_at: "2026-07-15T06:02:00Z",

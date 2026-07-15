@@ -174,6 +174,38 @@ def main(argv: list[str] | None = None) -> int:
         require(json.loads(recent_body)["recent_projects"] == [], "Recent-project contract was not isolated.")
         require(recent_headers.get("Cache-Control") == "no-store", "Recent projects are cacheable.")
 
+        update_status, update_headers, update_body = request(
+            server, "/api/update", token=token
+        )
+        require(update_status == 200, "Authenticated product-update status route failed.")
+        source_update = json.loads(update_body)
+        require(
+            source_update["supported"] is False and source_update["state"] == "unsupported",
+            "Source mode exposed a product self-update path.",
+        )
+        require(update_headers.get("Cache-Control") == "no-store", "Update status is cacheable.")
+        update_missing_origin, _, _ = request(
+            server,
+            "/api/update/check",
+            method="POST",
+            token=token,
+            body={},
+        )
+        require(update_missing_origin == 403, "Product update check accepted a missing Origin.")
+        update_check, _, update_check_body = request(
+            server,
+            "/api/update/check",
+            method="POST",
+            token=token,
+            origin=server.origin,
+            body={},
+        )
+        require(update_check == 200, "Authenticated source-mode update check failed.")
+        require(
+            json.loads(update_check_body)["state"] == "unsupported",
+            "Source-mode update check attempted network or apply behavior.",
+        )
+
         rule5_status, rule5_headers, rule5_body = request(
             server, "/api/rule5-candidates", token=token
         )
@@ -358,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         "Browser contract OK: loopback-only, token/Host/Origin enforced, "
         "CSP/no-CORS present, fixed live document/activity/recent/Rule 5 routes, "
-        f"bounded real progress, {rule5_observation}, project writes 0."
+        f"inert source-mode updater, bounded real progress, {rule5_observation}, project writes 0."
     )
     return 0
 

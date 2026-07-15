@@ -108,6 +108,34 @@ class LoopbackServerTests(WorkspaceCase):
         self.assertEqual(activity_headers["Cache-Control"], "no-store")
         self.assertEqual(json.loads(activity_body)["worktree_status"], "unavailable")
 
+    def test_product_update_routes_are_authenticated_and_source_mode_is_inert(self) -> None:
+        denied, _, _ = self.request("/api/update")
+        self.assertEqual(denied, 403)
+        status, headers, body = self.request("/api/update", token=self.token)
+        self.assertEqual(status, 200)
+        payload = json.loads(body)
+        self.assertFalse(payload["supported"])
+        self.assertEqual(payload["state"], "unsupported")
+        self.assertTrue(payload["automatic"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+
+        missing_origin, _, _ = self.request(
+            "/api/update/check",
+            method="POST",
+            token=self.token,
+            payload={},
+        )
+        self.assertEqual(missing_origin, 403)
+        check_status, _, check_body = self.request(
+            "/api/update/check",
+            method="POST",
+            token=self.token,
+            origin=True,
+            payload={},
+        )
+        self.assertEqual(check_status, 200)
+        self.assertEqual(json.loads(check_body)["state"], "unsupported")
+
     def test_picker_and_explicit_paste_do_not_switch_projects(self) -> None:
         before = self.server.service.snapshot()["project"]["root"]
         picker_status, _, picker_body = self.request(

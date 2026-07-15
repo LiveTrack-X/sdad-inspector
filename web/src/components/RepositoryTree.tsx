@@ -3,7 +3,6 @@ import {
   CaretDown,
   CaretRight,
   ChartLineUp,
-  CheckCircle,
   Circle,
   Cube,
   FileCode,
@@ -15,6 +14,7 @@ import {
   Stack,
   BookOpenText,
   House,
+  Info,
   X,
 } from "@phosphor-icons/react";
 import { useI18n } from "../i18n";
@@ -55,9 +55,9 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
     {
       id: "state",
       label: t("state"),
-      icon: <CheckCircle size={19} weight="duotone" />,
+      icon: <Info size={19} weight="duotone" />,
       value: snapshot.state.active_packet?.status ?? t("unavailable"),
-      tone: snapshot.doctor.summary.errors ? "error" : "success",
+      tone: snapshot.doctor.summary.errors ? "error" : "muted",
     },
     { id: "spec", label: t("activeSpec"), icon: <FileText size={19} />, value: snapshot.state.active_spec?.path ?? t("none"), tone: "accent" },
     { id: "packet", label: t("activePacketThisRepo"), icon: <Cube size={19} />, value: snapshot.state.active_packet?.id ?? t("none"), tone: "accent" },

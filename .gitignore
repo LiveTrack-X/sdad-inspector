@@ -31,6 +31,14 @@ Desktop.ini
 *.swp
 *.swo
 
+# Local portable copies and self-update recovery files when run from repo root.
+/SDAD-Inspector
+/SDAD-Inspector.exe
+/SDAD-Inspector.previous
+/SDAD-Inspector.exe.previous
+/.SDAD-Inspector.update-*
+/.SDAD-Inspector.exe.update-*
+
 # Owner-only SDAD control plane. Keep these files local and never publish them.
 AGENTS.md
 /sdad-state.yaml

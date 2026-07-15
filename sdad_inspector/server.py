@@ -25,6 +25,7 @@ from .progress import InspectionProgress
 from .rule5 import build_rule5_proposal, extract_rule5_candidates, write_rule5_export
 from .snapshot import inspect_project
 from .state import load_live_documents
+from .updater import ProductUpdateManager
 
 MAX_REQUEST_BYTES = 64 * 1024
 
@@ -41,6 +42,7 @@ class InspectorService:
         clipboard_reader: Callable[[], str] | None = None,
         preferences_store: RecentProjectsStore | None = None,
         rule_export_picker: Callable[[str], str | None] | None = None,
+        update_manager: ProductUpdateManager | None = None,
     ) -> None:
         self._lock = threading.RLock()
         self._operation_lock = threading.Lock()
@@ -52,6 +54,8 @@ class InspectorService:
         self._clipboard_reader = clipboard_reader
         self._recent_projects = preferences_store or RecentProjectsStore()
         self._rule_export_picker = rule_export_picker
+        self._updates = update_manager or ProductUpdateManager()
+        self._update_exit_callback: Callable[[], None] | None = None
         root = canonical_directory(project_root, label="Project root")
         snapshot = self._inspect(root, kind="initial")
         self._project_root = root
@@ -97,6 +101,25 @@ class InspectorService:
         self, picker: Callable[[str], str | None] | None
     ) -> None:
         self._rule_export_picker = picker
+
+    def set_update_exit_callback(self, callback: Callable[[], None] | None) -> None:
+        self._update_exit_callback = callback
+
+    def update_status(self) -> dict[str, Any]:
+        return self._updates.status()
+
+    def check_product_update(self, *, force: bool = False) -> dict[str, Any]:
+        return self._updates.start_background_check(force=force)
+
+    def apply_product_update(self) -> dict[str, Any]:
+        callback = self._update_exit_callback
+        if callback is None:
+            raise InspectorError("The desktop restart bridge is unavailable.")
+        status = self._updates.launch_apply(project_root=self.project_root)
+        timer = threading.Timer(0.35, callback)
+        timer.daemon = True
+        timer.start()
+        return status
 
     def documents(self) -> dict[str, Any]:
         with self._lock:
@@ -379,6 +402,9 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                 if path == "/api/rule5-candidates":
                     self._send_json(HTTPStatus.OK, self.server.service.rule5_candidates())
                     return
+                if path == "/api/update":
+                    self._send_json(HTTPStatus.OK, self.server.service.update_status())
+                    return
             except InspectorError as exc:
                 self._send_json(HTTPStatus.UNPROCESSABLE_ENTITY, exc.to_payload())
                 return
@@ -442,6 +468,22 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/rule5/export":
                 self._send_json(HTTPStatus.OK, self.server.service.export_rule5(payload))
+                return
+            if path == "/api/update/check":
+                force = payload.get("force", False)
+                if not isinstance(force, bool):
+                    self._send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": {"code": "update_force_invalid"}},
+                    )
+                    return
+                self._send_json(
+                    HTTPStatus.OK,
+                    self.server.service.check_product_update(force=force),
+                )
+                return
+            if path == "/api/update/apply":
+                self._send_json(HTTPStatus.OK, self.server.service.apply_product_update())
                 return
             if path == "/api/reveal":
                 relative_path = payload.get("relative_path")

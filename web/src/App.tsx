@@ -1,17 +1,18 @@
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsClockwise, Lock, WarningCircle, X } from "@phosphor-icons/react";
-import { ApiError, clearRecentProjectHistory, getDevelopmentActivity, getInspectionProgress, getLiveDocuments, getRecentProjects, getRule5Candidates, getSnapshot, openProject, pasteProjectPath, pickProjectDirectory, rescanProject, revealPath } from "./api";
+import { ApiError, applyProductUpdate, checkProductUpdate, clearRecentProjectHistory, getDevelopmentActivity, getInspectionProgress, getLiveDocuments, getProductUpdateStatus, getRecentProjects, getRule5Candidates, getSnapshot, openProject, pasteProjectPath, pickProjectDirectory, rescanProject, revealPath } from "./api";
 import { CommandBar } from "./components/CommandBar";
 import { InspectorPane } from "./components/InspectorPane";
 import { Overview } from "./components/Overview";
 import { ProjectDialog } from "./components/ProjectDialog";
 import { RepositoryTree } from "./components/RepositoryTree";
 import { StatusBar } from "./components/StatusBar";
+import { UpdateNotice } from "./components/UpdateNotice";
 import { useI18n } from "./i18n";
 import { packetWorkItems } from "./packetWork";
 import { selectionFor } from "./selection";
 import { useTheme } from "./theme";
-import type { DevelopmentActivity, InspectionProgress, LiveDocuments, RecentProject, RescanMode, Rule5Candidates, Snapshot } from "./types";
+import type { DevelopmentActivity, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, RescanMode, Rule5Candidates, Snapshot } from "./types";
 
 type LoadState = "loading" | "ready" | "error";
 type WorkspaceStyle = CSSProperties & { "--repository-width": string; "--inspector-width": string };
@@ -19,6 +20,8 @@ const MIN_PROGRESS_VISIBILITY_MS = 700;
 const AUTO_INTERVAL_SECONDS = 15;
 const RESCAN_MODE_KEY = "sdad-inspector:rescan-mode:v1";
 const PANE_WIDTHS_KEY = "sdad-inspector:pane-widths:v1";
+const UPDATE_APPLY_DELAY_SECONDS = 10;
+const UPDATE_RECHECK_MS = 6 * 60 * 60 * 1000;
 
 async function loadWorkspaceSignals(): Promise<{ documents: LiveDocuments | null; activity: DevelopmentActivity | null; rule5: Rule5Candidates | null }> {
   const [documents, activity, rule5] = await Promise.allSettled([getLiveDocuments(), getDevelopmentActivity(), getRule5Candidates()]);
@@ -65,9 +68,13 @@ export function App() {
   const [rescanMode, setRescanModeState] = useState<RescanMode>(initialRescanMode);
   const [autoSeconds, setAutoSeconds] = useState(AUTO_INTERVAL_SECONDS);
   const [paneWidths, setPaneWidths] = useState(initialPaneWidths);
+  const [productUpdate, setProductUpdate] = useState<ProductUpdateStatus | null>(null);
+  const [updateCountdown, setUpdateCountdown] = useState<number | null>(null);
+  const [updatePostponed, setUpdatePostponed] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const autoDeadline = useRef(Date.now() + AUTO_INTERVAL_SECONDS * 1000);
   const rescanAction = useRef<() => Promise<void>>(async () => undefined);
+  const updateApplyStarted = useRef(false);
 
   const load = useCallback(async () => {
     setLoadState("loading"); setError(null);
@@ -83,6 +90,64 @@ export function App() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const checkForProductUpdate = useCallback(async (force = false) => {
+    try {
+      const next = await checkProductUpdate(force);
+      setProductUpdate(next);
+      if (next.state !== "ready") setUpdatePostponed(false);
+    } catch {
+      // Product update availability never blocks local inspection.
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkForProductUpdate();
+    const timer = window.setInterval(() => void checkForProductUpdate(), UPDATE_RECHECK_MS);
+    return () => window.clearInterval(timer);
+  }, [checkForProductUpdate]);
+
+  useEffect(() => {
+    if (!productUpdate || !["checking", "downloading", "applying"].includes(productUpdate.state)) return undefined;
+    let stopped = false;
+    const timer = window.setInterval(() => {
+      void getProductUpdateStatus().then((next) => { if (!stopped) setProductUpdate(next); }).catch(() => undefined);
+    }, 650);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [productUpdate?.state]);
+
+  useEffect(() => {
+    if (productUpdate?.state !== "ready" || updatePostponed || busy) {
+      setUpdateCountdown(null);
+      return undefined;
+    }
+    const deadline = Date.now() + UPDATE_APPLY_DELAY_SECONDS * 1000;
+    setUpdateCountdown(UPDATE_APPLY_DELAY_SECONDS);
+    const timer = window.setInterval(() => {
+      setUpdateCountdown(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [productUpdate?.state, productUpdate?.available_version, updatePostponed, busy]);
+
+  async function handleProductUpdateApply() {
+    if (busy || updateApplyStarted.current || productUpdate?.state !== "ready") return;
+    updateApplyStarted.current = true;
+    setUpdateCountdown(null);
+    try {
+      const next = await applyProductUpdate();
+      setProductUpdate(next);
+      setAnnouncement(t("updateApplying"));
+    } catch (reason) {
+      const message = reason instanceof ApiError ? `${reason.code}: ${reason.message}` : t("updateFailedDetail");
+      setProductUpdate((current) => current ? { ...current, state: "error", error: message, message: null } : current);
+      setAnnouncement(message);
+      updateApplyStarted.current = false;
+    }
+  }
+
+  useEffect(() => {
+    if (updateCountdown === 0) void handleProductUpdateApply();
+  }, [updateCountdown]);
 
   useEffect(() => {
     if (!busy) return undefined;
@@ -239,7 +304,7 @@ export function App() {
   }, [snapshot, liveDocuments]);
   const selection = useMemo(() => snapshot ? selectionFor(snapshot, selectedId, t, packetWork) : null, [snapshot, selectedId, t, packetWork]);
 
-  if (loadState === "loading" && !snapshot) return <div className="loading-shell" aria-busy="true"><div className="loading-brand"><span /><strong>SDAD Inspector</strong></div><div className="loading-grid"><div /><div /><div /></div><p><ArrowsClockwise className="spin" size={19} /> {t("inspectingRepository")}</p></div>;
+  if (loadState === "loading" && !snapshot) return <div className="loading-shell" aria-busy="true"><div className="loading-brand"><img src="/sdad-inspector-logo.png" alt="" /><strong>SDAD Inspector</strong></div><div className="loading-grid"><div /><div /><div /></div><p><ArrowsClockwise className="spin" size={19} /> {t("inspectingRepository")}</p></div>;
 
   if (loadState === "error" && !snapshot) return <main className="error-surface"><span className="error-icon"><WarningCircle size={28} /></span><p className="section-kicker">{t("localInspectionUnavailable")}</p><h1>{t("couldNotLoadProject")}</h1><p>{error}</p><button onClick={() => void load()}><ArrowsClockwise size={18} /> {t("tryAgain")}</button><small><Lock size={15} /> {t("noWriteAttempted")}</small></main>;
 
@@ -247,7 +312,8 @@ export function App() {
   const workspaceStyle: WorkspaceStyle = { "--repository-width": `${paneWidths.repository}px`, "--inspector-width": `${paneWidths.inspector}px` };
   return (
     <div className="app-shell">
-      <CommandBar snapshot={snapshot} busy={busy} onRescan={() => void handleRescan()} onReveal={() => void reveal(".")} onCopy={() => void copy(snapshot.project.root, t("projectPath"))} onOpenProject={() => setProjectDialog(true)} onCopySnapshot={() => void copy(JSON.stringify(snapshot, null, 2), t("labelSnapshotJson"))} onToggleRepository={() => setRepositoryOpen((value) => !value)} onToggleInspector={() => setInspectorOpen((value) => !value)} theme={theme} onToggleTheme={toggleTheme} rescanMode={rescanMode} autoSeconds={autoSeconds} onRescanModeChange={setRescanMode} />
+      <CommandBar snapshot={snapshot} busy={busy} onRescan={() => void handleRescan()} onReveal={() => void reveal(".")} onCopy={() => void copy(snapshot.project.root, t("projectPath"))} onOpenProject={() => setProjectDialog(true)} onCopySnapshot={() => void copy(JSON.stringify(snapshot, null, 2), t("labelSnapshotJson"))} onToggleRepository={() => setRepositoryOpen((value) => !value)} onToggleInspector={() => setInspectorOpen((value) => !value)} theme={theme} onToggleTheme={toggleTheme} rescanMode={rescanMode} autoSeconds={autoSeconds} onRescanModeChange={setRescanMode} update={productUpdate} onCheckUpdate={() => void checkForProductUpdate(true)} />
+      <UpdateNotice status={productUpdate} countdown={updateCountdown} inspectionBusy={busy} postponed={updatePostponed} onApply={() => void handleProductUpdateApply()} onPostpone={() => setUpdatePostponed(true)} onRetry={() => { updateApplyStarted.current = false; setUpdatePostponed(false); void checkForProductUpdate(true); }} />
       {error && <div className="inline-error" role="alert"><WarningCircle size={17} />{error}<button onClick={() => setError(null)} aria-label={t("dismissError")}><X size={18} /></button></div>}
       <div className="workspace" ref={workspaceRef} style={workspaceStyle}>
         {(repositoryOpen || inspectorOpen) && <button className="mobile-scrim" aria-label={t("closeOpenPane")} onClick={() => { setRepositoryOpen(false); setInspectorOpen(false); }} />}

@@ -67,6 +67,8 @@ jobs:
           python -m pip install "pywebview[qt]>=5.4,<7"
       - name: Install frontend dependencies
         run: npm --prefix web ci
+      - name: Audit frontend dependency graph
+        run: npm --prefix web audit --audit-level=high
       - name: Test Python core
         run: python -m unittest discover -s tests -v
       - name: Typecheck frontend

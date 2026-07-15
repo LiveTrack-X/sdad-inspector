@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import struct
 import unittest
 from pathlib import PurePosixPath
 
-from scripts.validate_public_repository import audit_bytes
+from scripts.validate_public_repository import PUBLIC_IMAGE_MANIFEST, audit_bytes, audit_public_images
 
 
 class PublicRepositoryAuditTests(unittest.TestCase):
@@ -78,6 +81,36 @@ class PublicRepositoryAuditTests(unittest.TestCase):
         )
         self.assertTrue(audit_bytes(PurePosixPath("design-qa.md"), b"local ledger"))
         self.assertTrue(audit_bytes(PurePosixPath(".DS_Store"), b"metadata"))
+
+    def test_public_documentation_images_require_a_manifested_synthetic_fixture(self) -> None:
+        screenshot_path = PurePosixPath("docs/assets/overview.png")
+        png = b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + struct.pack(">II", 2, 3)
+        self.assertIn(
+            f"{PUBLIC_IMAGE_MANIFEST}: public image integrity manifest is missing",
+            audit_public_images({screenshot_path: png}),
+        )
+
+        manifest = {
+            "schema_version": 1,
+            "assets": [{
+                "path": str(screenshot_path),
+                "source": "synthetic-fixture",
+                "contains_personal_paths": False,
+                "contains_private_controls": False,
+                "sha256": hashlib.sha256(png).hexdigest(),
+                "bytes": len(png),
+                "width": 2,
+                "height": 3,
+            }],
+        }
+        files = {
+            screenshot_path: png,
+            PUBLIC_IMAGE_MANIFEST: json.dumps(manifest).encode("utf-8"),
+        }
+        self.assertEqual(audit_public_images(files), [])
+        manifest["assets"][0]["source"] = "real-private-project"
+        files[PUBLIC_IMAGE_MANIFEST] = json.dumps(manifest).encode("utf-8")
+        self.assertTrue(audit_public_images(files))
 
 
 if __name__ == "__main__":

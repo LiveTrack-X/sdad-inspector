@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all
@@ -8,12 +9,19 @@ from PyInstaller.utils.hooks import collect_all
 ROOT = Path(SPECPATH).resolve().parent
 ENGINE = Path(os.environ["SDAD_INSPECTOR_ENGINE_DIR"]).resolve(strict=True)
 WEB = (ROOT / "web" / "dist").resolve(strict=True)
+ICON = None
+if sys.platform == "win32":
+    ICON = str((ROOT / "packaging" / "sdad-inspector.ico").resolve(strict=True))
+elif sys.platform == "darwin":
+    ICON = str((ROOT / "packaging" / "sdad-inspector.icns").resolve(strict=True))
 
 webview_datas, webview_binaries, webview_hiddenimports = collect_all("webview")
 webview_hiddenimports = sorted({"webview", *webview_hiddenimports})
 datas = webview_datas + [
     (str(WEB), "web/dist"),
     (str(ENGINE), "sdad-engine"),
+    (str(ROOT / "packaging" / "sdad-inspector.ico"), "packaging"),
+    (str(ROOT / "packaging" / "sdad-inspector.icns"), "packaging"),
 ]
 
 analysis = Analysis(
@@ -47,4 +55,5 @@ executable = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=ICON,
 )

@@ -1,8 +1,29 @@
 # SDAD Integration Contract
 
 Status: Active
-Packet: `SI-001-contract-and-fixtures`
 Observed: 2026-07-15
+
+## Project Attachment Contract
+
+Point Inspector at a repository root containing a readable `sdad-state.yaml`
+using SDAD state schema 1 or 2. The declared `active_spec` is the normative
+document entrypoint. Inspector also reads the conventional TODO and findings
+ledgers, an existing declared handoff, and Markdown paths in `routed_docs` through
+bounded, repository-contained reads. These documents can be opened in the local
+read-only viewer; availability is not verification or owner acceptance.
+
+An inspected project may optionally identify the exact current work for display:
+
+```markdown
+- [ ] [packet:APP-001] [phase:Implement] [current] Implement the bounded change.
+```
+
+Only an open TODO whose packet ID equals `active_packet.id` and which declares
+both `[current]` and one official `Plan|Route|Implement|Verify|Report` phase can
+highlight the official loop. Missing, completed, invalid, or conflicting markers
+remain undeclared/ambiguous. Packet status, Git, timestamps, TODO order, and TODO
+counts are never mapped to a current phase. These optional markers are
+Inspector presentation metadata, not additions to the SDAD state schema.
 
 ## Released Engine Identities
 

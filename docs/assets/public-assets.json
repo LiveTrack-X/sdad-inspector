@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "path": "docs/assets/sdad-inspector-overview-ko.png",
+      "source": "synthetic-fixture",
+      "contains_personal_paths": false,
+      "contains_private_controls": false,
+      "sha256": "0e138dcf7135f67c68d4cdf3707717d47ddc40d652fb746e2745173d5372a1df",
+      "bytes": 250017,
+      "width": 2560,
+      "height": 1350
+    },
+    {
+      "path": "web/public/sdad-inspector-logo.png",
+      "source": "imagegen-product-asset",
+      "contains_personal_paths": false,
+      "contains_private_controls": false,
+      "sha256": "495d040e2e0b8d7ece55ddab45fdbe3e49057cf0b8aed7e7c846d4f47888e7e8",
+      "bytes": 151300,
+      "width": 512,
+      "height": 512
+    }
+  ]
+}

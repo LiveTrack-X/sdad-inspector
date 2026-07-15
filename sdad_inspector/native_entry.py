@@ -11,6 +11,7 @@ from sdad_inspector.desktop import resource_root, run_desktop
 from sdad_inspector.dialogs import select_project_directory
 from sdad_inspector.engine import authenticate_release_archive
 from sdad_inspector.errors import InspectorError
+from sdad_inspector.updater import INTERNAL_UPDATE_FLAG, apply_update_plan
 
 INTERNAL_ENGINE_FLAG = "--sdad-internal-engine"
 
@@ -65,6 +66,10 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     raw_arguments = list(sys.argv[1:] if argv is None else argv)
+    if raw_arguments[:1] == [INTERNAL_UPDATE_FLAG]:
+        if len(raw_arguments) != 2:
+            return 2
+        return apply_update_plan(raw_arguments[1])
     if raw_arguments[:1] == [INTERNAL_ENGINE_FLAG]:
         try:
             return run_bundled_engine(raw_arguments[1:])

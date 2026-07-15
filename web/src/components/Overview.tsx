@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { type Translate, useI18n } from "../i18n";
 import type { PacketWorkItem } from "../packetWork";
-import { documentPathForSelection } from "../selection";
+import { documentPathForSelection, documentSelectionId } from "../selection";
 import { formatAbsolute } from "../time";
 import type { DevelopmentActivity, FieldSelection, InspectionProgress as Progress, LiveDocuments, Rule5Candidates, Snapshot } from "../types";
 import { DevelopmentFlowView, PacketEvidencePanel } from "./DevelopmentFlow";
@@ -128,10 +128,10 @@ function StateView({ snapshot }: { snapshot: Snapshot }) {
         ]} />
       </section>
       <section className="context-section" aria-labelledby="state-gates-heading">
-        <h2 id="state-gates-heading">{t("stoppedOwnerGates")}</h2>
+        <h2 id="state-gates-heading">{t("declaredOwnerGates")}</h2>
         {state.owner_gates.length ? (
           <ul className="simple-list gate-list">
-            {state.owner_gates.map((gate) => <li key={gate}><Shield size={17} /><code>{gate}</code><span>{t("stopped")}</span></li>)}
+            {state.owner_gates.map((gate) => <li key={gate}><Shield size={17} /><code>{gate}</code><span>{t("approvalUnobserved")}</span></li>)}
           </ul>
         ) : <p className="empty-copy">{t("noOwnerGate")}</p>}
       </section>
@@ -149,11 +149,6 @@ function DocumentView({ snapshot, selectedId, liveDocuments, onSelect }: { snaps
   const path = documentPathForSelection(snapshot, selectedId);
   const document = liveDocuments?.documents.find((item) => item.path === path);
   const routed = Array.from(new Set(snapshot.state.routed_docs.filter((item) => item.toLocaleLowerCase().endsWith(".md"))));
-  function selectionId(route: string) {
-    if (route === snapshot.state.active_spec?.path) return "spec";
-    if (route === "docs/TODO-Open-Items.md") return "todo";
-    return `doc:${encodeURIComponent(route)}`;
-  }
   return (
     <div className="context-view document-view">
       <header className="document-header">
@@ -174,7 +169,7 @@ function DocumentView({ snapshot, selectedId, liveDocuments, onSelect }: { snaps
             <span className="document-route-count">{routed.length}</span>
             <CaretDown size={18} />
           </button>
-          {routesOpen && <ul id="routed-document-options">{routed.map((route) => <li key={route}><button className={route === path ? "active" : ""} onClick={() => onSelect(selectionId(route))} title={t("clickToRead")}><FileText size={18} /><code>{route}</code></button></li>)}</ul>}
+          {routesOpen && <ul id="routed-document-options">{routed.map((route) => <li key={route}><button className={route === path ? "active" : ""} onClick={() => onSelect(documentSelectionId(snapshot, route))} title={t("clickToRead")}><FileText size={18} /><code>{route}</code></button></li>)}</ul>}
         </nav>
       )}
       <section className="document-reader" aria-label={path ?? t("documents")}>
@@ -233,9 +228,9 @@ function HandoffView({ snapshot }: { snapshot: Snapshot }) {
       <section className="context-section" aria-labelledby="handoff-state-heading">
         <h2 id="handoff-state-heading">{t("declaration")}</h2>
         <FactList facts={[
-          { label: t("declaration"), value: handoff?.declared ? t("declaredPresent") : t("notDeclared"), tone: handoff?.declared ? "success" : undefined },
+          { label: t("declaration"), value: handoff?.declared ? t("declaredPresent") : t("notDeclared") },
           { label: t("declaredPath"), value: handoff?.path ?? t("notDeclared"), mono: true },
-          { label: t("fileStatus"), value: handoff?.exists ? t("present") : t("missing"), tone: handoff?.exists ? "success" : "warning" },
+          { label: t("fileStatus"), value: handoff?.exists ? t("present") : t("missing"), tone: handoff?.exists ? undefined : "warning" },
           { label: t("relationshipToPacket"), value: relationship?.to ?? t("notDeclared"), mono: true },
           { label: t("observedValue"), value: relationship?.status ?? t("notDeclared"), mono: true },
         ]} />
@@ -310,7 +305,7 @@ function EvidenceView({ snapshot, selectedId, selection }: { snapshot: Snapshot;
 function ContextView({ snapshot, selectedId, selection, liveDocuments, activity, onSelect, packetWork, rule5 }: { snapshot: Snapshot; selectedId: string; selection: FieldSelection; liveDocuments: LiveDocuments | null; activity: DevelopmentActivity | null; onSelect: (id: string) => void; packetWork: PacketWorkItem[]; rule5: Rule5Candidates | null }) {
   if (selectedId === "state") return <StateView snapshot={snapshot} />;
   if (documentPathForSelection(snapshot, selectedId)) return <DocumentView snapshot={snapshot} selectedId={selectedId} liveDocuments={liveDocuments} onSelect={onSelect} />;
-  if (selectedId === "development") return <DevelopmentFlowView snapshot={snapshot} documents={liveDocuments} activity={activity} work={packetWork} />;
+  if (selectedId === "development") return <DevelopmentFlowView snapshot={snapshot} documents={liveDocuments} activity={activity} work={packetWork} onSelect={onSelect} />;
   if (selectedId === "rule5") return <Rule5View data={rule5} />;
   if (selectedId === "findings" || selectedId.startsWith("findings-")) return <FindingsView snapshot={snapshot} selectedId={selectedId} title={selection.label} />;
   if (selectedId === "handoff") return <HandoffView snapshot={snapshot} />;
@@ -330,8 +325,8 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
         <p className="section-kicker">{t("activePacket")}</p>
         <div className="packet-heading-row">
           <h1 id="active-packet-heading">{packet?.id ?? t("noActivePacket")}</h1>
-          <span className={`status-badge status-${packet?.status ?? "missing"}`}>
-            {positive ? <CheckCircle size={20} weight="fill" /> : <WarningCircle size={20} weight="fill" />}
+          <span className="status-badge lifecycle-status">
+            <Info size={20} />
             {packet?.status ?? t("unavailable")}
           </span>
         </div>

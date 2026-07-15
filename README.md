@@ -1,100 +1,138 @@
+![SDAD Inspector 로고](web/public/sdad-inspector-logo.png)
+
 # SDAD Inspector
 
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest prerelease](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?include_prereleases&label=alpha)](https://github.com/LiveTrack-X/sdad-inspector/releases)
 
-SDAD Inspector is a local, read-only desktop and browser viewer for repositories
-that use the
-[SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development).
-It brings the active packet, SPEC authority, TODO work, findings, owner gates,
-validation declarations, live Git observations, and evidence provenance into a
-single Korean/English interface.
+SDAD 프로젝트의 현재 상태를 한 화면에서 읽어 주는 로컬 뷰어입니다.
+어떤 SPEC이 기준인지, 지금 활성 패킷은 무엇인지, 남은 TODO와 발견사항은
+무엇인지 찾아다니지 않아도 됩니다. 저장소를 고르면 왼쪽에는 문서와 상태,
+가운데에는 현재 작업, 오른쪽에는 선택한 값의 출처가 표시됩니다.
 
-> **0.0.1 alpha is experimental and unsigned.** The release archives are not
-> installers, are not code-signed or notarized, and may be warned about or
-> blocked by the operating system. Verify `SHA256SUMS` and inspect the public
-> source before running them. The hosted-runner build and smoke checks apply to
-> the exact tagged archives; they are not a broad stable-support claim.
+검사 대상 저장소는 **읽기 전용**입니다. Inspector는 프로젝트에 선언된 검증
+명령을 실행하거나 소스·SDAD 파일을 수정하지 않습니다. 제품 자체의 업데이트만
+Inspector 전용 앱 데이터와 현재 포터블 실행 파일에 씁니다.
 
-Each OS archive contains one **single portable executable** with the Python
-3.12 runtime, UI, and pinned SDAD engine embedded. The destination computer does
-not need Python installed and there is no `_internal` folder to copy alongside
-the executable.
+> **0.0.1 alpha is experimental and unsigned.** 이 버전은 실험적인 unsigned
+> prerelease입니다. 설치 프로그램이 아니며 코드 서명·공증이 없습니다. 운영체제가
+> 경고하거나 실행을 막을 수 있습니다. 실행 전 `SHA256SUMS`를 확인하고, 조직의
+> 보안 정책이 허용하지 않으면 보호 기능을 우회하지 말고 소스 실행 방식을 이용하세요.
 
-## Interface overview
+## 3분 만에 시작하기
 
-![SDAD Inspector with repository navigation on the left, the active packet and TODO evidence in the center, and the field provenance Inspector on the right](docs/assets/sdad-inspector-overview-ko.png)
+Python이나 Node.js를 설치할 필요가 없습니다. 각 압축 파일 안에는 런타임, UI,
+SDAD 3.2.2 엔진이 포함된 **single portable executable** 하나만 들어 있습니다.
 
-*SDAD Inspector 0.0.1 alpha inspecting an SDAD 3.2.2 repository. The screenshot
-uses the Korean locale; English is available from the language menu in the top
-right.*
+1. [`v0.0.1-alpha.3` 릴리스](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.3)를 엽니다.
+2. 내 컴퓨터에 맞는 압축 파일과 `SHA256SUMS`를 받습니다.
+3. 아래 방법으로 해시를 확인합니다.
+4. 압축을 풀고 실행 파일을 엽니다.
+5. 폴더 선택 창에서 `sdad-state.yaml`이 있는 프로젝트 루트를 고릅니다.
 
-- **Top bar:** confirms the selected repository and bundled SDAD engine, then
-  provides manual or automatic refresh, folder access, path copy, language, and
-  theme controls.
-- **Left navigation:** routes directly to state, active SPEC and packet, TODO,
-  development flow, Rule 5 proposals, routed documents, and review findings.
-- **Center workspace:** keeps the active packet objective and status beside its
-  remaining/completed TODOs, observed working-tree changes, recent commits, and
-  handoff history.
-- **Right Inspector:** explains the selected field's authority, observed value,
-  source path and scan time, related findings, paused owner gates, and safe
-  read-only actions.
+| 컴퓨터 | 받을 파일 | 현재 alpha 빌드 |
+| --- | --- | --- |
+| Windows x64 | `SDAD-Inspector-0.0.1-alpha.3-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.1-alpha.3-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.1-alpha.3-linux-x64.tar.gz` | `SDAD-Inspector` |
 
-## What it does
+현재 릴리스에 없는 아키텍처(예: Intel Mac)는 지원된다고 가정하지 마세요. 소스
+실행은 가능할 수 있지만, 공개 alpha의 빌드·스모크 근거에는 포함되지 않습니다.
 
-- Opens an SDAD repository without modifying it.
-- Runs a pinned, authenticated SDAD Doctor in a subprocess and preserves its
-  real exit code and raw JSON evidence.
-- Shows the active SPEC, current packet, packet TODO, findings, routed Markdown,
-  observed Git status/commits, handoff history, and owner gates.
-- Provides one shared responsive UI through the native shell or loopback
-  browser, with Korean/English and light/dark preferences.
-- Exports a redacted standalone HTML report outside the inspected repository.
-- Can prepare a Rule 5 proposal only after preview and confirmation; the result
-  is an inactive Markdown file at a separate owner-selected path.
+### Windows에서 해시 확인
 
-It does **not** execute validation commands declared by the project, edit the
-project, silently migrate SDAD state, download engines at runtime, or expose a
-JavaScript-to-Python bridge.
+압축 파일과 `SHA256SUMS`가 같은 폴더에 있을 때 PowerShell에서 실행합니다.
+마지막 결과가 `True`여야 합니다.
 
-## Which SDAD projects can it inspect?
+```powershell
+$archive = Get-Item .\SDAD-Inspector-0.0.1-alpha.3-windows-x64.zip
+$expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
+$actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
+$actual -eq $expected
+```
 
-Attach Inspector to a repository that follows the SDAD Protocol and keeps
-`sdad-state.yaml` at its repository root. It is not limited to the upstream SDAD
-framework repository: it is intended for any product repository that has
-adopted that repository-local protocol.
+### macOS에서 해시 확인
 
-| Contract | 0.0.1 alpha boundary |
+```bash
+grep 'macos-arm64' SHA256SUMS | shasum -a 256 -c -
+```
+
+### Linux에서 해시 확인
+
+```bash
+grep 'linux-x64' SHA256SUMS | sha256sum -c -
+```
+
+macOS/Linux에서 실행 권한이 없다는 메시지가 나오면 압축을 푼 실행 파일에만
+권한을 줍니다.
+
+```bash
+chmod +x ./SDAD-Inspector
+./SDAD-Inspector /path/to/your-project
+```
+
+Windows에서는 더블클릭하거나 프로젝트 경로를 인수로 줄 수 있습니다.
+
+```powershell
+.\SDAD-Inspector.exe "C:\path\to\your-project"
+```
+
+## 화면은 이렇게 읽으면 됩니다
+
+![왼쪽 저장소 탐색, 가운데 활성 패킷과 TODO, 오른쪽 필드 출처 Inspector가 표시된 SDAD Inspector 한국어 화면](docs/assets/sdad-inspector-overview-ko.png)
+
+*개인 경로나 내부 운영 문서가 없는 공개용 합성 SDAD 3.2.2 fixture를 검사한 한국어
+화면입니다. 우측 상단 언어 메뉴에서 English로 바꿀 수 있고, 달 아이콘으로 다크
+모드를 켤 수 있습니다.*
+
+- **상단 바** — 현재 프로젝트와 번들 SDAD 엔진을 확인하고, 수동/AUTO 15초
+  재검사, 폴더 열기, 경로 복사, 언어, 테마를 조작합니다.
+- **왼쪽 저장소 패널** — 상태, 활성 SPEC, 활성 패킷, TODO, 개발 흐름, Rule 5
+  제안, 연결된 문서, 발견사항으로 바로 이동합니다.
+- **가운데 작업 공간** — 패킷 목표와 상태, 남은 일/완료된 일, 관찰된 변경 파일,
+  최근 커밋, 핸드오프를 함께 봅니다.
+- **개발 흐름** — 공식 `Plan → Route → Implement → Verify → Report` 순서와 조건부
+  Owner Gate/Handoff를 구분합니다. 명시된 현재 TODO가 있으면 해당 공식 단계만
+  강조하고, 실제로 읽은 근거 문서를 클릭해 읽기 전용 뷰어에서 열 수 있습니다.
+- **오른쪽 Inspector** — 선택한 값의 권한 근거, 관찰값, 원본 경로, 검사 시각,
+  관련 발견사항과 안전한 읽기 전용 동작을 보여 줍니다.
+
+표시된 Git 변경이나 커밋은 관찰 근거일 뿐입니다. Inspector는 “이 파일은 어느
+단계 때문에 바뀌었다”거나 “작업이 몇 퍼센트 끝났다”고 추측하지 않습니다.
+
+## 어떤 SDAD에 붙여 쓸 수 있나요?
+
+### Which SDAD projects can it inspect?
+
+[SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)을
+도입했고 저장소 루트에 `sdad-state.yaml`이 있는 프로젝트라면 연결할 수 있습니다.
+SDAD 프레임워크 저장소만 보는 도구가 아니라, SDAD 방식으로 운영하는 실제 제품
+저장소를 읽는 도구입니다.
+
+| 계약 | 0.0.1 alpha 범위 |
 | --- | --- |
-| Bundled/runtime baseline | Official SDAD Protocol `v3.2.2` |
-| Doctor compatibility corpus | Released `v3.2.1` and `v3.2.2` fixtures |
-| SDAD state schemas | 1 and 2 |
-| Doctor report schemas | 1 and 2 |
-| Primary project entry | Root `sdad-state.yaml` |
-| Normative intent | The single `active_spec` declared by state |
+| 번들 실행 기준 | Official SDAD Protocol `v3.2.2` |
+| Doctor 호환성 fixture | 릴리스된 `v3.2.1`, `v3.2.2` |
+| SDAD state schema | 1, 2 |
+| Doctor report schema | 1, 2 |
+| 프로젝트 시작점 | 루트 `sdad-state.yaml` |
+| 의도/권한 기준 | state가 선언한 단일 `active_spec` |
 
-The compatibility corpus proves bounded parsing of those released contracts;
-it does not promise compatibility with future SDAD versions. The packaged alpha
-always uses its bundled `v3.2.2` runtime.
-
-A typical inspected repository looks like this:
+가장 알아보기 쉬운 프로젝트 구조는 다음과 같습니다.
 
 ```text
 your-project/
-├─ sdad-state.yaml
+├─ sdad-state.yaml              # Inspector가 가장 먼저 읽는 실행 상태
 ├─ SPEC/
-│  └─ SPEC-COMPLETE.md
+│  └─ SPEC-COMPLETE.md          # state가 지정한 현재 의도
 ├─ docs/
-│  ├─ INDEX.md
-│  └─ TODO-Open-Items.md
-├─ review-findings.md
+│  ├─ INDEX.md                  # 문서 라우터(선택 사항)
+│  └─ TODO-Open-Items.md        # 현재 패킷 TODO
+├─ review-findings.md           # 열려 있는 발견사항
 └─ ...your product source and tests
 ```
 
-At minimum, state must select the active SPEC and packet. A state-v2 project can
-also declare its execution boundary, validation owner, gates, and eligible
-documents:
+state v2의 작은 예시는 다음과 같습니다.
 
 ```yaml
 version: 2
@@ -103,7 +141,7 @@ execution_scope: packet
 active_spec: SPEC/SPEC-COMPLETE.md
 active_packet:
   id: APP-001
-  objective: Deliver the current bounded change.
+  objective: 현재 범위의 변경을 완료한다.
   status: in_progress
 validation_for: APP-001
 owner_gates: []
@@ -112,56 +150,113 @@ routed_docs:
   - review-findings.md
 ```
 
-Inspector treats those fields as declared project evidence. It does not infer
-authority from filenames or turn a routed document into authority.
+`routed_docs`는 “UI에서 읽을 수 있는 후보”이지 자동 권한 부여가 아닙니다.
+Inspector는 파일 이름만 보고 SPEC이나 결정권을 만들어 내지 않습니다. 정확한
+연동 계약은 [`docs/SDAD_INTEGRATION_CONTRACT.md`](docs/SDAD_INTEGRATION_CONTRACT.md)를
+참고하세요.
 
-## Use the 0.0.1 alpha release
+### 지금 하는 작업과 단계를 정확히 표시하려면
 
-1. Open the
-   [`v0.0.1-alpha.3` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.3).
-2. Download `SHA256SUMS` and exactly one archive for your operating system.
-   The filename records the OS and the architecture of the GitHub-hosted runner.
-3. Verify the archive before extracting it.
-4. Extract the archive. It contains exactly one portable executable.
-5. Start Inspector with an SDAD project path, or start it without a path and use
-   the native folder picker.
+현재 패킷 TODO 한 항목에 다음처럼 명시적인 표시를 붙일 수 있습니다.
 
-Verify on Linux or macOS from the directory containing all downloaded assets:
-
-```bash
-sha256sum -c SHA256SUMS
+```markdown
+- [ ] [packet:APP-001] [phase:Implement] [current] 로그인 오류 처리를 수정한다.
 ```
 
-On Windows PowerShell, compute the archive hash and compare it with the matching
-line in `SHA256SUMS`:
+`phase`에는 공식 단계인 `Plan`, `Route`, `Implement`, `Verify`, `Report`만 씁니다.
+Inspector는 같은 활성 패킷의 **열린 TODO**에 `[current]`와 유효한 `[phase:…]`가
+함께 있을 때만 현재 단계를 강조합니다. 표시가 없거나 서로 충돌하면 “현재 단계
+미선언” 또는 “현재 단계가 모호함”이라고 보여 줍니다. 패킷의 일반 상태,
+TODO 순서·개수, Git 커밋·시간으로 현재 단계를 추측하지 않습니다.
 
-```powershell
-Get-FileHash .\SDAD-Inspector-0.0.1-alpha.3-windows-*.zip -Algorithm SHA256
-Get-Content .\SHA256SUMS
-```
+이 표시는 Inspector의 읽기 쉬운 화면을 위한 선택적 TODO 메타데이터입니다. SDAD의
+권한, 완료, 검증, 소유자 수락 의미를 바꾸지 않습니다. 활성 SPEC, TODO 원장,
+발견사항, 현재 핸드오프, state에 라우팅된 Markdown은 “근거 문서” 목록에서 바로
+열 수 있습니다. 문서를 열 수 있다는 사실도 검증이나 수락을 뜻하지 않습니다.
 
-Run the extracted build:
+## 자동 제품 업데이트
 
-| OS | Launch path |
-| --- | --- |
-| Windows | `.\SDAD-Inspector.exe C:\path\to\your-project` |
-| macOS | `./SDAD-Inspector /path/to/your-project` |
-| Linux | `./SDAD-Inspector /path/to/your-project` |
+포터블 릴리스 앱은 시작할 때와 실행 중 6시간마다 제품 업데이트를 확인합니다.
+업데이트가 있으면 다음 순서가 자동으로 진행됩니다.
 
-Because the alpha is unsigned, Windows SmartScreen or macOS Gatekeeper may stop
-it. Keep the protection enabled; if the source and checksum are not sufficient
-for your environment's policy, run from source instead of bypassing that policy.
+1. `LiveTrack-X/sdad-inspector`의 공식 GitHub Releases API만 확인합니다.
+2. 현재보다 새롭고 게시가 끝난 **immutable release**만 선택합니다.
+3. 현재 OS/아키텍처와 정확히 일치하는 자산 하나를 백그라운드에서 받습니다.
+4. GitHub가 제공한 SHA-256 digest, 크기, 다운로드 호스트, 압축 형식, 내부 파일
+   이름과 개수를 검증합니다.
+5. 검사가 진행 중이 아니면 10초 카운트다운 뒤 검증된 새 실행 파일의 복사본을
+   업데이트 헬퍼로 실행합니다.
+6. 헬퍼가 현재 앱 종료를 기다리고 이전 실행 파일 하나를 `.previous`로 보관한 뒤,
+   현재 포터블 실행 파일을 원자적으로 교체하고 같은 프로젝트를 다시 엽니다.
 
-## Run from source
+상단 알림에서 **나중에**를 누르면 이번 실행의 자동 재시작을 미룰 수 있습니다.
+교체가 실패하면 가능한 경우 이전 파일을 복원하고 이전 앱을 다시 엽니다. 실패한
+교체 뒤에는 재시작 루프를 막기 위해 자동 재시도를 중지하며, 사용자가 **다시
+시도**를 눌러야 합니다.
 
-Requirements:
+이 기능은 **Inspector 제품 실행 파일만** 업데이트합니다. SDAD 엔진을 몰래 받거나
+검사 대상 프로젝트를 마이그레이션·수정하지 않습니다. 소스 실행과 브라우저 모드는
+자기 파일을 교체하지 않습니다.
 
-- Python 3.10 or newer;
-- Node.js 22 or newer;
-- Git;
-- platform prerequisites required by `pywebview` for the optional desktop mode.
+unsigned alpha의 자동 업데이트는 서명된 안정 버전과 같은 보증이 아닙니다. 릴리스
+불변성, GitHub digest, 정확한 자산 계약과 백업으로 범위를 줄였지만, 조직 정책상
+unsigned 코드를 자동 실행할 수 없다면 소스 모드를 사용하세요.
 
-Clone Inspector and the supported official SDAD runtime:
+## Inspector가 하는 일 / 하지 않는 일
+
+### 하는 일
+
+- 인증된 번들 SDAD Doctor를 별도 프로세스로 실행하고 실제 exit code와 JSON 근거를
+  보존합니다.
+- 현재 SPEC·패킷·TODO·발견사항·owner gate·선언된 검증·Git 관찰값을 한 화면에
+  정규화합니다.
+- 한국어/English, 라이트/다크, 넓은 화면/좁은 화면에서 같은 React UI를 사용합니다.
+- 검사 대상 밖의 사용자가 고른 위치에 redacted HTML 보고서를 만들 수 있습니다.
+- 완전한 발견사항을 미리 본 뒤 확인했을 때만 비활성 Rule 5 Markdown 제안을 외부
+  경로에 저장합니다.
+
+### 하지 않는 일
+
+- 프로젝트가 선언한 검증 명령 실행
+- 프로젝트 소스, SPEC, state, TODO 자동 수정
+- 자동 SDAD 엔진 다운로드 또는 프로젝트 마이그레이션
+- 저장소 Markdown 안의 HTML/스크립트 실행
+- 일반 JavaScript→Python 또는 임의 파일시스템 브리지 제공
+- 텔레메트리 전송
+
+최근 프로젝트 목록, 언어/테마/패널 폭, 제품 업데이트 staging은 OS별 사용자 앱
+데이터 위치에 저장되며 검사 대상 저장소에는 기록되지 않습니다.
+
+## 다른 컴퓨터에서 실행되지 않을 때
+
+### `Failed to load Python DLL ... _internal\python313.dll`
+
+이 메시지는 현재 single-file alpha가 아니라 예전 one-folder 빌드의 실행 파일만
+복사했거나 압축을 일부만 푼 경우에 발생합니다. 현재 릴리스는 CPython 3.12 기반의
+단일 실행 파일이며 옆에 `_internal` 폴더가 필요하지 않습니다.
+
+1. 기존 복사본과 `_internal` 폴더를 섞어 쓰지 않습니다.
+2. 공식 `v0.0.1-alpha.3` 자산을 새 폴더에 다시 받습니다.
+3. `SHA256SUMS`를 확인합니다.
+4. 압축 속 실행 파일 하나를 꺼내 그 파일을 실행합니다.
+
+그래도 같은 경로가 보인다면 바탕 화면/작업 표시줄 바로가기가 이전 실행 파일을
+가리키는지 확인하세요.
+
+### 창이 열리지 않음
+
+- **Windows:** OS WebView2 런타임이 필요합니다. 최신 Windows에는 대개 포함되어
+  있지만 제거된 환경이라면 조직 정책에 따라 설치해야 합니다.
+- **macOS:** 현재 공개 자산은 Apple Silicon arm64이며 unsigned입니다. Gatekeeper
+  정책이 허용하지 않으면 보호를 우회하지 말고 소스 모드를 사용하세요.
+- **Linux:** 그래픽 데스크톱, EGL/GL/XCB 계열 런타임, 실행 가능한 임시 파일시스템이
+  필요합니다. 자세한 CI 기준은 [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md)에
+  있습니다.
+
+## 소스에서 실행하기
+
+필요한 도구는 Python 3.10+, Node.js 22+, Git입니다. 네이티브 릴리스 빌드는
+CPython 3.12를 정확히 사용합니다.
 
 ```bash
 git clone https://github.com/LiveTrack-X/sdad-inspector.git
@@ -171,7 +266,18 @@ git clone --branch v3.2.2 --depth 1 \
   .runtime/sdad-v3.2.2
 ```
 
-Install the Python and frontend dependencies:
+### Windows PowerShell
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[desktop,build]"
+npm --prefix web ci
+npm --prefix web run build
+sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.2
+```
+
+### macOS / Linux
 
 ```bash
 python -m venv .venv
@@ -179,42 +285,31 @@ source .venv/bin/activate
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.2
 ```
 
-On Windows PowerShell, activate the environment with
-`.\.venv\Scripts\Activate.ps1` instead of the `source` line. You can also avoid
-activation by invoking the Python and `sdad-inspector` executables directly from
-`.venv`. The command shapes below are otherwise the same on every OS.
+폴더 선택 창을 쓰려면 프로젝트 경로를 생략해도 됩니다.
 
-### Desktop app
-
-```bash
-sdad-inspector desktop /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.2
-```
-
-### Loopback browser app
+### 브라우저 UI
 
 ```bash
 sdad-inspector serve /path/to/your-project \
   --sdad-checkout .runtime/sdad-v3.2.2
 ```
 
-The server binds to `127.0.0.1`, chooses a free port by default, requires a
-per-launch session token, rejects foreign host/origin requests, and sends
-no-store/security headers.
+서버는 `127.0.0.1`에만 바인딩되고 매 실행마다 새 세션 토큰을 사용합니다. Host와
+Origin을 확인하고 API 응답에 `no-store`를 적용합니다.
 
 ### Snapshot JSON
 
 ```bash
 sdad-inspector inspect /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.2 \
-  --pretty
+  --sdad-checkout .runtime/sdad-v3.2.2 --pretty
 ```
 
-### Redacted static report
+### Redacted HTML 보고서
 
-The output must be outside the inspected repository:
+출력 경로는 검사 대상 프로젝트 밖이어야 합니다.
 
 ```bash
 sdad-inspector report /path/to/your-project \
@@ -223,83 +318,60 @@ sdad-inspector report /path/to/your-project \
   --redact-paths --redact-evidence
 ```
 
-## Architecture
+소스/브라우저 실행에서는 자동 제품 업데이트가 비활성화됩니다. 새 버전을 쓰려면
+Git checkout과 의존성을 직접 갱신하세요.
+
+## 구조와 보안 경계
 
 ```mermaid
 flowchart LR
-    P["Selected SDAD repository\nread-only bounded files"]
-    E["Pinned SDAD Doctor\nsubprocess + raw JSON"]
-    N["Inspector adapters\nnormalized snapshot"]
-    S["Authenticated loopback service\nno-store API"]
-    U["React UI"]
-    D["Native pywebview shell"]
-    R["Static redacted report"]
-    P --> E
-    P --> N
-    E --> N
-    N --> S
-    S --> U
-    U --> D
-    N --> R
+    P["선택한 SDAD 저장소\n읽기 전용 bounded input"]
+    E["번들 SDAD Doctor\n별도 프로세스 + raw JSON"]
+    N["Python adapters\n정규화 snapshot"]
+    S["인증된 loopback API\nHost/Origin/token/no-store"]
+    U["React UI\n브라우저 + pywebview"]
+    G["공식 immutable GitHub release\nexact asset + SHA-256"]
+    H["업데이트 helper\nbackup → replace → relaunch"]
+    P --> E --> N --> S --> U
+    G --> H --> U
 ```
 
-The important boundary is one-way: project files and Doctor output flow into an
-Inspector-owned snapshot. The UI never receives a general filesystem or Python
-bridge, and displayed repository Markdown is safely rendered without executing
-repository HTML.
-
-### Repository structure
+프로젝트 정보는 한 방향으로 snapshot에 들어옵니다. UI는 일반 파일시스템이나
+Python 브리지를 받지 않습니다. 제품 업데이트 경로는 프로젝트 읽기 경로와
+분리되어 있고, 정해진 GitHub 저장소·자산·staging·실행 파일만 다룹니다.
 
 ```text
-sdad_inspector/       Python core, adapters, server, desktop shell, reports
-web/                  Shared React/Vite browser and native frontend
-scripts/              Contract checks, native build/smoke, release packaging
-packaging/            PyInstaller one-file specification
-tests/                Python regressions and frozen SDAD contract fixtures
-docs/                  Public integration, platform, UI, and release docs
-.github/workflows/    Continuous checks and tagged alpha release automation
+sdad_inspector/       Python core, adapters, loopback server, desktop, updater
+web/                  React/Vite 공용 UI와 실제 로고 자산
+scripts/              공개 경계, 브라우저, 네이티브, 릴리스 검증
+packaging/            PyInstaller one-file 및 OS 아이콘
+tests/                Python/프런트엔드 회귀와 SDAD 호환 fixture
+docs/                 공개 연동·플랫폼·디자인·현지화·릴리스 문서
+.github/workflows/    3개 OS 지속 검증과 tagged alpha 릴리스
 ```
 
-Public technical documentation includes:
+더 자세한 공개 문서:
 
-- [`docs/SDAD_INTEGRATION_CONTRACT.md`](docs/SDAD_INTEGRATION_CONTRACT.md) —
-  exact engine/report/state compatibility;
-- [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md) — platform adapters and
-  evidence limits;
-- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — shared interface layout,
-  tokens, components, and responsive behavior;
-- [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — Korean/English behavior and
-  verbatim repository-evidence boundary;
-- [`docs/releases/v0.0.1-alpha.3.md`](docs/releases/v0.0.1-alpha.3.md) — current
-  release contents, compatibility, and unsigned limitations.
+- [`docs/SDAD_INTEGRATION_CONTRACT.md`](docs/SDAD_INTEGRATION_CONTRACT.md) — 엔진,
+  report/state schema 호환성
+- [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md) — OS별 어댑터와 근거 한계
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — 화면 구조, 토큰, 컴포넌트,
+  반응형 동작
+- [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — 한국어/English UI와 원문 근거 경계
+- [`docs/releases/v0.0.1-alpha.3.md`](docs/releases/v0.0.1-alpha.3.md) — 현재 릴리스
+  자산, 자동 제품 업데이트, 알려진 한계
 
-## Read-only and security boundary
+## 빌드와 검증
 
-- Project reads are repository-relative, size/line bounded, canonicalized, and
-  checked against traversal, symbolic-link, hard-link, and sensitive-file paths.
-- Doctor is accepted only from the pinned clean release contract bundled with
-  the app or explicitly supplied in source mode.
-- Declared validation commands are shown as metadata and never executed.
-- Project selection, refresh, recent-project preferences, and history clearing
-  do not write to the inspected repository.
-- Static reports require a destination outside the project and default to no
-  overwrite.
-- Rule 5 export requires a complete finding, exact preview digest, confirmation,
-  and a separate Save As destination. It never activates the proposal.
-
-## Build and validate
-
-Native packaging specifically requires official CPython 3.12. Build an unsigned
-local one-file preview with that interpreter:
+로컬 unsigned one-file 빌드는 공식 CPython 3.12로 실행합니다.
 
 ```bash
 npm --prefix web run build
-python3.12 scripts/build_native.py \
-  --sdad-checkout .runtime/sdad-v3.2.2
+python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.2
 python3.12 scripts/smoke_native.py .
 ```
 
-Run the release-relevant local gates from the repository root:
+저장소 루트의 전체 공개 릴리스 게이트:
 
 ```bash
 python scripts/validate_public_repository.py
@@ -308,43 +380,37 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py
-python scripts/validate_static_report.py
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.2
+python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.2
 python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.2
 python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.2
 ```
 
-The normal `cross-platform.yml` workflow runs source, frontend, one-file native
-build, direct smoke, and separate downloaded-archive smoke checks on Windows,
-macOS, and Ubuntu. Its archives are short-lived CI evidence, not releases.
-Pushing the exact
-tag `v0.0.1-alpha.3` invokes `release.yml`, repeats those gates on the tagged
-commit with CPython 3.12, packages one executable per OS, and then downloads and
-smoke-launches each archive in a separate clean hosted-runner job. It writes
-`SHA256SUMS` and publishes a GitHub prerelease only after all build and portable
-smoke jobs pass.
+일반 `cross-platform.yml`은 Windows, macOS, Linux에서 소스·UI·네이티브 빌드와
+직접 실행 스모크를 수행하고, 별도 깨끗한 runner가 내려받은 압축을 다시 검사하고
+실행합니다. 이 단기 CI 자산은 릴리스가 아닙니다.
 
-## Alpha limitations
+정확한 `v0.0.1-alpha.3` 태그는 같은 검증을 다시 수행한 뒤 세 플랫폼 압축과
+`SHA256SUMS`를 draft release에 올립니다. 각 자산의 GitHub artifact attestation을
+만들고, 모든 단계가 성공한 뒤에만 prerelease를 게시합니다. 저장소의 immutable
+release 설정이 게시 후 태그와 자산 변경을 막습니다.
 
-- No installer, signing, notarization, updater, package-registry publication,
-  deployment, upgrade/uninstall/rollback guarantee, or production-readiness
-  claim.
-- Hosted GitHub runners cannot establish compatibility with every OS release,
-  desktop environment, security policy, GPU, or display-server configuration.
-- The macOS and Windows executables may be blocked because they are
-  unsigned.
-- A one-file executable expands its embedded runtime into an OS temporary
-  directory at startup. Linux systems whose temporary filesystem is mounted
-  `noexec` are outside this alpha's verified environments.
-- The executable embeds Python and application dependencies, not the operating
-  system's browser/display stack. Windows needs WebView2; Linux needs a working
-  desktop plus EGL/GL/XCB libraries (the CI baseline installs `libegl1`,
-  `libgl1`, and the listed XCB runtime packages).
-- The product is intentionally an Inspector, not an SDAD editor or autonomous
-  repair tool.
-- Public visibility does not itself add a license grant; check repository terms
-  before redistribution or derivative use.
+## Alpha 한계
 
-Issues should include the Inspector version, OS/architecture, SDAD version,
-Doctor exit code, and a redacted reproduction. Never attach secrets, `.env`
-files, raw customer data, or private repositories.
+- installer, code signing, notarization, package registry, 안정 버전 지원 보증이 없습니다.
+- automatic product update가 포함되어 있지만 unsigned alpha 범위입니다. 공식
+  immutable release와 digest를 검증하고 이전 실행 파일 하나를 보관해도, 서명된
+  installer의 upgrade/uninstall/복구 보증을 대신하지 않습니다.
+- GitHub-hosted runner의 정확한 빌드·스모크 결과는 모든 OS 버전, 보안 정책, GPU,
+  디스플레이 서버와 데스크톱 환경을 일반적으로 보증하지 않습니다.
+- PyInstaller one-file 앱은 시작할 때 임베디드 런타임을 OS 임시 디렉터리에 풉니다.
+  Linux 임시 파일시스템이 `noexec`이면 현재 검증 범위 밖입니다.
+- 실행 파일은 Python과 앱 의존성을 포함하지만 OS 웹뷰/디스플레이 구성요소까지
+  내장하지 않습니다.
+- Inspector는 SDAD 편집기나 자율 수리 도구가 아닙니다.
+- 공개 저장소라는 사실만으로 별도 라이선스 권리가 생기지는 않습니다. 재배포나
+  파생 사용 전 저장소 조건을 확인하세요.
+
+문제를 제보할 때는 Inspector 버전, OS/아키텍처, SDAD 버전, Doctor exit code,
+재현 순서를 적어 주세요. 비밀값, `.env`, 고객 원본 데이터, 비공개 저장소 내용은
+첨부하지 마세요.

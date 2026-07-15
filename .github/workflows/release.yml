@@ -67,6 +67,8 @@ jobs:
           python -m pip install "pywebview[qt]>=5.4,<7"
       - name: Install frontend dependencies
         run: npm --prefix web ci
+      - name: Audit frontend dependency graph
+        run: npm --prefix web audit --audit-level=high
       - name: Validate source and release contracts
         run: |
           python scripts/validate_public_repository.py
@@ -148,11 +150,13 @@ jobs:
         run: xvfb-run -a python scripts/smoke_release_archive.py . --artifact-dir release-candidate
 
   release:
-    name: Publish GitHub prerelease
+    name: Attest and publish immutable GitHub prerelease
     needs: [build, portable-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Check out tagged Inspector
         uses: actions/checkout@v6
@@ -163,10 +167,8 @@ jobs:
           merge-multiple: true
       - name: Write and verify SHA-256 manifest
         run: python scripts/write_checksums.py release-artifacts --expected 3
-      - name: Publish or refresh prerelease
+      - name: Verify the complete release asset set
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
           assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS)
@@ -174,9 +176,35 @@ jobs:
             echo "Expected three platform archives and SHA256SUMS; found ${#assets[@]} assets." >&2
             exit 1
           fi
+      - name: Create unpublished draft prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
-            gh release edit "$GITHUB_REF_NAME" --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.3.md --prerelease
-          else
-            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --title "SDAD Inspector 0.0.1 alpha" --notes-file docs/releases/v0.0.1-alpha.3.md --prerelease
+            echo "Release $GITHUB_REF_NAME already exists; immutable releases are never refreshed in place." >&2
+            exit 1
           fi
+          gh release create "$GITHUB_REF_NAME" \
+            --draft \
+            --prerelease \
+            --verify-tag \
+            --title "SDAD Inspector 0.0.1 alpha" \
+            --notes-file docs/releases/v0.0.1-alpha.3.md
+      - name: Attest portable archives and checksum manifest
+        uses: actions/attest@v4
+        with:
+          subject-path: release-artifacts/*
+      - name: Upload assets to the draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS)
+          gh release upload "$GITHUB_REF_NAME" "${assets[@]}"
+      - name: Publish immutable prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease

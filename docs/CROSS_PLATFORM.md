@@ -1,101 +1,90 @@
-# Cross-Platform Preview Contract
+# Cross-Platform Portable Contract
 
-Status: Active implementation contract
-Packets: `SI-005-native-preview`, `SI-006-korean-localization`,
-`SI-008-context-workspace-progress-theme`, `SI-013-alpha-release`
+Status: Active public implementation contract
 
 ## Architecture
 
-One Python codebase owns inspection, release-engine authentication, and the
-loopback HTTP boundary. React/Vite produces one static frontend. pywebview hosts
-that same loopback URL in a native window, and PyInstaller produces an unsigned
-one-file executable with the CPython 3.12 runtime and application resources
-embedded. The renderer receives no Python bridge and no direct file or
-subprocess capability.
+One Python codebase owns inspection, bundled-engine authentication, the closed
+loopback service, the native shell, and product-update verification. React/Vite
+produces one static frontend. pywebview opens that same authenticated loopback
+URL in a native window. PyInstaller produces an unsigned one-file executable
+with CPython 3.12, the web bundle, and the authenticated SDAD 3.2.2 engine
+embedded.
 
-## Platform adapters
+The renderer receives no general Python bridge, filesystem bridge, or subprocess
+capability. The packaged product updater is exposed only through fixed
+authenticated loopback routes; source/browser mode reports it as unsupported.
 
-| Platform | pywebview engine | Build runner | Current evidence |
+## Published alpha targets
+
+| Platform | UI engine | GitHub runner | Release asset |
 | --- | --- | --- | --- |
-| Windows | Edge Chromium / WebView2 | `windows-latest` | One-file build and separate downloaded-archive smoke configured; result pending |
-| macOS | Cocoa / WKWebView | `macos-latest` | One-file build and separate downloaded-archive smoke configured; result pending |
-| Linux | Qt WebEngine under Xvfb in CI | `ubuntu-latest` | One-file build and separate downloaded-archive smoke configured; result pending |
+| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.1-alpha.3-windows-x64.zip` |
+| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.1-alpha.3-macos-arm64.tar.gz` |
+| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.1-alpha.3-linux-x64.tar.gz` |
 
-pywebview's current platform requirements are documented in its
-[installation guide](https://pywebview.flowrl.com/guide/installation) and
-[web-engine guide](https://pywebview.flowrl.com/guide/web_engine). PyInstaller
-resource paths are resolved relative to bundled module `__file__`, following
-its [runtime information guidance](https://pyinstaller.org/en/stable/runtime-information.html).
+The table names exact build targets, not every machine supported by the
+operating-system family. pywebview's platform dependencies are documented in
+its [installation guide](https://pywebview.flowrl.com/guide/installation) and
+[web-engine guide](https://pywebview.flowrl.com/guide/web_engine).
 
-## Build contract
+## Build and portable-smoke contract
 
-1. Authenticate the supplied checkout as a supported clean tagged commit or a
-   marker-backed archive with the frozen whole-tree digest. The digest
-   canonicalizes CRLF to LF only for the release's declared text surfaces while
-   retaining byte-exact binary hashes, so equivalent Git checkouts authenticate
-   on every OS.
-2. Copy the tree to a new staging directory, excluding Git and bytecode only.
-3. Write a normalized release marker and reauthenticate the staged tree.
-4. Bundle `web/dist` and the staged engine as PyInstaller data directories.
-5. Build one executable on the current OS with official CPython 3.12; never
-   cross-compile a claim.
-6. Archive only that executable and preserve the POSIX executable bit.
-7. Launch the built artifact against the repository and close it through a
-   bounded hidden smoke path.
-8. In a separate clean hosted-runner job, download the archive, require exactly
-   one regular file, extract it without product dependency installation, and
-   repeat the bounded hidden smoke.
+1. Authenticate the supplied SDAD checkout as supported clean release content.
+2. Copy it to a new stage, excluding Git and bytecode artifacts, then
+   reauthenticate the complete stage.
+3. Build the frontend and bundle it, the staged engine, pywebview, and the
+   generated platform icon with official CPython 3.12.
+4. Produce one executable on the current OS; never cross-compile an execution
+   claim.
+5. Launch that executable against a bounded fixture and close it through the
+   hidden smoke lifecycle.
+6. Archive only that regular executable, preserving the POSIX executable bit.
+7. Give the archive to a separate clean hosted runner which checks member count,
+   member type and name, extracts it without product dependency installation,
+   and repeats the launch smoke.
+8. For a tagged release, write `SHA256SUMS`, attest all four assets, upload them
+   to a draft prerelease, and publish only after every platform job succeeds.
 
-The matrix uses independent GitHub-hosted runners, as described by GitHub's
-[matrix job documentation](https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).
+PyInstaller resource lookup follows its
+[runtime information guidance](https://pyinstaller.org/en/stable/runtime-information.html).
 
-## Claim and gate limits
+## Product self-update contract
 
-- A local Windows pass establishes only that exact Windows environment and
-  artifact. It does not establish macOS or Linux execution.
-- A configured workflow is not a completed runner result.
-- SI-013 authorizes only the exact unsigned alpha archives, checksum manifest,
-  and GitHub prerelease. Installer, updater, signing, notarization, deployment,
-  package-registry publication, and stable claims remain excluded.
-- Same-release-candidate evidence on all three operating systems plus explicit
-  owner authorization is required before a general cross-platform claim.
+The same platform and architecture naming contract selects a future update.
+The packaged app accepts only a strictly newer immutable release from the
+canonical GitHub repository and requires GitHub's SHA-256 asset digest, bounded
+size and redirects, and one exact regular executable archive member.
 
-## Historical local Windows one-folder evidence — 2026-07-15
+The verified executable is staged in per-user app data. A copied new executable
+acts as the replacement helper. It waits for the running PyInstaller parent,
+retains one previous executable, atomically replaces the original path, and
+relaunches the selected project. Windows waits for the one-file bootloader
+parent so the target lock is released before replacement. Failed replacement
+restores and relaunches the previous version when possible and blocks automatic
+retry loops.
 
-- Environment: Windows 11 build `10.0.26200`, Python `3.13.11`, pywebview
-  `6.2.1`, PyInstaller `6.21.0`.
-- Artifact: `build/native/dist/SDAD-Inspector/SDAD-Inspector.exe` in a
-  one-folder bundle with 1,311 files and 41,804,247 total bytes. Its complete
-  tree SHA-256 is
-  `9af64e20fbe1475b1fe96c5cd5b9899e3f932037ce36771ff49a578dcdd2fffd`.
-- Executable: 5,603,522 bytes; SHA-256
-  `0c2903b39bb2c8c50ea573b91537fe5ea80469fd1f1d2514e342a6ae5bd98e53`;
-  Authenticode status `NotSigned`.
-- Bundled engine: release `v3.2.2`, peeled commit
-  `cd1b1ddb3e6bcb19b531034742c7d67b4257768e`, full-tree SHA-256
-  `d475bd6d5428ac7a00de0dc62b4230124ecd5b42a9f8d7789459ee47e4b1c16b`
-  under the historical Windows byte-exact algorithm;
-  reprobe returned `clean: true` and `trust: release-marker`.
-- Runtime: the rebuilt executable launched the current repository through the
-  hidden bounded native lifecycle and exited `0` after two seconds before the
-  45-second timeout (`timed_out: false`). Browser rendering is separate evidence;
-  this smoke proves bounded native launch/close only.
-- Shared frontend: the three-file, 364,100-byte bundled `web/dist` tree is
-  byte-identical file-for-file to the production source bundle (tree SHA-256
-  `e751896800c1482e4634a1a3829a6e639d968e7e41fcb6104c773f16911e945f`).
-- Immutability check: the full 1,311-file bundle digest was identical before
-  and after the post-build smoke. Both the clean stage and bundled engine
-  contained zero `.git`, `__pycache__`, `.pyc`, or `.pyo` artifacts.
-- First-smoke negative evidence: the initial build timed out because a frozen
-  executable was incorrectly reused as a general Python interpreter. The fixed
-  internal runner is restricted to the bundled engine and covered by a
-  regression test; `FIND-SI-005-001` records the closure.
-- Staging negative evidence: isolated Python initially admitted bytecode cache
-  artifacts because `-I` ignores Python environment variables. The final
-  source uses `-I -B`, rejects contaminated stages, and records the closure as
-  `FIND-SI-005-002`.
+The product updater never changes the inspected repository or the bundled SDAD
+engine. It is an unsigned-alpha update path, not an installer, signing,
+notarization, upgrade/uninstall, or stable-support guarantee.
 
-This older evidence does not validate the SI-013 one-file release. A later
-Conda Python 3.13 rebuild failed the portability gate and timed out during smoke;
-`FIND-SI-013-002` keeps the release blocked until exact CPython 3.12 archives
-pass the separate downloaded-artifact jobs.
+## Platform prerequisites
+
+- Windows needs WebView2. The portable EXE includes Python and application
+  packages but not this operating-system web component.
+- macOS currently publishes an Apple Silicon arm64 executable. It is unsigned
+  and not notarized.
+- Linux needs a graphical desktop and the EGL/GL/XCB/Qt WebEngine runtime stack
+  installed by the workflow. A `noexec` temporary filesystem is outside the
+  one-file launch evidence.
+
+## Claim limits
+
+- A local result establishes only that exact environment and artifact.
+- A configured workflow is not a completed hosted-runner result.
+- A passing Windows/macOS/Linux matrix establishes the exact tagged artifacts
+  and recorded runner images, not every OS version, security product, display
+  server, GPU, filesystem, or physical computer.
+- This alpha remains unsigned and experimental. General support, installer,
+  signing/notarization, deployment, package-registry, and stable claims require
+  independent evidence and authorization.

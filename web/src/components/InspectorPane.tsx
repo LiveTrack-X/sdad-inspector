@@ -64,12 +64,12 @@ export function InspectorPane({ snapshot, selection, onReveal, onCopy, mobileOpe
 
           <section className="owner-gates" aria-labelledby="owner-gates-heading">
             <div className="gate-heading">
-              <h2 id="owner-gates-heading">{t("stoppedOwnerGates")} <span>{t("readOnlyParenthetical")}</span></h2>
+              <h2 id="owner-gates-heading">{t("declaredOwnerGates")} <span>{t("readOnlyParenthetical")}</span></h2>
               <Lock size={18} />
             </div>
             {gates.length ? (
               <ul>
-                {gates.map((gate) => <li key={gate}><span className="gate-square" /><span>{gateLabel(gate, t)}</span><strong>{t("stopped")}</strong></li>)}
+                {gates.map((gate) => <li key={gate}><span className="gate-square" /><span>{gateLabel(gate, t)}</span><strong>{t("approvalUnobserved")}</strong></li>)}
               </ul>
             ) : <p className="empty-copy">{t("noOwnerGate")}</p>}
             <p className="gate-note">{t("ownerGateNote")}</p>

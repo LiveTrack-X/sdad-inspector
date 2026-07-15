@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import sys
 import threading
 from pathlib import Path
 from types import ModuleType
@@ -47,6 +48,17 @@ def load_webview() -> ModuleType:
         raise InspectorError(
             "The optional desktop runtime is unavailable. Install the desktop dependency for this platform."
         ) from exc
+
+
+def desktop_icon_path(static_root: Path, module_file: str | Path | None = None) -> Path | None:
+    root = resource_root(module_file)
+    if sys.platform == "win32":
+        candidate = root / "packaging" / "sdad-inspector.ico"
+    elif sys.platform == "darwin":
+        candidate = root / "packaging" / "sdad-inspector.icns"
+    else:
+        candidate = static_root / "sdad-inspector-logo.png"
+    return candidate if candidate.is_file() else None
 
 
 class DesktopApplication:
@@ -144,6 +156,12 @@ class DesktopApplication:
         self.service.set_project_picker(pick_project)
         self.service.set_clipboard_reader(read_clipboard_text)
         self.service.set_rule_export_picker(pick_rule_export)
+        self.service.set_update_exit_callback(window.destroy)
+
+        def start_product_update(*_: object) -> None:
+            self.service.check_product_update()
+
+        window.events.loaded += start_product_update
 
         def close_server(*_: object) -> None:
             self.stop()
@@ -160,7 +178,11 @@ class DesktopApplication:
 
             window.events.loaded += schedule_smoke_close
         try:
-            webview.start(private_mode=False)
+            start_options: dict[str, object] = {"private_mode": False}
+            icon_path = desktop_icon_path(self.server.static_root)
+            if icon_path is not None:
+                start_options["icon"] = str(icon_path)
+            webview.start(**start_options)
         finally:
             if timer is not None:
                 timer.cancel()

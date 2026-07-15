@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import sdad_inspector.engine as engine_module
-from sdad_inspector.desktop import DesktopApplication, resolve_resources, resource_root
+from sdad_inspector.desktop import DesktopApplication, desktop_icon_path, resolve_resources, resource_root
 from sdad_inspector.engine import _engine_argv
 from sdad_inspector.errors import EngineError, InspectorError
 
@@ -111,6 +111,15 @@ class DesktopResourceTests(WorkspaceCase):
         self.assertEqual(web, self.web)
         self.assertEqual(engine, self.engine)
 
+    def test_windows_window_icon_uses_ico_instead_of_the_web_png(self) -> None:
+        module_file = self.root / "repo" / "sdad_inspector" / "desktop.py"
+        icon = self.root / "repo" / "packaging" / "sdad-inspector.ico"
+        icon.parent.mkdir(parents=True)
+        icon.write_bytes(b"fixture-ico")
+        (self.web / "sdad-inspector-logo.png").write_bytes(b"fixture-png")
+        with patch("sdad_inspector.desktop.sys.platform", "win32"):
+            self.assertEqual(desktop_icon_path(self.web, module_file), icon)
+
     def test_frozen_runtime_routes_only_the_bundled_engine_to_internal_runner(self) -> None:
         internal = self.root / "bundle" / "_internal"
         module_file = internal / "sdad_inspector" / "engine.py"
@@ -140,7 +149,9 @@ class DesktopResourceTests(WorkspaceCase):
         self.assertEqual(webview.create_args[0], "SDAD Inspector")
         self.assertTrue(str(webview.create_args[1]).startswith("http://127.0.0.1:"))
         self.assertNotIn("js_api", webview.create_kwargs)
-        self.assertEqual(webview.start_kwargs, {"private_mode": False})
+        self.assertFalse(webview.start_kwargs["private_mode"])
+        start_icon = Path(str(webview.start_kwargs["icon"]))
+        self.assertEqual((start_icon.parent.name, start_icon.name), ("packaging", "sdad-inspector.ico"))
         self.assertFalse(application._server_thread.is_alive())  # type: ignore[union-attr]
 
     def test_bounded_hidden_smoke_destroys_the_window(self) -> None:

@@ -1,6 +1,6 @@
 import { Fragment, createElement, type ReactNode, useId, useMemo } from "react";
-import { CheckSquare, ListBullets, Square } from "@phosphor-icons/react";
-import { useI18n } from "../i18n";
+import { ArrowSquareOut, CheckSquare, Image, ListBullets, Square } from "@phosphor-icons/react";
+import { type Translate, useI18n } from "../i18n";
 import type { LiveDocument } from "../types";
 
 interface MarkdownHeading {
@@ -15,8 +15,12 @@ function safeLink(href: string): string | null {
   return null;
 }
 
-function inline(text: string, keyPrefix: string): ReactNode[] {
-  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\[[^\]]+\]\([^)]+\)|\*[^*]+\*|_[^_]+_)/g;
+function safeImageLink(href: string): string | null {
+  return /^https?:\/\//i.test(href) ? href : null;
+}
+
+function inline(text: string, keyPrefix: string, t: Translate): ReactNode[] {
+  const pattern = /(!\[[^\]]*\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\[[^\]]+\]\([^)]+\)|\*[^*]+\*|_[^_]+_)/g;
   const result: ReactNode[] = [];
   let cursor = 0;
   for (const match of text.matchAll(pattern)) {
@@ -24,7 +28,20 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
     if (index > cursor) result.push(text.slice(cursor, index));
     const token = match[0];
     const key = `${keyPrefix}-${index}`;
-    if (token.startsWith("`")) result.push(<code key={key}>{token.slice(1, -1)}</code>);
+    if (token.startsWith("![")) {
+      const image = token.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      const alt = image?.[1].trim() || t("markdownImage");
+      const href = image ? safeImageLink(image[2].trim()) : null;
+      result.push(
+        <span className="markdown-image-fallback" role="group" aria-label={alt} key={key}>
+          <Image size={17} aria-hidden="true" />
+          <span>{alt}</span>
+          {href
+            ? <a href={href} target="_blank" rel="noreferrer"><ArrowSquareOut size={14} aria-hidden="true" />{t("openImageLink")}</a>
+            : <em>{t("imageNotDisplayed")}</em>}
+        </span>,
+      );
+    } else if (token.startsWith("`")) result.push(<code key={key}>{token.slice(1, -1)}</code>);
     else if (token.startsWith("**") || token.startsWith("__")) result.push(<strong key={key}>{token.slice(2, -2)}</strong>);
     else if (token.startsWith("[")) {
       const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
@@ -46,7 +63,7 @@ function isBlockStart(lines: string[], index: number): boolean {
 
 function headingLabel(value: string): string {
   return value
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/!?\[([^\]]*)\]\([^)]+\)/g, "$1")
     .replace(/[`*_~]/g, "")
     .trim();
 }
@@ -64,7 +81,7 @@ function extractHeadings(markdown: string, prefix: string): MarkdownHeading[] {
   });
 }
 
-function renderMarkdown(markdown: string, headingIds: ReadonlyMap<number, string>): ReactNode[] {
+function renderMarkdown(markdown: string, headingIds: ReadonlyMap<number, string>, t: Translate): ReactNode[] {
   const lines = markdown.split(/\r?\n/);
   const blocks: ReactNode[] = [];
   let index = 0;
@@ -74,7 +91,7 @@ function renderMarkdown(markdown: string, headingIds: ReadonlyMap<number, string
     const heading = line.match(/^(#{1,6})\s+(.*)$/);
     if (heading) {
       const level = heading[1].length;
-      const children = inline(heading[2], `h-${index}`);
+      const children = inline(heading[2], `h-${index}`, t);
       const id = headingIds.get(index);
       const tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
       blocks.push(createElement(tag, { key: index, id, tabIndex: id ? -1 : undefined }, children));
@@ -97,13 +114,13 @@ function renderMarkdown(markdown: string, headingIds: ReadonlyMap<number, string
       while (index < lines.length && lines[index].includes("|") && lines[index].trim()) {
         rows.push(lines[index].replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())); index += 1;
       }
-      blocks.push(<div className="markdown-table-wrap" key={`table-${index}`}><table><thead><tr>{headers.map((cell, cellIndex) => <th key={cellIndex}>{inline(cell, `th-${index}-${cellIndex}`)}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{inline(cell, `td-${index}-${rowIndex}-${cellIndex}`)}</td>)}</tr>)}</tbody></table></div>);
+      blocks.push(<div className="markdown-table-wrap" key={`table-${index}`}><table><thead><tr>{headers.map((cell, cellIndex) => <th key={cellIndex}>{inline(cell, `th-${index}-${cellIndex}`, t)}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{inline(cell, `td-${index}-${rowIndex}-${cellIndex}`, t)}</td>)}</tr>)}</tbody></table></div>);
       continue;
     }
     if (/^>\s?/.test(line)) {
       const quote: string[] = [];
       while (index < lines.length && /^>\s?/.test(lines[index])) quote.push(lines[index++].replace(/^>\s?/, ""));
-      blocks.push(<blockquote key={`quote-${index}`}>{quote.map((item, itemIndex) => <Fragment key={itemIndex}>{inline(item, `q-${index}-${itemIndex}`)}{itemIndex < quote.length - 1 && <br />}</Fragment>)}</blockquote>);
+      blocks.push(<blockquote key={`quote-${index}`}>{quote.map((item, itemIndex) => <Fragment key={itemIndex}>{inline(item, `q-${index}-${itemIndex}`, t)}{itemIndex < quote.length - 1 && <br />}</Fragment>)}</blockquote>);
       continue;
     }
     if (/^[-*+]\s/.test(line)) {
@@ -117,19 +134,19 @@ function renderMarkdown(markdown: string, headingIds: ReadonlyMap<number, string
           items[items.length - 1].text += ` ${lines[index].trim()}`; index += 1;
         }
       }
-      blocks.push(<ul key={`ul-${index}`} className={items.some((item) => item.checked !== null) ? "task-list" : undefined}>{items.map((item, itemIndex) => <li key={itemIndex}>{item.checked !== null && <span className={`task-box ${item.checked ? "checked" : ""}`}>{item.checked ? <CheckSquare weight="fill" /> : <Square />}</span>}<span>{inline(item.text, `li-${index}-${itemIndex}`)}</span></li>)}</ul>);
+      blocks.push(<ul key={`ul-${index}`} className={items.some((item) => item.checked !== null) ? "task-list" : undefined}>{items.map((item, itemIndex) => <li key={itemIndex}>{item.checked !== null && <span className={`task-box ${item.checked ? "checked" : ""}`}>{item.checked ? <CheckSquare weight="fill" /> : <Square />}</span>}<span>{inline(item.text, `li-${index}-${itemIndex}`, t)}</span></li>)}</ul>);
       continue;
     }
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
       while (index < lines.length && /^\d+\.\s/.test(lines[index])) items.push(lines[index++].replace(/^\d+\.\s/, ""));
-      blocks.push(<ol key={`ol-${index}`}>{items.map((item, itemIndex) => <li key={itemIndex}>{inline(item, `ol-${index}-${itemIndex}`)}</li>)}</ol>);
+      blocks.push(<ol key={`ol-${index}`}>{items.map((item, itemIndex) => <li key={itemIndex}>{inline(item, `ol-${index}-${itemIndex}`, t)}</li>)}</ol>);
       continue;
     }
     const paragraph = [line.trim()];
     index += 1;
     while (index < lines.length && lines[index].trim() && !isBlockStart(lines, index)) paragraph.push(lines[index++].trim());
-    blocks.push(<p key={`p-${index}`}>{inline(paragraph.join(" "), `p-${index}`)}</p>);
+    blocks.push(<p key={`p-${index}`}>{inline(paragraph.join(" "), `p-${index}`, t)}</p>);
   }
   return blocks;
 }
@@ -146,7 +163,7 @@ export function MarkdownViewer({ document: liveDocument, navigation = false }: {
     () => new Map(headings.map((heading) => [heading.line, heading.id])),
     [headings],
   );
-  const rendered = useMemo(() => renderMarkdown(content, headingIds), [content, headingIds]);
+  const rendered = useMemo(() => renderMarkdown(content, headingIds, t), [content, headingIds, t]);
 
   function jumpToHeading(id: string) {
     if (!id) return;
@@ -160,7 +177,7 @@ export function MarkdownViewer({ document: liveDocument, navigation = false }: {
   }
 
   if (liveDocument.error) return <div className="document-error" role="alert"><strong>{liveDocument.error.code}</strong><p>{liveDocument.error.message}</p></div>;
-  if (!liveDocument.exists || liveDocument.content === null) return <div className="document-empty">This Markdown document is missing or unavailable.</div>;
+  if (!liveDocument.exists || liveDocument.content === null) return <div className="document-empty">{t("documentUnavailable")}</div>;
   return (
     <>
       {navigation && headings.length > 0 && (

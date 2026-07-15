@@ -36,6 +36,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1-alpha.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     }));
   });
@@ -50,9 +51,31 @@ describe("Split Inspector", () => {
     expect(screen.getByRole("button", { name: "Manual" })).toHaveAttribute("aria-label", "Manual");
     expect(screen.getByRole("button", { name: "AUTO 15s" })).toHaveAttribute("aria-label", "AUTO 15s");
     expect(screen.getByRole("button", { name: "Re-scan" })).toHaveAttribute("aria-label", "Re-scan");
+    expect(document.querySelector('.brand-mark img')).toHaveAttribute("src", "/sdad-inspector-logo.png");
     const request = vi.mocked(fetch).mock.calls[0];
     const headers = new Headers(request[1]?.headers);
     expect(headers.get("X-SDAD-Session")).toBe("test-session-token");
+  });
+
+  it("shows a verified product update and starts the replacement handoff", async () => {
+    const user = userEvent.setup();
+    const ready = { supported: true, automatic: true, current_version: "0.0.1-alpha.3", state: "ready", available_version: "0.0.1-alpha.4", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.4", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-15T00:00:00Z", message: "ready", error: null };
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
+      if (path === "/api/activity") return jsonResponse(activityFixture);
+      if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check") return jsonResponse(ready);
+      if (path === "/api/update/apply") return jsonResponse({ ...ready, state: "applying", message: "applying" });
+      return jsonResponse();
+    });
+    renderApp();
+    expect(await screen.findByText("SDAD Inspector 0.0.1-alpha.4 is verified and ready")).toBeVisible();
+    expect(screen.getByText(/replace this portable executable in \d+ seconds/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Restart and update" }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([path]) => path === "/api/update/apply")).toBe(true));
+    expect(await screen.findByText("Restarting to apply the verified update…")).toBeVisible();
   });
 
   it("filters the repository tree and updates the selected field details", async () => {
@@ -184,6 +207,10 @@ describe("Split Inspector", () => {
     expect(await within(center).findByText("<script>window.BAD = true</script>")).toBeVisible();
     expect(Array.from(document.querySelectorAll("script")).some((element) => element.textContent?.includes("window.BAD"))).toBe(false);
     expect((window as unknown as { BAD?: boolean }).BAD).toBeUndefined();
+    expect(within(center).getByRole("group", { name: "Build badge" })).toBeVisible();
+    expect(within(center).getByRole("link", { name: "Open image" })).toHaveAttribute("href", "https://img.shields.io/badge/build-pass-green");
+    expect(within(center).getByRole("group", { name: "Local diagram" })).toHaveTextContent("Image not displayed in the read-only viewer");
+    expect(within(center).queryByText(/!\[Build badge\]/)).not.toBeInTheDocument();
   });
 
   it("navigates live Markdown headings and keeps routed documents in a responsive disclosure", async () => {
@@ -374,25 +401,67 @@ describe("Split Inspector", () => {
     vi.useRealTimers();
   });
 
-  it("shows human Git labels and a timestamp-grounded five-stage development flow", async () => {
+  it("shows the official control loop without inferring a current stage", async () => {
     const user = userEvent.setup();
     renderApp();
     const tree = await screen.findByRole("complementary", { name: "Repository controls" });
     await user.click(within(tree).getByText("Development Flow"));
     const center = screen.getByRole("main", { name: "Workspace view" });
-    expect(within(center).getByText("Scope")).toBeVisible();
-    expect(within(center).getByText("Build")).toBeVisible();
-    expect(within(center).getByText("Verify")).toBeVisible();
-    expect(within(center).getByText("Evidence")).toBeVisible();
-    expect(within(center).getByText("Docs/Handoff")).toBeVisible();
+    const officialFlow = within(center).getByRole("region", { name: "Official SDAD control loop" });
+    expect(within(officialFlow).getByText("Plan")).toBeVisible();
+    expect(within(officialFlow).getByText("Route")).toBeVisible();
+    expect(within(officialFlow).getByText("Implement")).toBeVisible();
+    expect(within(officialFlow).getByText("Verify")).toBeVisible();
+    expect(within(officialFlow).getByText("Report")).toBeVisible();
+    expect(within(officialFlow).getByText("Doctor structural check")).toBeVisible();
+    expect(within(officialFlow).getByText("Execution evidence")).toBeVisible();
+    expect(within(officialFlow).getByText("Owner-accepted")).toBeVisible();
     expect(within(center).getByText("New file")).toHaveAttribute("title", "Raw Git status: ??");
-    const currentStage = center.querySelector('[aria-current="step"]');
-    expect(currentStage).not.toBeNull();
-    expect(currentStage).toHaveTextContent("Build");
-    expect(currentStage).toHaveTextContent("web/src/App.tsx");
+    expect(center.querySelector('[aria-current="step"]')).toBeNull();
+    expect(within(center).getByText("Gate declared · approval evidence unobserved")).toBeVisible();
+    expect(within(center).getByText("Inspector cannot perform protected actions (read-only).")).toBeVisible();
+    expect(within(center).getByText("No current handoff is declared.")).toBeVisible();
   });
 
-  it("uses development-stage cards to drill into changed files and restore the full list", async () => {
+  it("shows an explicit current packet TODO, highlights its official phase, and opens evidence documents", async () => {
+    const user = userEvent.setup();
+    const documents = {
+      ...liveDocumentsFixture,
+      documents: liveDocumentsFixture.documents.map((document) => document.roles.includes("todo")
+        ? {
+            ...document,
+            content: "# Open Implementation Items\n\n## Active Work\n\n- [ ] [packet:SI-003-browser-mvp] [phase:Implement] [current] Build the exact declared-work view.\n- [ ] [packet:SI-003-browser-mvp] Keep the remaining work visible.\n",
+          }
+        : document),
+    };
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/documents") return jsonResponse(documents);
+      if (path === "/api/activity") return jsonResponse(activityFixture);
+      if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1-alpha.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      return jsonResponse();
+    });
+
+    renderApp();
+    const tree = await screen.findByRole("complementary", { name: "Repository controls" });
+    await user.click(within(tree).getByText("Development Flow"));
+    const center = screen.getByRole("main", { name: "Workspace view" });
+    expect(within(center).getByRole("heading", { name: "Current declared work" })).toBeVisible();
+    expect(within(center).getByText("Build the exact declared-work view.")).toBeVisible();
+    expect(within(center).getByText("Keep the remaining work visible.")).toBeVisible();
+    const currentStage = center.querySelector('[aria-current="step"]');
+    expect(currentStage).not.toBeNull();
+    expect(currentStage).toHaveTextContent("Implement");
+    expect(currentStage).toHaveTextContent("Current");
+
+    await user.click(within(center).getByRole("button", { name: "Open evidence document review-findings.md" }));
+    expect(await within(center).findByRole("heading", { name: "Review Findings" })).toBeVisible();
+    expect(within(center).getByText("No active finding.")).toBeVisible();
+  });
+
+  it("uses the secondary worktree lens to drill into changed files and restore the full list", async () => {
     const user = userEvent.setup();
     renderApp();
     const tree = await screen.findByRole("complementary", { name: "Repository controls" });
@@ -403,14 +472,14 @@ describe("Split Inspector", () => {
     expect(within(changedSection!).getByText("web/src/App.tsx")).toBeVisible();
     expect(within(changedSection!).getByText("docs/handoff.md")).toBeVisible();
 
-    const buildFilter = within(center).getByRole("button", { name: "Filter changed files to Build (1 paths)" });
+    const buildFilter = within(center).getByRole("button", { name: "Filter changed files to the Implementation lens (1 paths)" });
     await user.click(buildFilter);
     expect(buildFilter).toHaveAttribute("aria-pressed", "true");
     expect(within(changedSection!).getByText("web/src/App.tsx")).toBeVisible();
     expect(within(changedSection!).queryByText("docs/handoff.md")).not.toBeInTheDocument();
     expect(within(changedSection!).getByLabelText("1 of 2 changed files")).toBeVisible();
 
-    await user.click(within(changedSection!).getByRole("button", { name: "Clear the development-stage filter" }));
+    await user.click(within(changedSection!).getByRole("button", { name: "Clear the worktree evidence lens" }));
     expect(within(changedSection!).getByText("docs/handoff.md")).toBeVisible();
     expect(buildFilter).toHaveAttribute("aria-pressed", "false");
   });
@@ -600,12 +669,32 @@ describe("Split Inspector", () => {
     await user.click(screen.getByRole("treeitem", { name: /Current Handoff/ }));
     const inspector = screen.getByRole("complementary", { name: "Inspector details" });
     expect(within(inspector).getByText("Not declared")).toBeVisible();
+    await user.click(screen.getByText("Development Flow"));
+    const flow = screen.getByRole("region", { name: "Official SDAD control loop" });
+    expect(within(flow).getByText("Plan")).toBeVisible();
+    expect(within(flow).getAllByText("Failed").length).toBe(2);
+    expect(within(flow).getAllByText("Unobserved").length).toBeGreaterThan(0);
   });
 
   it("selects Korean for a Korean browser while preserving repository evidence", async () => {
     Object.defineProperty(navigator, "languages", {
       configurable: true,
       value: ["ko-KR", "en-US"],
+    });
+    const documents = {
+      ...liveDocumentsFixture,
+      documents: liveDocumentsFixture.documents.map((document) => document.roles.includes("todo")
+        ? { ...document, content: "# TODO\n\n## Active Work\n\n- [ ] [packet:SI-003-browser-mvp] [current] [phase:Implement] 현재 작업을 정확히 표시한다.\n" }
+        : document),
+    };
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/documents") return jsonResponse(documents);
+      if (path === "/api/activity") return jsonResponse(activityFixture);
+      if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1-alpha.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      return jsonResponse();
     });
     renderApp();
     expect(await screen.findByRole("heading", { name: "SI-003-browser-mvp" })).toBeVisible();
@@ -615,6 +704,16 @@ describe("Split Inspector", () => {
     expect(document.documentElement).toHaveAttribute("lang", "ko");
     expect(screen.getByText("Build the selected Split Inspector browser UI.")).toBeVisible();
     expect(screen.getByText("npm run build")).toBeVisible();
+    const user = userEvent.setup();
+    await user.click(screen.getByText("개발 흐름"));
+    const flow = screen.getByRole("region", { name: "공식 SDAD 제어 루프" });
+    for (const stage of ["Plan", "Route", "Implement", "Verify", "Report"]) {
+      expect(within(flow).getByText(stage)).toBeVisible();
+    }
+    expect(screen.getByRole("heading", { name: "현재 선언된 작업" })).toBeVisible();
+    expect(screen.getByText("현재 작업을 정확히 표시한다.")).toBeVisible();
+    expect(screen.getByText("근거 문서")).toBeVisible();
+    expect(screen.getByRole("main", { name: "작업공간 보기" }).querySelector('[aria-current="step"]')).toHaveTextContent("Implement");
   });
 
   it("switches languages explicitly and restores the versioned preference", async () => {

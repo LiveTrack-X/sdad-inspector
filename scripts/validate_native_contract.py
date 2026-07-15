@@ -70,7 +70,7 @@ def main() -> int:
             raise AssertionError(f"missing portable CI contract: {portable_contract}")
 
     spec = (ROOT / "packaging" / "sdad-inspector.spec").read_text(encoding="utf-8")
-    for resource in ("web/dist", "sdad-engine", "analysis.binaries", "analysis.datas", '"webview"'):
+    for resource in ("web/dist", "sdad-engine", "analysis.binaries", "analysis.datas", '"webview"', "sdad-inspector.ico", "sdad-inspector.icns", "icon=ICON"):
         if resource not in spec:
             raise AssertionError(f"missing bundled resource: {resource}")
     for one_folder_construct in ("COLLECT(", "BUNDLE(", "exclude_binaries=True"):
@@ -81,6 +81,30 @@ def main() -> int:
     desktop_source = (ROOT / "sdad_inspector" / "desktop.py").read_text(encoding="utf-8")
     if "js_api" in desktop_source:
         raise AssertionError("desktop shell must not expose a JavaScript bridge")
+    for desktop_contract in ("desktop_icon_path", "sdad-inspector-logo.png", "sdad-inspector.ico", "sdad-inspector.icns", "set_update_exit_callback", "check_product_update"):
+        if desktop_contract not in desktop_source:
+            raise AssertionError(f"missing desktop update/brand contract: {desktop_contract}")
+
+    native_entry = (ROOT / "sdad_inspector" / "native_entry.py").read_text(encoding="utf-8")
+    updater = (ROOT / "sdad_inspector" / "updater.py").read_text(encoding="utf-8")
+    for update_contract in (
+        "INTERNAL_UPDATE_FLAG",
+        "apply_update_plan",
+        'release.get("immutable") is not True',
+        "asset_sha256",
+        "extract_single_executable",
+        "PARENT_EXIT_TIMEOUT_SECONDS",
+    ):
+        if update_contract not in native_entry and update_contract not in updater:
+            raise AssertionError(f"missing bounded product-update contract: {update_contract}")
+    brand_assets = (
+        ROOT / "web" / "public" / "sdad-inspector-logo.png",
+        ROOT / "packaging" / "sdad-inspector.ico",
+        ROOT / "packaging" / "sdad-inspector.icns",
+    )
+    for asset in brand_assets:
+        if not asset.is_file() or asset.stat().st_size < 1024:
+            raise AssertionError(f"missing or empty product brand asset: {asset.relative_to(ROOT)}")
 
     simulated = ROOT / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
     if resource_root(simulated) != ROOT / "bundle" / "_MEI12345":
@@ -105,6 +129,8 @@ def main() -> int:
                 "engine_tree_sha256": staged.tree_sha256,
                 "ci_matrix": ["windows-latest", "macos-latest", "ubuntu-latest"],
                 "package_mode": "unsigned-one-file-portable",
+                "product_update_mode": "immutable-release verified self-replace",
+                "brand_assets": [asset.relative_to(ROOT).as_posix() for asset in brand_assets],
                 "platform_execution_claim": "not established by this validator",
                 "ephemeral_ci_artifacts": "3-day retention",
                 "public_release_actions": "absent",

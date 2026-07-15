@@ -176,6 +176,8 @@ export interface HandoffRecord {
 
 export interface DevelopmentActivity {
   project_root: string;
+  git_root: string | null;
+  git_scope: string | null;
   available: boolean;
   worktree_status: "changed" | "clean" | "unavailable";
   scanned_at: string;
@@ -232,3 +234,28 @@ export interface Rule5ExportResult extends Rule5Preview {
 }
 
 export type RescanMode = "manual" | "auto";
+
+export type ProductUpdateState =
+  | "unsupported"
+  | "idle"
+  | "checking"
+  | "up_to_date"
+  | "downloading"
+  | "ready"
+  | "applying"
+  | "updated"
+  | "error";
+
+export interface ProductUpdateStatus {
+  supported: boolean;
+  automatic: true;
+  current_version: string;
+  state: ProductUpdateState;
+  available_version: string | null;
+  release_url: string | null;
+  downloaded_bytes: number;
+  total_bytes: number;
+  checked_at: string | null;
+  message: string | null;
+  error: string | null;
+}

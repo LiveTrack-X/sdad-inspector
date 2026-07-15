@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from unittest.mock import patch
@@ -88,6 +89,48 @@ class LiveWorkspaceTests(WorkspaceCase):
         self.assertEqual(activity["commits"][0]["subject"], "Initial SDAD controls")
         self.assertEqual(activity["handoffs"][0]["title"], "Progress handoff")
         self.assertNotIn("author", activity["commits"][0])
+
+    def test_nested_project_limits_status_and_commits_to_its_git_scope(self) -> None:
+        repository = self.root / "monorepo"
+        project = repository / "packages" / "inspected"
+        sibling = repository / "packages" / "sibling"
+        shutil.copytree(self.project, project)
+        sibling.mkdir(parents=True)
+        (sibling / "outside.txt").write_text("initial\n", encoding="utf-8")
+
+        def repo_git(*arguments: str) -> None:
+            subprocess.run(
+                ["git", "-C", str(repository), *arguments],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+        repo_git("init", "-q")
+        repo_git("config", "user.name", "Fixture")
+        repo_git("config", "user.email", "fixture@example.invalid")
+        repo_git("add", ".")
+        repo_git("commit", "-qm", "Initial monorepo")
+        (project / "SPEC" / "SPEC-COMPLETE.md").write_text(
+            "# Nested project\n", encoding="utf-8"
+        )
+        repo_git("add", "packages/inspected/SPEC/SPEC-COMPLETE.md")
+        repo_git("commit", "-qm", "Update inspected project")
+        (sibling / "outside.txt").write_text("committed outside\n", encoding="utf-8")
+        repo_git("add", "packages/sibling/outside.txt")
+        repo_git("commit", "-qm", "Update sibling only")
+
+        (project / ".fixture-note").write_text("inside\n", encoding="utf-8")
+        (sibling / "outside.txt").write_text("uncommitted outside\n", encoding="utf-8")
+        activity = load_development_activity(project)
+
+        self.assertEqual(Path(activity["project_root"]).resolve(), project.resolve())
+        self.assertEqual(Path(activity["git_root"]).resolve(), repository.resolve())
+        self.assertEqual(activity["git_scope"], "packages/inspected")
+        self.assertEqual({item["path"] for item in activity["files"]}, {".fixture-note"})
+        subjects = [item["subject"] for item in activity["commits"]]
+        self.assertIn("Update inspected project", subjects)
+        self.assertNotIn("Update sibling only", subjects)
 
     def test_non_git_repository_is_a_recoverable_read_only_state(self) -> None:
         before = tree_fingerprint(self.project)

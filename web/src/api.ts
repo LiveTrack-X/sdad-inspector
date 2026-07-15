@@ -1,4 +1,4 @@
-import type { DevelopmentActivity, InspectionProgress, LiveDocuments, RecentProject, Rule5Candidate, Rule5Candidates, Rule5ExportResult, Rule5Preview, Snapshot } from "./types";
+import type { DevelopmentActivity, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, Rule5Candidate, Rule5Candidates, Rule5ExportResult, Rule5Preview, Snapshot } from "./types";
 
 function sessionToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="sdad-session"]')?.content ?? "";
@@ -117,5 +117,23 @@ export function revealPath(relativePath: string): Promise<{ revealed: boolean }>
   return request<{ revealed: boolean }>("/api/reveal", {
     method: "POST",
     body: JSON.stringify({ relative_path: relativePath }),
+  });
+}
+
+export function getProductUpdateStatus(): Promise<ProductUpdateStatus> {
+  return request<ProductUpdateStatus>("/api/update");
+}
+
+export function checkProductUpdate(force = false): Promise<ProductUpdateStatus> {
+  return request<ProductUpdateStatus>("/api/update/check", {
+    method: "POST",
+    body: JSON.stringify({ force }),
+  });
+}
+
+export function applyProductUpdate(): Promise<ProductUpdateStatus> {
+  return request<ProductUpdateStatus>("/api/update/apply", {
+    method: "POST",
+    body: "{}",
   });
 }
