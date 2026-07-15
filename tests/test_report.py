@@ -68,7 +68,7 @@ class StaticReportTests(WorkspaceCase):
         result = write_static_report(snapshot, output)
         after = tree_fingerprint(self.project)
         self.assertEqual(before, after)
-        self.assertEqual(Path(result["output"]), output)
+        self.assertEqual(Path(result["output"]), output.resolve())
         self.assertTrue(output.is_file())
         self.assertGreater(result["bytes"], 1000)
         self.assertFalse(any(output.parent.glob(f".{output.name}.*.tmp")))

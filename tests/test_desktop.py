@@ -93,9 +93,11 @@ class DesktopResourceTests(WorkspaceCase):
 
     def test_resource_root_is_stable_for_source_and_frozen_layouts(self) -> None:
         source_file = self.root / "repo" / "sdad_inspector" / "desktop.py"
-        frozen_file = self.root / "bundle" / "_internal" / "sdad_inspector" / "desktop.py"
-        self.assertEqual(resource_root(source_file), self.root / "repo")
-        self.assertEqual(resource_root(frozen_file), self.root / "bundle" / "_internal")
+        frozen_file = self.root / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
+        self.assertEqual(resource_root(source_file), (self.root / "repo").resolve())
+        self.assertEqual(
+            resource_root(frozen_file), (self.root / "bundle" / "_MEI12345").resolve()
+        )
 
     def test_source_mode_requires_an_explicit_release_engine(self) -> None:
         module_file = self.root / "repo" / "sdad_inspector" / "desktop.py"

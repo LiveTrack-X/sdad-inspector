@@ -13,7 +13,7 @@ from .server import InspectorHTTPServer, InspectorService, create_server
 
 
 def resource_root(module_file: str | Path | None = None) -> Path:
-    """Return the source root or PyInstaller's one-folder internal root."""
+    """Return the source root or PyInstaller's extracted one-file resource root."""
 
     location = Path(module_file or __file__).resolve(strict=False)
     return location.parents[1]

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all
@@ -11,6 +10,7 @@ ENGINE = Path(os.environ["SDAD_INSPECTOR_ENGINE_DIR"]).resolve(strict=True)
 WEB = (ROOT / "web" / "dist").resolve(strict=True)
 
 webview_datas, webview_binaries, webview_hiddenimports = collect_all("webview")
+webview_hiddenimports = sorted({"webview", *webview_hiddenimports})
 datas = webview_datas + [
     (str(WEB), "web/dist"),
     (str(ENGINE), "sdad-engine"),
@@ -33,8 +33,9 @@ pyz = PYZ(analysis.pure)
 executable = EXE(
     pyz,
     analysis.scripts,
+    analysis.binaries,
+    analysis.datas,
     [],
-    exclude_binaries=True,
     name="SDAD-Inspector",
     debug=False,
     bootloader_ignore_signals=False,
@@ -47,20 +48,3 @@ executable = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
-collection = COLLECT(
-    executable,
-    analysis.binaries,
-    analysis.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name="SDAD-Inspector",
-)
-
-if sys.platform == "darwin":
-    application = BUNDLE(
-        collection,
-        name="SDAD Inspector.app",
-        icon=None,
-        bundle_identifier="io.livetrackx.sdad-inspector.preview",
-    )
