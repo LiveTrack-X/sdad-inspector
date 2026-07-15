@@ -13,16 +13,16 @@ Scope: Current implementation backlog only
 
 ## Active Work
 
-- [ ] [packet:SI-013-alpha-release] Fix the canonical-root containment defect
+- [x] [packet:SI-013-alpha-release] Fix the canonical-root containment defect
   exposed by Actions run `29401532720` on macOS `/var` aliases and Windows 8.3
   aliases, retaining traversal and symlink rejection.
-- [ ] [packet:SI-013-alpha-release] Rewrite README usage, SDAD compatibility,
+- [x] [packet:SI-013-alpha-release] Rewrite README usage, SDAD compatibility,
   architecture, source setup, release archive, security, and alpha-limitations
   guidance.
-- [ ] [packet:SI-013-alpha-release] Remove historical QA captures/ledger and
+- [x] [packet:SI-013-alpha-release] Remove historical QA captures/ledger and
   local npm configuration; extend ignore/public-preflight rules for local,
   editor, build, and release outputs.
-- [ ] [packet:SI-013-alpha-release] Set package version `0.0.1a1`; add release
+- [x] [packet:SI-013-alpha-release] Set package version `0.0.1a1`; add release
   notes, deterministic single-file platform packaging, CPython 3.12 build
   enforcement, release validation, and a tagged Windows/macOS/Linux prerelease
   workflow whose downloaded artifacts smoke on separate clean runners.

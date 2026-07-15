@@ -5,51 +5,9 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-- [High] [packet:SI-013-alpha-release] FIND-SI-013-001 — GitHub Actions run
-  `29401532720` failed all three jobs because `safe_project_path` resolved each
-  candidate but compared it to a noncanonical temporary root. macOS exposed
-  `/var` versus `/private/var`; Windows exposed an 8.3 alias versus the long
-  profile name. Valid contained Git paths were filtered, live documents were
-  rejected, and tests compared canonical production outputs to alias fixtures.
-  Release is blocked until the root is canonicalized before containment and
-  symlink checks, canonical expectations are regression-tested, and the same
-  commit passes the Windows/macOS/Linux matrix.
-
-- [High] [packet:SI-013-alpha-release] FIND-SI-013-002 — A Windows one-folder
-  preview copied to another computer failed before application startup with
-  `Failed to load Python DLL ... _internal\\python313.dll`; the subsequent local
-  Conda Python 3.13 rebuild also timed out in bounded native smoke. Release is
-  blocked until packaging uses official CPython 3.12 one-file mode, every
-  platform archive contains exactly one executable, and a separate clean
-  hosted-runner job downloads, extracts, and smoke-launches that exact archive.
-
-- [Medium] [packet:SI-013-alpha-release] FIND-SI-013-003 — Actions run
-  `29409019274` passed the complete Windows one-file build path but stopped in
-  Python tests on macOS and Linux before native packaging. The macOS no-write
-  fingerprint raced with Git's transient `.git/objects/maintenance.lock`; the
-  Linux preference-path helper treated an explicitly supplied empty environment
-  mapping as absent and read the runner's real `XDG_CONFIG_HOME`. CI is blocked
-  until working-tree fingerprints exclude Git-internal metadata, explicit empty
-  mappings remain authoritative, and the same tests pass on all three runners.
-
-- [High] [packet:SI-013-alpha-release] FIND-SI-013-004 — Actions run
-  `29409284793` passed all three Python/frontend suites and the complete Windows
-  one-file build, but macOS/Linux stopped while reauthenticating the copied SDAD
-  engine. The frozen whole-tree hash treated CRLF and LF checkouts of
-  Git-declared text as different releases. Release is blocked until supported
-  text paths hash with CRLF normalized to LF, binary assets remain byte-exact,
-  both released engine constants are recaptured from official archives, and the
-  copied engine authenticates on all three runners.
-
-- [Medium] [packet:SI-013-alpha-release] FIND-SI-013-005 — Actions run
-  `29409811078` built, smoke-launched, and archived the Windows/macOS one-file
-  binaries and built the Linux binary, but Linux first failed on missing
-  `libEGL.so.1`. Run `29410068845` then reached the Linux launch after adding a
-  minimal EGL/GL/XCB set, but Qt's `xcb` plugin still could not load because its
-  remaining X11/XCB runtime dependencies were absent. CI is blocked until every
-  Linux build and downloaded-artifact job installs the same complete Qt X11
-  runtime baseline and public limitations distinguish embedded Python from
-  required operating-system display services.
+None. The current candidate defects are closed below against exact same-commit
+hosted-runner evidence. Tag and published-asset checks remain release
+verification work, not an open implementation defect.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
@@ -70,6 +28,40 @@ work or acceptance; do not keep two copies.
 - Release candidates should reach Critical 0 before owner acceptance.
 
 ## Recently Closed
+
+- [FIND-SI-013-005] [packet:SI-013-alpha-release] Fixed and externally
+  exercised on exact commit `0466e764969a31cff658c681337c134d12549075` in
+  Actions run `29410445059`: all Linux build and downloaded-artifact jobs now
+  install the same complete Qt X11 EGL/GL/XCB runtime baseline. The Linux
+  one-file executable launched directly and launched again under Xvfb after
+  archive download and extraction on a separate hosted runner. Public
+  limitations still distinguish embedded Python from operating-system display
+  services.
+
+- [FIND-SI-013-004] [packet:SI-013-alpha-release] Fixed and regression-tested:
+  supported text paths normalize CRLF to LF for release-engine identity while
+  binary assets stay byte-exact. The v3.2.1 and v3.2.2 constants were
+  recaptured, and Actions run `29410445059` authenticated v3.2.2 and passed the
+  full Python/frontend/native path on Windows, macOS, and Linux.
+
+- [FIND-SI-013-003] [packet:SI-013-alpha-release] Fixed and regression-tested:
+  an explicitly supplied empty preference environment remains authoritative,
+  and inspected-project write fingerprints exclude transient `.git` internals.
+  The complete suites passed on all three hosted platforms in Actions run
+  `29410445059` without the former environment or maintenance-lock failures.
+
+- [FIND-SI-013-002] [packet:SI-013-alpha-release] Fixed for the exact unsigned
+  alpha candidate: packaging uses official CPython 3.12 one-file mode, each
+  platform archive contains exactly one executable, and Actions run
+  `29410445059` built and directly smoke-launched all three binaries before
+  separate clean hosted runners downloaded, inspected, extracted, and launched
+  the same archives. This removes the adjacent `_internal\\python313.dll`
+  dependency that caused the reported cross-PC failure.
+
+- [FIND-SI-013-001] [packet:SI-013-alpha-release] Fixed and regression-tested:
+  the project root is canonicalized before containment and symlink checks, with
+  macOS `/var` aliases and Windows 8.3 aliases covered. The complete same-commit
+  Windows/macOS/Linux matrix passed in Actions run `29410445059`.
 
 - [FIND-SI-012-001] [packet:SI-012-public-source-repository] Fixed and
   regression-tested before publication: public candidate files contained local
