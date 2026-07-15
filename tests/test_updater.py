@@ -8,7 +8,10 @@ import tempfile
 import time
 import unittest
 import zipfile
+import ctypes
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from sdad_inspector.updater import (
     INTERNAL_UPDATE_FLAG,
@@ -24,6 +27,7 @@ from sdad_inspector.updater import (
     normalized_platform,
     parse_public_version,
     public_version_from_package,
+    refresh_windows_icon_cache,
     select_release,
     sha256_file,
 )
@@ -226,7 +230,7 @@ class ManagerTests(unittest.TestCase):
     def test_download_requires_github_digest_match(self) -> None:
         archive = zip_payload("SDAD-Inspector.exe", b"new executable")
         release = release_payload(
-            "0.0.2-alpha.1",
+            "0.0.3-alpha.1",
             digest="0" * 64,
             size=len(archive),
         )
@@ -314,6 +318,44 @@ class ManagerTests(unittest.TestCase):
             self.assertEqual(plan["candidate_sha256"], sha256_file(staged))
 
 
+class WindowsIconRefreshTests(unittest.TestCase):
+    def test_refreshes_exact_path_before_associations(self) -> None:
+        observed_calls: list[tuple[int, int, str | None, object]] = []
+
+        def notify(event: int, flags: int, item1: object, item2: object) -> None:
+            path = ctypes.wstring_at(item1) if item1 else None
+            observed_calls.append((event, flags, path, item2))
+
+        shell32 = SimpleNamespace(SHChangeNotify=Mock(side_effect=notify))
+        executable = Path("portable") / "SDAD-Inspector.exe"
+        with (
+            patch("sdad_inspector.updater.sys.platform", "win32"),
+            patch.object(ctypes, "OleDLL", return_value=shell32, create=True),
+        ):
+            self.assertTrue(refresh_windows_icon_cache(executable))
+
+        self.assertEqual(len(observed_calls), 2)
+        self.assertEqual(observed_calls[0][:2], (0x00002000, 0x00001005))
+        self.assertEqual(observed_calls[0][2], str(executable.resolve(strict=False)))
+        self.assertIsNone(observed_calls[0][3])
+        self.assertEqual(observed_calls[1], (0x08000000, 0x00001000, None, None))
+
+    def test_non_windows_is_noop(self) -> None:
+        with (
+            patch("sdad_inspector.updater.sys.platform", "linux"),
+            patch.object(ctypes, "OleDLL", create=True) as loader,
+        ):
+            self.assertFalse(refresh_windows_icon_cache("SDAD-Inspector.exe"))
+        loader.assert_not_called()
+
+    def test_shell_failure_is_cosmetic(self) -> None:
+        with (
+            patch("sdad_inspector.updater.sys.platform", "win32"),
+            patch.object(ctypes, "OleDLL", side_effect=OSError("unavailable"), create=True),
+        ):
+            self.assertFalse(refresh_windows_icon_cache("SDAD-Inspector.exe"))
+
+
 class ApplyPlanTests(unittest.TestCase):
     def _plan(self, root: Path, *, old: bytes = b"old", new: bytes = b"new") -> tuple[Path, Path, Path, Path]:
         platform_name = normalized_platform()
@@ -356,7 +398,7 @@ class ApplyPlanTests(unittest.TestCase):
             root = Path(raw)
             update_root, plan_path, target, project = self._plan(root)
             launches: list[list[str]] = []
-            icon_refreshes: list[bool] = []
+            icon_refreshes: list[Path] = []
 
             def launcher(command: list[str], **_kwargs: object) -> object:
                 launches.append(command)
@@ -367,7 +409,7 @@ class ApplyPlanTests(unittest.TestCase):
                 update_root=update_root,
                 wait_for_exit=lambda _pid, _timeout: None,
                 launcher=launcher,
-                icon_cache_refresher=lambda: icon_refreshes.append(True) or True,
+                icon_cache_refresher=lambda path: icon_refreshes.append(path) or True,
             )
             self.assertEqual(result, 0)
             self.assertEqual(target.read_bytes(), b"new")
@@ -377,7 +419,7 @@ class ApplyPlanTests(unittest.TestCase):
                 [[str(target.resolve(strict=True)), str(project.resolve(strict=True))]],
             )
             if normalized_platform() == "windows":
-                self.assertEqual(icon_refreshes, [True])
+                self.assertEqual(icon_refreshes, [target.resolve(strict=True)])
             else:
                 self.assertEqual(icon_refreshes, [])
             payload = json.loads((plan_path.parent / "result.json").read_text(encoding="utf-8"))
@@ -396,7 +438,7 @@ class ApplyPlanTests(unittest.TestCase):
                 update_root=update_root,
                 wait_for_exit=lambda _pid, _timeout: None,
                 launcher=launcher,
-                icon_cache_refresher=lambda: True,
+                icon_cache_refresher=lambda _path: True,
             )
             self.assertEqual(result, 2)
             self.assertEqual(target.read_bytes(), b"old")

@@ -14,7 +14,7 @@ embedded.
 Inspector orchestration reaches that engine through the built-in
 `official-sdad-3` protocol adapter and emits Inspector snapshot schema 2. The
 adapter registry is separate from the renderer and from product update logic;
-the 0.0.1 portable packages do not discover or download additional adapters.
+the 0.0.2 portable packages do not discover or download additional adapters.
 
 The renderer receives no general Python bridge, filesystem bridge, or subprocess
 capability. The packaged product updater is exposed only through fixed
@@ -24,9 +24,9 @@ authenticated loopback routes; source/browser mode reports it as unsupported.
 
 | Platform | UI engine | GitHub runner | Release asset |
 | --- | --- | --- | --- |
-| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.1-windows-x64.zip` |
-| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.1-macos-arm64.tar.gz` |
-| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.1-linux-x64.tar.gz` |
+| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.2-windows-x64.zip` |
+| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.2-macos-arm64.tar.gz` |
+| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.2-linux-x64.tar.gz` |
 
 The table names exact build targets, not every machine supported by the
 operating-system family. pywebview's platform dependencies are documented in
@@ -68,6 +68,11 @@ relaunches the selected project. Windows waits for the one-file bootloader
 parent so the target lock is released before replacement. Failed replacement
 restores and relaunches the previous version when possible and blocks automatic
 retry loops.
+
+On Windows, a verified replacement and every normal frozen-app startup notify
+the shell about the exact executable path before refreshing icon associations.
+This is a cosmetic same-path cache repair; failure never blocks startup,
+replacement success, or rollback.
 
 The product updater never changes the inspected repository or the bundled SDAD
 engine. It is an unsigned-portable update path, not an installer, signing,

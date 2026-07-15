@@ -855,12 +855,20 @@ def _launch_application(
     launcher([str(target), str(project_root)], **kwargs)
 
 
-def refresh_windows_icon_cache() -> bool:
-    """Ask Explorer to refresh icons after a verified same-path replacement."""
+SHCNE_UPDATEITEM = 0x00002000
+SHCNE_ASSOCCHANGED = 0x08000000
+SHCNF_IDLIST = 0x0000
+SHCNF_PATHW = 0x0005
+SHCNF_FLUSH = 0x1000
+
+
+def refresh_windows_icon_cache(executable_path: str | Path) -> bool:
+    """Refresh one executable path and then Explorer's icon associations."""
 
     if sys.platform != "win32":
         return False
     try:
+        resolved_path = str(Path(executable_path).resolve(strict=False))
         shell32 = ctypes.OleDLL("shell32")
         shell32.SHChangeNotify.argtypes = [
             ctypes.c_long,
@@ -869,9 +877,21 @@ def refresh_windows_icon_cache() -> bool:
             ctypes.c_void_p,
         ]
         shell32.SHChangeNotify.restype = None
-        shell32.SHChangeNotify(0x08000000, 0x0000, None, None)
+        path_pointer = ctypes.c_wchar_p(resolved_path)
+        shell32.SHChangeNotify(
+            SHCNE_UPDATEITEM,
+            SHCNF_PATHW | SHCNF_FLUSH,
+            ctypes.cast(path_pointer, ctypes.c_void_p),
+            None,
+        )
+        shell32.SHChangeNotify(
+            SHCNE_ASSOCCHANGED,
+            SHCNF_IDLIST | SHCNF_FLUSH,
+            None,
+            None,
+        )
         return True
-    except (AttributeError, OSError):
+    except (AttributeError, OSError, RuntimeError, ValueError):
         return False
 
 
@@ -881,7 +901,7 @@ def apply_update_plan(
     update_root: str | Path | None = None,
     wait_for_exit: Callable[[int, float], None] = wait_for_process_exit,
     launcher: Callable[..., Any] = subprocess.Popen,
-    icon_cache_refresher: Callable[[], bool] = refresh_windows_icon_cache,
+    icon_cache_refresher: Callable[[Path], bool] = refresh_windows_icon_cache,
 ) -> int:
     root = Path(update_root or default_update_root())
     result_path: Path | None = None
@@ -986,7 +1006,7 @@ def apply_update_plan(
             },
         )
         if platform_name == "windows":
-            icon_cache_refresher()
+            icon_cache_refresher(target)
         _launch_application(target, project_root, launcher=launcher)
         return 0
     except Exception as exc:

@@ -36,7 +36,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.2", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     }));
   });
@@ -52,7 +52,7 @@ describe("Split Inspector", () => {
     expect(screen.getByRole("button", { name: "AUTO 15s" })).toHaveAttribute("aria-label", "AUTO 15s");
     expect(screen.getByRole("button", { name: "Re-scan" })).toHaveAttribute("aria-label", "Re-scan");
     expect(document.querySelector('.brand-mark img')).toHaveAttribute("src", "/sdad-inspector-logo.png");
-    expect(screen.getByRole("img", { name: "SDAD Inspector — Read-Only Control Plane for SPEC-Directed AI Development" })).toHaveAttribute("src", "/sdad-inspector-banner.png");
+    expect(document.querySelector(".product-banner")).not.toBeInTheDocument();
     const request = vi.mocked(fetch).mock.calls[0];
     const headers = new Headers(request[1]?.headers);
     expect(headers.get("X-SDAD-Session")).toBe("test-session-token");
@@ -454,7 +454,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.2", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
 
@@ -585,6 +585,26 @@ describe("Split Inspector", () => {
     expect(screen.getByRole("button", { name: "Copy JSON" })).toBeEnabled();
   });
 
+  it("shows evidence bodies below metadata for JSON, YAML, and Markdown", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole("heading", { name: "SI-003-browser-mvp" });
+    const tree = screen.getByRole("complementary", { name: "Repository controls" });
+
+    await user.click(within(tree).getByText("Doctor Report (JSON)"));
+    expect(screen.getByRole("heading", { name: "Evidence metadata" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Evidence body" })).toBeVisible();
+    expect(screen.getByLabelText("Evidence body: Doctor Report")).toHaveTextContent('"schema_version": 2');
+
+    await user.click(within(tree).getByText("State (YAML)"));
+    expect(screen.getByLabelText("Evidence body: State Evidence")).toHaveTextContent("version: 2");
+
+    await user.click(within(tree).getByText("Active SPEC (Markdown)"));
+    const markdown = screen.getByLabelText("Evidence body: Active SPEC");
+    expect(within(markdown).getByRole("heading", { name: "Active Product SPEC" })).toBeVisible();
+    expect(markdown).toHaveTextContent("The current contract is readable.");
+  });
+
   it("re-scans through the fixed POST route and announces the result", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.mocked(fetch);
@@ -707,7 +727,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.1", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.2", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
     renderApp();

@@ -546,8 +546,6 @@ code { font-family: var(--mono); }
 }
 
 .overview-scroll { min-height: 0; overflow: auto; }
-.product-banner { margin: 20px 24px 0; overflow: hidden; border-radius: 10px; background: #121a35; }
-.product-banner img { display: block; width: 100%; height: auto; }
 .packet-section, .overview-section { padding: 21px 24px; }
 .packet-section { padding-top: 26px; }
 .overview-section { margin: 0 24px; padding-right: 0; padding-left: 0; border-top: 1px solid var(--divider); }
@@ -636,6 +634,12 @@ code { font-family: var(--mono); }
 .context-facts dd.success { color: var(--verified); }
 .context-facts dd.warning { color: var(--stopped); }
 .context-facts dd.error { color: var(--error); }
+
+.evidence-code-body { max-height: min(58vh, 680px); margin: 0; padding: 16px 18px; overflow: auto; color: var(--text-code); border: 1px solid var(--divider); border-radius: 6px; background: var(--surface-code); tab-size: 2; }
+.evidence-code-body code { font-family: var(--mono); font-size: 12px; line-height: 1.6; white-space: pre; }
+.evidence-markdown-reader { overflow: hidden; border: 1px solid var(--divider); border-radius: 6px; }
+.evidence-markdown-reader .markdown-navigation { max-width: none; }
+.evidence-markdown-reader .markdown-viewer { max-width: none; padding-right: 18px; padding-left: 18px; }
 
 .simple-list, .evidence-file-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line-faint); }
 .simple-list li, .evidence-file-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; min-height: 39px; gap: 7px; border-bottom: 1px solid var(--line-faint); color: var(--secondary); font-size: 10px; }
@@ -813,7 +817,6 @@ code { font-family: var(--mono); }
   .status-bar .read-only-status { margin-left: auto; }
   .packet-section, .overview-section { padding-right: 18px; padding-left: 18px; }
   .overview-section { margin-right: 0; margin-left: 0; }
-  .product-banner { margin: 16px 12px 0; border-radius: 8px; }
   .packet-heading-row { align-items: flex-start; flex-direction: column; }
   .relationship-row { grid-template-columns: 105px 20px minmax(0, 1fr); }
   .relationship-status { display: none; }

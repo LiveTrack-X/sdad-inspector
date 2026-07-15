@@ -109,6 +109,10 @@ def main() -> int:
         "extract_single_executable",
         "PARENT_EXIT_TIMEOUT_SECONDS",
         "refresh_windows_icon_cache",
+        "refresh_frozen_windows_icon",
+        "SHCNE_UPDATEITEM",
+        "SHCNF_PATHW",
+        "SHCNF_FLUSH",
     ):
         if update_contract not in native_entry and update_contract not in updater:
             raise AssertionError(f"missing bounded product-update contract: {update_contract}")
@@ -122,8 +126,8 @@ def main() -> int:
         if not asset.is_file() or asset.stat().st_size < 1024:
             raise AssertionError(f"missing or empty product brand asset: {asset.relative_to(ROOT)}")
     version_info = ROOT / "packaging" / "sdad-inspector-version.txt"
-    if not version_info.is_file() or "ProductVersion', '0.0.1'" not in version_info.read_text(encoding="utf-8"):
-        raise AssertionError("missing Windows 0.0.1 version resource")
+    if not version_info.is_file() or "ProductVersion', '0.0.2'" not in version_info.read_text(encoding="utf-8"):
+        raise AssertionError("missing Windows 0.0.2 version resource")
 
     simulated = ROOT / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
     if resource_root(simulated) != ROOT / "bundle" / "_MEI12345":

@@ -249,7 +249,7 @@ function evidencePath(selectedId: string, snapshot: Snapshot): string | null {
   return null;
 }
 
-function EvidenceView({ snapshot, selectedId, selection }: { snapshot: Snapshot; selectedId: string; selection: FieldSelection }) {
+function EvidenceView({ snapshot, selectedId, selection, liveDocuments }: { snapshot: Snapshot; selectedId: string; selection: FieldSelection; liveDocuments: LiveDocuments | null }) {
   const { t } = useI18n();
   if (selectedId === "evidence") {
     return (
@@ -274,6 +274,19 @@ function EvidenceView({ snapshot, selectedId, selection }: { snapshot: Snapshot;
 
   const path = evidencePath(selectedId, snapshot);
   const metadata = path ? snapshot.evidence.files[path] : undefined;
+  const document = path ? liveDocuments?.documents.find((item) => item.path === path) : undefined;
+  const serializedBody = selectedId === "evidence-doctor"
+    ? JSON.stringify(snapshot.evidence.doctor_report, null, 2)
+    : selectedId === "evidence-snapshot"
+      ? JSON.stringify(snapshot, null, 2)
+      : selectedId === "evidence-state"
+        ? document?.content ?? null
+        : null;
+  const bodyFormat = selectedId === "evidence-doctor" || selectedId === "evidence-snapshot"
+    ? "json"
+    : selectedId === "evidence-state"
+      ? "yaml"
+      : "markdown";
   const facts: Fact[] = selectedId === "evidence-doctor" ? [
     { label: t("engineVersion"), value: snapshot.protocol.engine_display_name, mono: true },
     { label: t("reportSchema"), value: snapshot.contracts.report_schema_version, mono: true },
@@ -298,6 +311,21 @@ function EvidenceView({ snapshot, selectedId, selection }: { snapshot: Snapshot;
         <FactList facts={facts} />
         <div className="info-note"><Info size={20} /><p>{t("readOnlyEvidenceNote")}</p></div>
       </section>
+      <section className="context-section evidence-body-section" aria-labelledby="evidence-body-heading">
+        <h2 id="evidence-body-heading">{t("evidenceBody")}</h2>
+        <p className="section-copy">{t("evidenceBodyDescription")}</p>
+        {bodyFormat === "markdown" && document ? (
+          <div className="evidence-markdown-reader" aria-label={`${t("evidenceBody")}: ${selection.label}`}>
+            <MarkdownViewer document={document} navigation />
+          </div>
+        ) : serializedBody !== null ? (
+          <pre className="evidence-code-body" tabIndex={0} aria-label={`${t("evidenceBody")}: ${selection.label}`}>
+            <code data-language={bodyFormat}>{serializedBody}</code>
+          </pre>
+        ) : (
+          <div className="document-empty">{liveDocuments ? t("documentUnavailable") : t("inspectingRepository")}</div>
+        )}
+      </section>
     </div>
   );
 }
@@ -309,7 +337,7 @@ function ContextView({ snapshot, selectedId, selection, liveDocuments, activity,
   if (selectedId === "rule5") return <Rule5View data={rule5} />;
   if (selectedId === "findings" || selectedId.startsWith("findings-")) return <FindingsView snapshot={snapshot} selectedId={selectedId} title={selection.label} />;
   if (selectedId === "handoff") return <HandoffView snapshot={snapshot} />;
-  if (selectedId === "evidence" || selectedId.startsWith("evidence-")) return <EvidenceView snapshot={snapshot} selectedId={selectedId} selection={selection} />;
+  if (selectedId === "evidence" || selectedId.startsWith("evidence-")) return <EvidenceView snapshot={snapshot} selectedId={selectedId} selection={selection} liveDocuments={liveDocuments} />;
   return <PacketOverview snapshot={snapshot} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} />;
 }
 
@@ -321,12 +349,6 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
   const positive = errors === 0 && warnings === 0;
   return (
     <>
-      <section className="product-banner" aria-label="SDAD Inspector product banner">
-        <img
-          src="/sdad-inspector-banner.png"
-          alt="SDAD Inspector — Read-Only Control Plane for SPEC-Directed AI Development"
-        />
-      </section>
       <section className="packet-section" aria-labelledby="active-packet-heading">
         <p className="section-kicker">{t("activePacket")}</p>
         <div className="packet-heading-row">

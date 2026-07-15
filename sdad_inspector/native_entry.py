@@ -11,7 +11,11 @@ from sdad_inspector.desktop import resource_root, run_desktop
 from sdad_inspector.dialogs import select_project_directory
 from sdad_inspector.engine import authenticate_release_archive
 from sdad_inspector.errors import InspectorError
-from sdad_inspector.updater import INTERNAL_UPDATE_FLAG, apply_update_plan
+from sdad_inspector.updater import (
+    INTERNAL_UPDATE_FLAG,
+    apply_update_plan,
+    refresh_windows_icon_cache,
+)
 
 INTERNAL_ENGINE_FLAG = "--sdad-internal-engine"
 
@@ -53,6 +57,17 @@ def show_native_error(message: str) -> None:
         root.destroy()
 
 
+def refresh_frozen_windows_icon() -> bool:
+    """Refresh a manually replaced portable EXE without affecting startup."""
+
+    if sys.platform != "win32" or not getattr(sys, "frozen", False):
+        return False
+    try:
+        return refresh_windows_icon_cache(Path(sys.executable))
+    except Exception:
+        return False
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Open SDAD Inspector desktop preview.")
     parser.add_argument("project_root", nargs="?", help="SDAD project root")
@@ -77,6 +92,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             json.dump(exc.to_payload(), sys.stderr, ensure_ascii=False)
             sys.stderr.write("\n")
             return 2
+    refresh_frozen_windows_icon()
     arguments = _parser().parse_args(raw_arguments)
     project_root = arguments.project_root
     try:

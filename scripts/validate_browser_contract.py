@@ -155,6 +155,7 @@ def main(argv: list[str] | None = None) -> int:
         require(documents_status == 200, "Authenticated live-document route failed.")
         documents = json.loads(documents_body)
         allowed_paths = {
+            snapshot["protocol"]["state_path"],
             snapshot["state"]["active_spec"]["path"],
             snapshot["protocol"]["todo_path"],
             snapshot["protocol"]["findings_path"],
@@ -162,7 +163,17 @@ def main(argv: list[str] | None = None) -> int:
         }
         require(
             all(item["path"] in allowed_paths for item in documents["documents"]),
-            "Live-document route escaped declared Markdown paths.",
+            "Live-document route escaped bounded state/declared evidence paths.",
+        )
+        state_document = next(
+            (item for item in documents["documents"] if item["path"] == snapshot["protocol"]["state_path"]),
+            None,
+        )
+        require(
+            state_document is not None
+            and state_document.get("roles") == ["state"]
+            and "version:" in (state_document.get("content") or ""),
+            "The bounded verbatim state evidence body is missing.",
         )
         require(documents_headers.get("Cache-Control") == "no-store", "Live documents are cacheable.")
 

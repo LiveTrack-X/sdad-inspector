@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_VERSION = "0.0.1"
-RELEASE_VERSION = "0.0.1"
+PACKAGE_VERSION = "0.0.2"
+RELEASE_VERSION = "0.0.2"
 RELEASE_TAG = f"v{RELEASE_VERSION}"
 
 
@@ -41,8 +41,9 @@ def validate_release_contract() -> list[str]:
     pyproject = _read("pyproject.toml")
     package = _read("sdad_inspector/__init__.py")
     readme = _read("README.md")
+    korean_readme = _read("README.ko.md")
     workflow = _read(".github/workflows/release.yml")
-    notes = _read("docs/releases/v0.0.1.md")
+    notes = _read("docs/releases/v0.0.2.md")
     ignore = _read(".gitignore")
     packager = _read("scripts/package_release.py")
     native_builder = _read("scripts/build_native.py")
@@ -51,6 +52,7 @@ def validate_release_contract() -> list[str]:
     windows_branding = _read("scripts/validate_windows_branding.py")
     portable_smoke = _read("scripts/smoke_release_archive.py")
     updater = _read("sdad_inspector/updater.py")
+    overview = _read("web/src/components/Overview.tsx")
     web_package = json.loads(_read("web/package.json"))
 
     if not re.search(rf'^version = "{re.escape(PACKAGE_VERSION)}"$', pyproject, re.MULTILINE):
@@ -60,7 +62,7 @@ def validate_release_contract() -> list[str]:
 
     for needle in (
         RELEASE_TAG,
-        "0.0.1 is a regular GitHub Release, but remains unsigned",
+        "0.0.2 is a regular GitHub Release, but remains unsigned",
         "web/public/sdad-inspector-banner.png",
         "Which SDAD projects can it inspect?",
         "Official SDAD Protocol `v3.2.2`",
@@ -71,8 +73,11 @@ def validate_release_contract() -> list[str]:
         "Linux",
         "SHA256SUMS",
         "single portable executable",
+        "[한국어](README.ko.md)",
     ):
         _require(issues, readme, needle, source="README.md")
+    for needle in ("[English](README.md)", RELEASE_TAG, "SHA256SUMS"):
+        _require(issues, korean_readme, needle, source="README.ko.md")
 
     for needle in (
         RELEASE_TAG,
@@ -102,20 +107,22 @@ def validate_release_contract() -> list[str]:
     if "--clobber" in workflow:
         issues.append(".github/workflows/release.yml: immutable release assets may not be refreshed with --clobber")
     if "--prerelease" in workflow:
-        issues.append(".github/workflows/release.yml: v0.0.1 must publish as a regular release")
+        issues.append(".github/workflows/release.yml: v0.0.2 must publish as a regular release")
 
     for needle in (
-        "# SDAD Inspector 0.0.1",
+        "# SDAD Inspector 0.0.2",
         "Unsigned portable release",
-        "exact `v0.0.1` tag",
+        "exact `v0.0.2` tag",
         "SHA256SUMS",
         "SDAD Protocol `v3.2.2`",
         "single portable executable",
         "automatic product update",
         "ProtocolAdapter",
         "Snapshot schema 2",
+        "README-only",
+        "exact executable path",
     ):
-        _require(issues, notes, needle, source="docs/releases/v0.0.1.md")
+        _require(issues, notes, needle, source="docs/releases/v0.0.2.md")
 
     for needle in ("design/qa/", "design-qa.md", "web/.npmrc", "release-artifacts/"):
         _require(issues, ignore, needle, source=".gitignore")
@@ -154,18 +161,23 @@ def validate_release_contract() -> list[str]:
     for needle in (
         "FileDescription', 'SDAD Inspector'",
         "ProductName', 'SDAD Inspector'",
-        "FileVersion', '0.0.1.0'",
-        "ProductVersion', '0.0.1'",
+        "FileVersion', '0.0.2.0'",
+        "ProductVersion', '0.0.2'",
         "OriginalFilename', 'SDAD-Inspector.exe'",
     ):
         _require(issues, version_info, needle, source="packaging/sdad-inspector-version.txt")
     for needle in (
         'pefile.RESOURCE_TYPE["RT_ICON"]',
         "packaging/sdad-inspector.ico",
-        'b"ProductVersion": b"0.0.1"',
+        'b"ProductVersion": b"0.0.2"',
         '"icon": "matches-source"',
     ):
         _require(issues, windows_branding, needle, source="scripts/validate_windows_branding.py")
+    for forbidden_overview_art in ("/sdad-inspector-banner.png", "product-banner"):
+        if forbidden_overview_art in overview:
+            issues.append(
+                "web/src/components/Overview.tsx: README-only banner must not render in the app"
+            )
 
     vite_raw = str((web_package.get("dependencies") or {}).get("vite") or "")
     vite_match = re.fullmatch(r"[~^]?(\d+)\.(\d+)\.(\d+)", vite_raw)
@@ -181,6 +193,7 @@ def validate_release_contract() -> list[str]:
     if forbidden:
         issues.append("tracked local-only release files: " + ", ".join(forbidden))
     for required_asset in (
+        "README.ko.md",
         "web/public/sdad-inspector-logo.png",
         "packaging/sdad-inspector.ico",
         "packaging/sdad-inspector.icns",

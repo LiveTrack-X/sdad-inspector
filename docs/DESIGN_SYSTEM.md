@@ -47,10 +47,8 @@ size is 14 px, compact labels are 12 px, and the active packet title is 22 px.
   remains available through titles; at a resized pane width of 310 px or less,
   values move below labels instead of colliding.
 - `Overview`: active packet/status, objective, Doctor summary, relationships,
-  and validation declarations with a persistent not-executed notice. Its
-  generated one-line product banner uses the established navy/cyan identity and
-  four version-neutral capability chips, scales at its intrinsic aspect ratio,
-  and never replaces live packet/TODO evidence.
+  and validation declarations with a persistent not-executed notice. It starts
+  directly with repository evidence and does not render README marketing art.
 - `DevelopmentFlow`: exact `Plan → Route → Implement → Verify → Report` rail,
   conditional Gate/Handoff cards, neutral evidence states, an active-packet
   summary, explicit-only current TODO/phase emphasis, openable bounded evidence
@@ -58,6 +56,9 @@ size is 14 px, compact labels are 12 px, and the active packet title is 22 px.
   cobalt focus treatment and never reuses the green verified treatment.
 - `DocumentViewer`: bounded Markdown content, routed-document navigation, safe
   image fallbacks, and no HTML/script or automatic remote-image execution.
+- `EvidenceView`: provenance metadata followed by the same bounded evidence
+  body. In-memory Doctor/snapshot evidence uses scrollable JSON, state uses
+  verbatim YAML, and Markdown reuses `DocumentViewer` rendering safety.
 - `InspectorPane`: Inspector/Raw JSON tabs, selected field provenance, owner
   gates, safe actions, copy feedback. Long owner-gate names and unobserved
   status text use two explicit rows so neither column can overlap the other.
@@ -65,6 +66,7 @@ size is 14 px, compact labels are 12 px, and the active packet title is 22 px.
 - `ProjectDialog`: canonical path input and explicit open action.
 - `StateSurface`: loading, unsupported/error, stale, no state, and retry.
 
-Phosphor is the UI control icon family; the generated logo and banner PNGs are
-product brand assets rather than control icons. State never relies on color alone. All
+Phosphor is the UI control icon family; the generated logo is an app brand asset
+and the one-line banner is a README-only introduction asset. Neither is a
+control icon. State never relies on color alone. All
 interactive elements expose a visible focus indicator and accessible name.

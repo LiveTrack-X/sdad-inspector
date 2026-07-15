@@ -230,10 +230,11 @@ def load_control_state(
 
 
 def load_live_documents(root: Path) -> dict[str, Any]:
-    """Read only state-declared Markdown surfaces through existing path budgets."""
+    """Read state and declared evidence documents through existing path budgets."""
 
     state, _ = load_control_state(root)
     roles: dict[str, list[str]] = {
+        "sdad-state.yaml": ["state"],
         "docs/TODO-Open-Items.md": ["todo"],
         "review-findings.md": ["findings"],
     }
@@ -255,7 +256,7 @@ def load_live_documents(root: Path) -> dict[str, Any]:
             content = read_bounded_text(
                 root,
                 relative,
-                purpose="live Markdown document",
+                purpose="live evidence document",
                 required=False,
                 max_lines=800,
             )

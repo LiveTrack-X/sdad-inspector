@@ -100,7 +100,10 @@ class LoopbackServerTests(WorkspaceCase):
         self.assertEqual(status, 200)
         documents = json.loads(body)
         self.assertEqual(headers["Cache-Control"], "no-store")
-        self.assertIn("SPEC/SPEC-COMPLETE.md", {item["path"] for item in documents["documents"]})
+        by_path = {item["path"]: item for item in documents["documents"]}
+        self.assertIn("SPEC/SPEC-COMPLETE.md", by_path)
+        self.assertIn("sdad-state.yaml", by_path)
+        self.assertIn("version:", by_path["sdad-state.yaml"]["content"])
         activity_status, activity_headers, activity_body = self.request(
             "/api/activity", token=self.token
         )

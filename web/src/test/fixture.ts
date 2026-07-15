@@ -2,7 +2,7 @@ import type { DevelopmentActivity, LiveDocuments, Rule5Candidates, Snapshot } fr
 
 export const snapshotFixture: Snapshot = {
   snapshot_schema_version: 2,
-  inspector_version: "0.0.1",
+  inspector_version: "0.0.2",
   inspection_id: "fixture-inspection",
   inspected_at: "2026-07-15T06:00:00Z",
   inspection_status: "completed",
@@ -102,6 +102,13 @@ export const liveDocumentsFixture: LiveDocuments = {
   read_at: "2026-07-15T06:01:00Z",
   truncated: false,
   documents: [
+    {
+      path: "sdad-state.yaml",
+      exists: true,
+      roles: ["state"],
+      content: "version: 2\nscale: standard\nexecution_scope: packet\nactive_spec: SPEC/SPEC-COMPLETE.md\nactive_packet:\n  id: SI-003-browser-mvp\n  objective: Build the selected Split Inspector browser UI.\n  status: software_verified\n",
+      error: null,
+    },
     {
       path: "SPEC/SPEC-COMPLETE.md",
       exists: true,

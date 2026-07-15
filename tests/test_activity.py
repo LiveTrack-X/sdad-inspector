@@ -23,13 +23,14 @@ class LiveWorkspaceTests(WorkspaceCase):
             stderr=subprocess.PIPE,
         )
 
-    def test_live_documents_are_limited_to_declared_markdown_routes(self) -> None:
+    def test_live_documents_are_limited_to_state_and_declared_evidence_routes(self) -> None:
         (self.project / "secret.md").write_text("# Not routed\n", encoding="utf-8")
         documents = load_live_documents(self.project)
         paths = {item["path"] for item in documents["documents"]}
         self.assertEqual(
             paths,
             {
+                "sdad-state.yaml",
                 "SPEC/SPEC-COMPLETE.md",
                 "docs/TODO-Open-Items.md",
                 "review-findings.md",
@@ -38,6 +39,9 @@ class LiveWorkspaceTests(WorkspaceCase):
         self.assertNotIn("secret.md", paths)
         spec = next(item for item in documents["documents"] if item["path"].startswith("SPEC/"))
         self.assertEqual(spec["content"].splitlines(), ["# Fixture SPEC"])
+        state = next(item for item in documents["documents"] if item["path"] == "sdad-state.yaml")
+        self.assertEqual(state["roles"], ["state"])
+        self.assertIn("version: 2", state["content"])
 
     def test_porcelain_and_commit_parsers_preserve_unicode_without_content_reads(self) -> None:
         unicode_file = self.project / "docs" / "진행.md"

@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_VERSION_INFO = {
     b"FileDescription": b"SDAD Inspector",
     b"ProductName": b"SDAD Inspector",
-    b"FileVersion": b"0.0.1.0",
-    b"ProductVersion": b"0.0.1",
+    b"FileVersion": b"0.0.2.0",
+    b"ProductVersion": b"0.0.2",
     b"OriginalFilename": b"SDAD-Inspector.exe",
 }
 
