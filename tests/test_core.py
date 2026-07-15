@@ -293,6 +293,15 @@ class CoreInspectionTests(WorkspaceCase):
         with self.assertRaises(PathSafetyError):
             inspect_project(self.project, self.engine, _engine_info=self.engine_info)
 
+    def test_project_root_alias_is_canonicalized_before_containment(self) -> None:
+        active_spec = safe_project_path(
+            self.project,
+            "SPEC/SPEC-COMPLETE.md",
+            purpose="active SPEC",
+            must_exist=True,
+        )
+        self.assertEqual(active_spec, (self.project / "SPEC/SPEC-COMPLETE.md").resolve())
+
     def test_symlink_control_file_is_rejected(self) -> None:
         outside = self.root / "outside.md"
         outside.write_text("secret\n", encoding="utf-8")

@@ -1,116 +1,327 @@
 # SDAD Inspector
 
-[![Cross-platform preview checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
+[![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
+[![Latest prerelease](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?include_prereleases&label=alpha)](https://github.com/LiveTrack-X/sdad-inspector/releases)
 
-This is the public source repository. It is not a signed product release or a
-cross-platform support claim; those remain separate evidence and owner gates.
+SDAD Inspector is a local, read-only desktop and browser viewer for repositories
+that use the
+[SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development).
+It brings the active packet, SPEC authority, TODO work, findings, owner gates,
+validation declarations, live Git observations, and evidence provenance into a
+single Korean/English interface.
 
-SDAD Inspector is a local, read-only viewer for repositories that use the
-[SDAD protocol](https://github.com/LiveTrack-X/spec-driven-ai-development).
-It turns the active packet, SPEC authority, Doctor findings, validation
-declarations, owner gates, and evidence provenance into one inspectable view.
-The shared browser/native interface supports Korean and English, selects Korean
-for a Korean primary browser locale, and keeps an explicit local language
-choice across reloads. Repository-tree selections open matching central
-evidence views, re-scan and project-open operations expose only observed
-Inspector stages and bounded current sources, and a local light/dark choice is
-preserved across reloads. Repository evidence remains in its original language.
+> **0.0.1 alpha is experimental and unsigned.** The release archives are not
+> installers, are not code-signed or notarized, and may be warned about or
+> blocked by the operating system. Verify `SHA256SUMS` and inspect the public
+> source before running them. The hosted-runner build and smoke checks apply to
+> the exact tagged archives; they are not a broad stable-support claim.
 
-The product does not execute a project's validation commands, edit a project,
-download an engine at runtime, or expose a JavaScript-to-Python bridge. Release,
-signing, publishing, and every future write/auto-fix action remain owner-gated.
+Each OS archive contains one **single portable executable** with the Python
+3.12 runtime, UI, and pinned SDAD engine embedded. The destination computer does
+not need Python installed and there is no `_internal` folder to copy alongside
+the executable.
 
-## Current evidence boundary
+## What it does
 
-- Headless inspection, the loopback browser app, and static sanitized reports
-  are locally verified on Windows against the authenticated SDAD v3.2.2 tree.
-- The optional native shell built as an unsigned Windows one-folder preview and
-  completed a bounded local launch/close smoke. Its exact evidence is tracked
-  separately in `docs/CROSS_PLATFORM.md`.
-- On the locally verified Windows browser and exact rebuilt preview, selecting
-  a folder without readable SDAD state renders the bounded Doctor diagnostic
-  surface instead of a blank screen.
-- The same local bundle was exercised in Korean light/dark modes at desktop and
-  narrow widths; tree parents and leaves update the central workspace and right
-  Inspector, and authenticated progress contains no fabricated percentage or
-  inferred repository work-loop phase.
-- A checked-in matrix defines Windows, macOS, and Ubuntu builds, but a platform
-  is not claimed merely because it appears in configuration.
+- Opens an SDAD repository without modifying it.
+- Runs a pinned, authenticated SDAD Doctor in a subprocess and preserves its
+  real exit code and raw JSON evidence.
+- Shows the active SPEC, current packet, packet TODO, findings, routed Markdown,
+  observed Git status/commits, handoff history, and owner gates.
+- Provides one shared responsive UI through the native shell or loopback
+  browser, with Korean/English and light/dark preferences.
+- Exports a redacted standalone HTML report outside the inspected repository.
+- Can prepare a Rule 5 proposal only after preview and confirmation; the result
+  is an inactive Markdown file at a separate owner-selected path.
 
-## Future engine updates and project migration
+It does **not** execute validation commands declared by the project, edit the
+project, silently migrate SDAD state, download engines at runtime, or expose a
+JavaScript-to-Python bridge.
 
-Inspector and SDAD engine versions intentionally remain independent. A future
-updater can discover compatible official GitHub Releases, authenticate a
-release into a versioned local cache, run compatibility checks, and select the
-new engine without changing an inspected project. Project bootstrap or schema
-migration is a separate flow: recommendation, complete diff preview, explicit
-owner approval, transactional apply, Doctor verification, and rollback.
+## Which SDAD projects can it inspect?
 
-The current preview does not download engines or write projects. Silent project
-migration remains forbidden; apply requires Full SDAD plus the
-`auto-fix/write` owner gate. The proposed contract is documented in
-`docs/UPDATE_AND_MIGRATION.md`.
+Attach Inspector to a repository that follows the SDAD Protocol and keeps
+`sdad-state.yaml` at its repository root. It is not limited to the upstream SDAD
+framework repository: it is intended for any product repository that has
+adopted that repository-local protocol.
 
-## Developer quick start
+| Contract | 0.0.1 alpha boundary |
+| --- | --- |
+| Bundled/runtime baseline | Official SDAD Protocol `v3.2.2` |
+| Doctor compatibility corpus | Released `v3.2.1` and `v3.2.2` fixtures |
+| SDAD state schemas | 1 and 2 |
+| Doctor report schemas | 1 and 2 |
+| Primary project entry | Root `sdad-state.yaml` |
+| Normative intent | The single `active_spec` declared by state |
 
-Requirements: Python 3.10 or newer and Node.js 22 or newer.
+The compatibility corpus proves bounded parsing of those released contracts;
+it does not promise compatibility with future SDAD versions. The packaged alpha
+always uses its bundled `v3.2.2` runtime.
+
+A typical inspected repository looks like this:
+
+```text
+your-project/
+├─ sdad-state.yaml
+├─ SPEC/
+│  └─ SPEC-COMPLETE.md
+├─ docs/
+│  ├─ INDEX.md
+│  └─ TODO-Open-Items.md
+├─ review-findings.md
+└─ ...your product source and tests
+```
+
+At minimum, state must select the active SPEC and packet. A state-v2 project can
+also declare its execution boundary, validation owner, gates, and eligible
+documents:
+
+```yaml
+version: 2
+scale: standard
+execution_scope: packet
+active_spec: SPEC/SPEC-COMPLETE.md
+active_packet:
+  id: APP-001
+  objective: Deliver the current bounded change.
+  status: in_progress
+validation_for: APP-001
+owner_gates: []
+routed_docs:
+  - docs/TODO-Open-Items.md
+  - review-findings.md
+```
+
+Inspector treats those fields as declared project evidence. It does not infer
+authority from filenames or turn a routed document into authority.
+
+## Use the 0.0.1 alpha release
+
+1. Open the
+   [`v0.0.1-alpha.1` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.1-alpha.1).
+2. Download `SHA256SUMS` and exactly one archive for your operating system.
+   The filename records the OS and the architecture of the GitHub-hosted runner.
+3. Verify the archive before extracting it.
+4. Extract the archive. It contains exactly one portable executable.
+5. Start Inspector with an SDAD project path, or start it without a path and use
+   the native folder picker.
+
+Verify on Linux or macOS from the directory containing all downloaded assets:
+
+```bash
+sha256sum -c SHA256SUMS
+```
+
+On Windows PowerShell, compute the archive hash and compare it with the matching
+line in `SHA256SUMS`:
 
 ```powershell
+Get-FileHash .\SDAD-Inspector-0.0.1-alpha.1-windows-*.zip -Algorithm SHA256
+Get-Content .\SHA256SUMS
+```
+
+Run the extracted build:
+
+| OS | Launch path |
+| --- | --- |
+| Windows | `.\SDAD-Inspector.exe C:\path\to\your-project` |
+| macOS | `./SDAD-Inspector /path/to/your-project` |
+| Linux | `./SDAD-Inspector /path/to/your-project` |
+
+Because the alpha is unsigned, Windows SmartScreen or macOS Gatekeeper may stop
+it. Keep the protection enabled; if the source and checksum are not sufficient
+for your environment's policy, run from source instead of bypassing that policy.
+
+## Run from source
+
+Requirements:
+
+- Python 3.10 or newer;
+- Node.js 22 or newer;
+- Git;
+- platform prerequisites required by `pywebview` for the optional desktop mode.
+
+Clone Inspector and the supported official SDAD runtime:
+
+```bash
+git clone https://github.com/LiveTrack-X/sdad-inspector.git
+cd sdad-inspector
+git clone --branch v3.2.2 --depth 1 \
+  https://github.com/LiveTrack-X/spec-driven-ai-development.git \
+  .runtime/sdad-v3.2.2
+```
+
+Install the Python and frontend dependencies:
+
+```bash
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -e ".[desktop,build]"
+source .venv/bin/activate
+python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
 ```
 
-Use only a clean supported release checkout or authenticated release archive:
+On Windows PowerShell, activate the environment with
+`.\.venv\Scripts\Activate.ps1` instead of the `source` line. You can also avoid
+activation by invoking the Python and `sdad-inspector` executables directly from
+`.venv`. The command shapes below are otherwise the same on every OS.
 
-```powershell
-.\.venv\Scripts\sdad-inspector inspect . --sdad-checkout .runtime\sdad-v3.2.2 --pretty
-.\.venv\Scripts\sdad-inspector serve . --sdad-checkout .runtime\sdad-v3.2.2
-.\.venv\Scripts\sdad-inspector desktop . --sdad-checkout .runtime\sdad-v3.2.2
+### Desktop app
+
+```bash
+sdad-inspector desktop /path/to/your-project \
+  --sdad-checkout .runtime/sdad-v3.2.2
 ```
 
-Generate a self-contained report outside the inspected project:
+### Loopback browser app
 
-```powershell
-.\.venv\Scripts\sdad-inspector report C:\path\to\project `
-  --sdad-checkout .runtime\sdad-v3.2.2 `
-  --output C:\path\outside-project\sdad-report.html `
+```bash
+sdad-inspector serve /path/to/your-project \
+  --sdad-checkout .runtime/sdad-v3.2.2
+```
+
+The server binds to `127.0.0.1`, chooses a free port by default, requires a
+per-launch session token, rejects foreign host/origin requests, and sends
+no-store/security headers.
+
+### Snapshot JSON
+
+```bash
+sdad-inspector inspect /path/to/your-project \
+  --sdad-checkout .runtime/sdad-v3.2.2 \
+  --pretty
+```
+
+### Redacted static report
+
+The output must be outside the inspected repository:
+
+```bash
+sdad-inspector report /path/to/your-project \
+  --sdad-checkout .runtime/sdad-v3.2.2 \
+  --output /path/outside-project/sdad-report.html \
   --redact-paths --redact-evidence
 ```
 
-## Native preview build
+## Architecture
 
-```powershell
-npm --prefix web run build
-.\.venv\Scripts\python scripts\build_native.py `
-  --sdad-checkout .runtime\sdad-v3.2.2
-.\.venv\Scripts\python scripts\smoke_native.py .
+```mermaid
+flowchart LR
+    P["Selected SDAD repository\nread-only bounded files"]
+    E["Pinned SDAD Doctor\nsubprocess + raw JSON"]
+    N["Inspector adapters\nnormalized snapshot"]
+    S["Authenticated loopback service\nno-store API"]
+    U["React UI"]
+    D["Native pywebview shell"]
+    R["Static redacted report"]
+    P --> E
+    P --> N
+    E --> N
+    N --> S
+    S --> U
+    U --> D
+    N --> R
 ```
 
-The build stages and reauthenticates the complete release engine before
-PyInstaller receives it. Output is under `build/native/dist`; it is unsigned,
-unpublished, and not an installer.
+The important boundary is one-way: project files and Doctor output flow into an
+Inspector-owned snapshot. The UI never receives a general filesystem or Python
+bridge, and displayed repository Markdown is safely rendered without executing
+repository HTML.
 
-The locally verified preview is
-`build/native/dist/SDAD-Inspector/SDAD-Inspector.exe`. Keep the complete sibling
-`_internal` directory beside it. Run the executable with a project path or
-double-click it to choose an SDAD project through the native folder picker.
+### Repository structure
 
-## Validation
+```text
+sdad_inspector/       Python core, adapters, server, desktop shell, reports
+web/                  Shared React/Vite browser and native frontend
+scripts/              Contract checks, native build/smoke, release packaging
+packaging/            PyInstaller one-file specification
+tests/                Python regressions and frozen SDAD contract fixtures
+SPEC/                  Normative product intent
+docs/                  Integration, platform, evidence, and operating docs
+.github/workflows/    Continuous checks and tagged alpha release automation
+design/reference/     Owner-selected visual reference retained as design input
+```
 
-```powershell
+Start documentation routing at [`docs/INDEX.md`](docs/INDEX.md). The most useful
+deeper documents are:
+
+- [`docs/SDAD_INTEGRATION_CONTRACT.md`](docs/SDAD_INTEGRATION_CONTRACT.md) —
+  exact engine/report/state compatibility;
+- [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md) — platform adapters and
+  evidence limits;
+- [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — Korean/English behavior and
+  verbatim repository-evidence boundary;
+- [`docs/UPDATE_AND_MIGRATION.md`](docs/UPDATE_AND_MIGRATION.md) — future design,
+  not a current auto-update or migration feature.
+
+## Read-only and security boundary
+
+- Project reads are repository-relative, size/line bounded, canonicalized, and
+  checked against traversal, symbolic-link, hard-link, and sensitive-file paths.
+- Doctor is accepted only from the pinned clean release contract bundled with
+  the app or explicitly supplied in source mode.
+- Declared validation commands are shown as metadata and never executed.
+- Project selection, refresh, recent-project preferences, and history clearing
+  do not write to the inspected repository.
+- Static reports require a destination outside the project and default to no
+  overwrite.
+- Rule 5 export requires a complete finding, exact preview digest, confirmation,
+  and a separate Save As destination. It never activates the proposal.
+
+## Build and validate
+
+Native packaging specifically requires official CPython 3.12. Build an unsigned
+local one-file preview with that interpreter:
+
+```bash
+npm --prefix web run build
+python3.12 scripts/build_native.py \
+  --sdad-checkout .runtime/sdad-v3.2.2
+python3.12 scripts/smoke_native.py .
+```
+
+Run the release-relevant local gates from the repository root:
+
+```bash
+python scripts/validate_public_repository.py
+python scripts/validate_release.py
 python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts\validate_browser_contract.py
-python scripts\validate_static_report.py
-python scripts\validate_native_contract.py
-python scripts\build_native.py --check --sdad-checkout .runtime\sdad-v3.2.2
+python scripts/validate_browser_contract.py
+python scripts/validate_static_report.py
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.2
+python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.2
 ```
 
-See `docs/INDEX.md` for the documentation route and
-`docs/CROSS_PLATFORM.md` for platform-specific runtime and evidence limits.
-Language behavior and the evidence-translation boundary are documented in
-`docs/LOCALIZATION.md`.
+The normal `cross-platform.yml` workflow runs source, frontend, one-file native
+build, direct smoke, and separate downloaded-archive smoke checks on Windows,
+macOS, and Ubuntu. Its archives are short-lived CI evidence, not releases.
+Pushing the exact
+tag `v0.0.1-alpha.1` invokes `release.yml`, repeats those gates on the tagged
+commit with CPython 3.12, packages one executable per OS, and then downloads and
+smoke-launches each archive in a separate clean hosted-runner job. It writes
+`SHA256SUMS` and publishes a GitHub prerelease only after all build and portable
+smoke jobs pass.
+
+## Alpha limitations
+
+- No installer, signing, notarization, updater, package-registry publication,
+  deployment, upgrade/uninstall/rollback guarantee, or production-readiness
+  claim.
+- Hosted GitHub runners cannot establish compatibility with every OS release,
+  desktop environment, security policy, GPU, or display-server configuration.
+- The macOS and Windows executables may be blocked because they are
+  unsigned.
+- A one-file executable expands its embedded runtime into an OS temporary
+  directory at startup. Linux systems whose temporary filesystem is mounted
+  `noexec` are outside this alpha's verified environments.
+- The product is intentionally an Inspector, not an SDAD editor or autonomous
+  repair tool.
+- Public visibility does not itself add a license grant; check repository terms
+  before redistribution or derivative use.
+
+Issues should include the Inspector version, OS/architecture, SDAD version,
+Doctor exit code, and a redacted reproduction. Never attach secrets, `.env`
+files, raw customer data, or private repositories.
