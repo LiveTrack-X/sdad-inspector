@@ -71,4 +71,3 @@ jobs:
       - name: Smoke native preview under Xvfb
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_native.py .
-
