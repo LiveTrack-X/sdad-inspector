@@ -256,23 +256,22 @@ web/                  Shared React/Vite browser and native frontend
 scripts/              Contract checks, native build/smoke, release packaging
 packaging/            PyInstaller one-file specification
 tests/                Python regressions and frozen SDAD contract fixtures
-SPEC/                  Normative product intent
-docs/                  Integration, platform, evidence, and operating docs
+docs/                  Public integration, platform, UI, and release docs
 .github/workflows/    Continuous checks and tagged alpha release automation
-design/reference/     Owner-selected visual reference retained as design input
 ```
 
-Start documentation routing at [`docs/INDEX.md`](docs/INDEX.md). The most useful
-deeper documents are:
+Public technical documentation includes:
 
 - [`docs/SDAD_INTEGRATION_CONTRACT.md`](docs/SDAD_INTEGRATION_CONTRACT.md) —
   exact engine/report/state compatibility;
 - [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md) — platform adapters and
   evidence limits;
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — shared interface layout,
+  tokens, components, and responsive behavior;
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — Korean/English behavior and
   verbatim repository-evidence boundary;
-- [`docs/UPDATE_AND_MIGRATION.md`](docs/UPDATE_AND_MIGRATION.md) — future design,
-  not a current auto-update or migration feature.
+- [`docs/releases/v0.0.1-alpha.3.md`](docs/releases/v0.0.1-alpha.3.md) — current
+  release contents, compatibility, and unsigned limitations.
 
 ## Read-only and security boundary
 

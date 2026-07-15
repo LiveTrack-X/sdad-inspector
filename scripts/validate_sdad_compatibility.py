@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the frozen SDAD 3.2.1/3.2.2 Packet 0 fixture contract."""
+"""Validate the frozen SDAD 3.2.1/3.2.2 compatibility fixture contract."""
 
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ SCENARIOS = {
 
 
 class ContractError(RuntimeError):
-    """Packet 0 fixture contract failed."""
+    """The SDAD compatibility fixture contract failed."""
 
 
 def _require(condition: bool, message: str, errors: list[str]) -> None:
@@ -172,11 +172,6 @@ def validate_manifest() -> int:
         raise ContractError(f"cannot read fixture manifest: {exc}") from exc
 
     _require(manifest.get("schema_version") == 1, "manifest schema_version must be 1", errors)
-    _require(
-        manifest.get("packet_id") == "SI-001-contract-and-fixtures",
-        "manifest packet_id mismatch",
-        errors,
-    )
     releases = manifest.get("releases")
     _require(isinstance(releases, dict), "manifest releases must be an object", errors)
     if not isinstance(releases, dict):
@@ -395,14 +390,14 @@ def main(argv: list[str] | None = None) -> int:
             else 0
         )
     except ContractError as exc:
-        print(f"Packet 0 contract FAILED:\n{exc}", file=sys.stderr)
+        print(f"SDAD compatibility contract FAILED:\n{exc}", file=sys.stderr)
         return 1
     suffix = ""
     if args.sdad_repo is not None:
         suffix += " and local tag objects"
     if recaptured:
         suffix += f"; {recaptured} live tagged reports matched"
-    print(f"Packet 0 contract OK: 2 releases, {count} normalized reports{suffix}.")
+    print(f"SDAD compatibility contract OK: 2 releases, {count} normalized reports{suffix}.")
     return 0
 
 

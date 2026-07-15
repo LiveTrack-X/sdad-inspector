@@ -1,7 +1,6 @@
 # Split Inspector UI System
 
 Status: Active implementation inventory
-Visual authority: `../design/reference/sdad-inspector-split-inspector.png`
 
 ## Layout
 

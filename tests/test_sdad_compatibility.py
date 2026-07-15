@@ -11,8 +11,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "validate_packet_0.py"
-SPEC = importlib.util.spec_from_file_location("validate_packet_0", SCRIPT)
+SCRIPT = ROOT / "scripts" / "validate_sdad_compatibility.py"
+SPEC = importlib.util.spec_from_file_location("validate_sdad_compatibility", SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"Could not load {SCRIPT}")
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -20,7 +20,7 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
-class PacketZeroContractTests(unittest.TestCase):
+class SdadCompatibilityContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.manifest = json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
 
@@ -56,7 +56,7 @@ class PacketZeroContractTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(
             output.getvalue(),
-            "Packet 0 contract OK: 2 releases, 8 normalized reports.\n",
+            "SDAD compatibility contract OK: 2 releases, 8 normalized reports.\n",
         )
 
 

@@ -28,7 +28,7 @@ development tree is never a golden source.
 - Exit 1 means completed findings failed the selected strictness; it is not a CLI diagnostic error.
 - Exit 2 means invocation/root/version diagnostics prevented a completed project inspection.
 
-## Packet 0 Fixture Set
+## Compatibility Fixture Set
 
 For each released engine the golden corpus contains:
 
@@ -42,24 +42,24 @@ check, severity, diagnostic kind, schema field, or message is rewritten. The
 manifest records the source tag, peeled commit, command shape, exit code, and
 SHA-256 for every normalized file.
 
-Offline integrity is checked with `python scripts/validate_packet_0.py`. A clean
+Offline integrity is checked with `python scripts/validate_sdad_compatibility.py`. A clean
 local SDAD checkout can additionally reproduce all reports from immutable tag
-archives with `python scripts/validate_packet_0.py --sdad-repo <CHECKOUT> --recapture`.
+archives with `python scripts/validate_sdad_compatibility.py --sdad-repo <CHECKOUT> --recapture`.
 
 Unsupported-state, version-mismatch, malformed/truncated JSON, unusual path,
 and handoff relationship fixtures remain an explicitly deferred expansion for
-the headless-core packet; they are not silently claimed by this corpus.
+the headless core; they are not silently claimed by this corpus.
 
 ## Snapshot Integration Decision
 
-Packet 0 does not propose or depend on a new SDAD snapshot CLI. The Inspector
+The compatibility corpus does not propose or depend on a new SDAD snapshot CLI. The Inspector
 will invoke released Doctor JSON and combine it with separately bounded,
 read-only control-file metadata in an Inspector-owned snapshot schema. It must
 preserve raw Doctor JSON and actual exit code as separate evidence.
 
 ## Claim Boundary And Owner Gates
 
-Passing Packet 0 proves only that the recorded tagged Doctor outputs are
+Passing the compatibility corpus proves only that the recorded tagged Doctor outputs are
 internally consistent with this compatibility contract on the local capture
 environment. It does not prove an Inspector runtime, repository no-write
 behavior, UI correctness, package behavior, or Windows/macOS/Linux support.
