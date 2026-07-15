@@ -57,4 +57,4 @@ routed_docs:
   - docs/claim-registry.md
   - docs/LOCALIZATION.md
   - .github/workflows/release.yml
-  - docs/releases/v0.0.1-alpha.2.md
+  - docs/releases/v0.0.1-alpha.3.md

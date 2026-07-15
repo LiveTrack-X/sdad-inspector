@@ -5,9 +5,14 @@ Scope: Active bugs and review findings only
 
 ## Active Findings
 
-None. The current candidate defects are closed below against exact same-commit
-hosted-runner evidence. The alpha.2 tag and published assets remain release
-verification work, not an open implementation defect.
+- [Medium] [packet:SI-013-alpha-release] FIND-SI-013-007 — Tagged alpha.2 run
+  `29412598223` published no Release or assets after macOS intermittently missed
+  the short Doctor stage in HTTP progress polling, even though the same exact
+  contract passed the preceding macOS PR run and the service has a deterministic
+  concurrent-progress unit test. Release remains blocked until the real-browser
+  harness records actual progress callback emissions for the exact Doctor-source
+  assertion, keeps HTTP polling responsible only for observing a live running
+  state, and a new immutable `v0.0.1-alpha.3` tag passes without moving alpha.2.
 
 Do not leave closed findings in this section. Move fixed or accepted items to
 `## Recently Closed` before an evidence checkpoint or handoff.
@@ -37,7 +42,8 @@ work or acceptance; do not keep two copies.
   `.ci/sdad-v3.2.2` on Windows, macOS, and Linux before packaging. All three
   direct one-file launches and all three separate downloaded-archive launches
   passed. Failed tag `v0.0.1-alpha.1` remains unchanged and published no Release
-  or assets; the publishable candidate advances to `v0.0.1-alpha.2`.
+  or assets; that fix advanced to `v0.0.1-alpha.2`, whose independent progress-
+  harness timing defect is tracked separately as FIND-SI-013-007.
 
 - [FIND-SI-013-005] [packet:SI-013-alpha-release] Fixed and externally
   exercised on exact commit `0466e764969a31cff658c681337c134d12549075` in
