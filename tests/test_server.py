@@ -21,7 +21,10 @@ class LoopbackServerTests(WorkspaceCase):
         self.web = self.root / "web-dist"
         self.web.mkdir()
         (self.web / "index.html").write_text(
-            '<!doctype html><meta name="sdad-session" content="__SDAD_SESSION_TOKEN__"><div id="root"></div>',
+            '<!doctype html><meta name="sdad-session" content="__SDAD_SESSION_TOKEN__">'
+            '<meta name="sdad-theme" content="__SDAD_THEME__">'
+            '<meta name="sdad-locale" content="__SDAD_LOCALE__">'
+            '<meta name="sdad-ui-scale" content="__SDAD_UI_SCALE__"><div id="root"></div>',
             encoding="utf-8",
         )
         (self.web / "app.js").write_text("console.log('fixture')\n", encoding="utf-8")
@@ -79,10 +82,77 @@ class LoopbackServerTests(WorkspaceCase):
         self.assertEqual(status, 200)
         self.assertIn(self.token.encode("ascii"), body)
         self.assertNotIn(b"__SDAD_SESSION_TOKEN__", body)
+        self.assertNotIn(b"__SDAD_THEME__", body)
+        self.assertNotIn(b"__SDAD_LOCALE__", body)
+        self.assertNotIn(b"__SDAD_UI_SCALE__", body)
         self.assertIn("default-src 'self'", headers["Content-Security-Policy"])
         self.assertEqual(headers["X-Frame-Options"], "DENY")
         self.assertEqual(headers["Cross-Origin-Resource-Policy"], "same-origin")
         self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_ui_preferences_are_origin_authenticated_and_injected_on_reopen(self) -> None:
+        missing_origin, _, _ = self.request(
+            "/api/preferences",
+            method="POST",
+            token=self.token,
+            payload={"theme": "dark", "locale": "zh-CN", "scale": 130},
+        )
+        self.assertEqual(missing_origin, 403)
+        status, _, body = self.request(
+            "/api/preferences",
+            method="POST",
+            token=self.token,
+            origin=True,
+            payload={"theme": "dark", "locale": "zh-CN", "scale": 130},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            json.loads(body),
+            {"schema_version": 1, "theme": "dark", "locale": "zh-CN", "scale": 130},
+        )
+        index_status, _, index_body = self.request("/")
+        self.assertEqual(index_status, 200)
+        self.assertIn(b'name="sdad-theme" content="dark"', index_body)
+        self.assertIn(b'name="sdad-locale" content="zh-CN"', index_body)
+        self.assertIn(b'name="sdad-ui-scale" content="130"', index_body)
+        self.assertFalse((self.project / "preferences.json").exists())
+
+    def test_startup_without_a_project_keeps_the_api_alive_until_user_selection(self) -> None:
+        self.server.service._project_root = None  # noqa: SLF001 - startup state contract
+        self.server.service._snapshot = None  # noqa: SLF001 - startup state contract
+        status, _, body = self.request("/api/snapshot", token=self.token)
+        self.assertEqual(status, 422)
+        self.assertEqual(json.loads(body)["error"]["code"], "project_required")
+        recent_status, _, _ = self.request("/api/recent-projects", token=self.token)
+        self.assertEqual(recent_status, 200)
+
+        open_status, _, open_body = self.request(
+            "/api/project",
+            method="POST",
+            token=self.token,
+            origin=True,
+            payload={"project_root": str(self.project)},
+        )
+        self.assertEqual(open_status, 200)
+        self.assertEqual(Path(json.loads(open_body)["project"]["root"]), self.project.resolve())
+
+    def test_repository_link_opens_only_the_fixed_official_url(self) -> None:
+        with patch("sdad_inspector.server.webbrowser.open", return_value=True) as opener:
+            status, _, body = self.request(
+                "/api/open-repository",
+                method="POST",
+                token=self.token,
+                origin=True,
+                payload={},
+            )
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            json.loads(body)["url"],
+            "https://github.com/LiveTrack-X/sdad-inspector",
+        )
+        opener.assert_called_once_with(
+            "https://github.com/LiveTrack-X/sdad-inspector", new=2
+        )
 
     def test_snapshot_requires_the_per_launch_session_token(self) -> None:
         denied, _, _ = self.request("/api/snapshot")
@@ -138,6 +208,23 @@ class LoopbackServerTests(WorkspaceCase):
         )
         self.assertEqual(check_status, 200)
         self.assertEqual(json.loads(check_body)["state"], "unsupported")
+
+        missing_ack_origin, _, _ = self.request(
+            "/api/update/acknowledge",
+            method="POST",
+            token=self.token,
+            payload={},
+        )
+        self.assertEqual(missing_ack_origin, 403)
+        acknowledge_status, _, acknowledge_body = self.request(
+            "/api/update/acknowledge",
+            method="POST",
+            token=self.token,
+            origin=True,
+            payload={},
+        )
+        self.assertEqual(acknowledge_status, 200)
+        self.assertEqual(json.loads(acknowledge_body)["state"], "unsupported")
 
     def test_picker_and_explicit_paste_do_not_switch_projects(self) -> None:
         before = self.server.service.snapshot()["project"]["root"]
@@ -263,8 +350,8 @@ class LoopbackServerTests(WorkspaceCase):
         self.assertEqual(recent_status, 200)
         self.assertEqual(recent_headers["Cache-Control"], "no-store")
         records = json.loads(recent_body)["recent_projects"]
-        self.assertEqual(Path(records[0]["path"]), other.resolve())
-        self.assertEqual(Path(records[1]["path"]), self.project.resolve())
+        self.assertEqual(len(records), 1)
+        self.assertEqual(Path(records[0]["path"]), self.project.resolve())
         self.assertFalse((other / "preferences.json").exists())
 
         clear_status, _, clear_body = self.request(

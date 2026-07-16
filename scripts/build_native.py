@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,6 +61,18 @@ def require_release_python(
     }
 
 
+def resolve_npm_executable(
+    *,
+    platform_name: str | None = None,
+    which: Callable[[str], str | None] = shutil.which,
+) -> str | None:
+    """Return the directly executable npm launcher for the current platform."""
+
+    platform_name = platform_name or os.name
+    command = "npm.cmd" if platform_name == "nt" else "npm"
+    return which(command)
+
+
 def check_prerequisites(checkout: str | Path) -> dict[str, object]:
     engine = probe_engine(checkout)
     missing = [name for name, path in _required_paths().items() if not path.is_file()]
@@ -96,7 +109,7 @@ def main() -> int:
             return 0
 
         if not arguments.skip_frontend:
-            npm = shutil.which("npm")
+            npm = resolve_npm_executable()
             if npm is None:
                 raise PackageError("npm is required to build the shared frontend.")
             _run([npm, "--prefix", "web", "run", "build"])

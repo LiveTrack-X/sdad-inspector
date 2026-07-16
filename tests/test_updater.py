@@ -180,6 +180,129 @@ class ArchiveTests(unittest.TestCase):
 
 
 class ManagerTests(unittest.TestCase):
+    def test_success_is_consumed_once_and_removes_exact_previous_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            target = root / "SDAD-Inspector.exe"
+            backup = target.with_name(target.name + ".previous")
+            result = root / "updates" / "handoff-success" / "result.json"
+            target.write_bytes(b"new executable")
+            backup.write_bytes(b"old executable")
+            result.parent.mkdir(parents=True)
+            result.write_text(
+                json.dumps(
+                    {
+                        "schema_version": UPDATE_SCHEMA_VERSION,
+                        "status": "success",
+                        "version": "0.0.2",
+                        "backup_path": str(backup.resolve()),
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            manager = ProductUpdateManager(
+                frozen=True,
+                executable=target,
+                current_version="0.0.2",
+                platform_name="windows",
+                architecture="x64",
+                update_root=root / "updates",
+            )
+
+            self.assertEqual(manager.status()["state"], "updated")
+            acknowledged = manager.acknowledge_successful_update()
+            self.assertEqual(acknowledged["state"], "up_to_date")
+            self.assertFalse(backup.exists())
+            self.assertFalse(result.exists())
+            self.assertEqual(
+                manager.acknowledge_successful_update()["state"], "up_to_date"
+            )
+
+            restarted = ProductUpdateManager(
+                frozen=True,
+                executable=target,
+                current_version="0.0.2",
+                platform_name="windows",
+                architecture="x64",
+                update_root=root / "updates",
+            )
+            self.assertEqual(restarted.status()["state"], "idle")
+
+    def test_success_with_mismatched_backup_path_is_not_trusted(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            target = root / "SDAD-Inspector.exe"
+            backup = target.with_name(target.name + ".previous")
+            unrelated = root / "unrelated.exe"
+            result = root / "updates" / "handoff-success" / "result.json"
+            target.write_bytes(b"new executable")
+            backup.write_bytes(b"old executable")
+            unrelated.write_bytes(b"unrelated")
+            result.parent.mkdir(parents=True)
+            result.write_text(
+                json.dumps(
+                    {
+                        "schema_version": UPDATE_SCHEMA_VERSION,
+                        "status": "success",
+                        "version": "0.0.2",
+                        "backup_path": str(unrelated.resolve()),
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            manager = ProductUpdateManager(
+                frozen=True,
+                executable=target,
+                current_version="0.0.2",
+                platform_name="windows",
+                architecture="x64",
+                update_root=root / "updates",
+            )
+
+            self.assertEqual(manager.status()["state"], "idle")
+            self.assertEqual(manager.acknowledge_successful_update()["state"], "idle")
+            self.assertTrue(backup.is_file())
+            self.assertTrue(unrelated.is_file())
+            self.assertTrue(result.is_file())
+
+    def test_success_cleanup_rejects_a_directory_at_the_backup_path(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            target = root / "SDAD-Inspector.exe"
+            backup = target.with_name(target.name + ".previous")
+            result = root / "updates" / "handoff-success" / "result.json"
+            target.write_bytes(b"new executable")
+            backup.mkdir()
+            result.parent.mkdir(parents=True)
+            result.write_text(
+                json.dumps(
+                    {
+                        "schema_version": UPDATE_SCHEMA_VERSION,
+                        "status": "success",
+                        "version": "0.0.2",
+                        "backup_path": str(backup.resolve()),
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            manager = ProductUpdateManager(
+                frozen=True,
+                executable=target,
+                current_version="0.0.2",
+                platform_name="windows",
+                architecture="x64",
+                update_root=root / "updates",
+            )
+
+            self.assertEqual(manager.status()["state"], "updated")
+            with self.assertRaisesRegex(ProductUpdateError, "unsafe"):
+                manager.acknowledge_successful_update()
+            self.assertTrue(backup.is_dir())
+            self.assertTrue(result.is_file())
+
     def test_failed_replacement_blocks_automatic_retry_loop(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -230,7 +353,7 @@ class ManagerTests(unittest.TestCase):
     def test_download_requires_github_digest_match(self) -> None:
         archive = zip_payload("SDAD-Inspector.exe", b"new executable")
         release = release_payload(
-            "0.0.3-alpha.1",
+            "0.0.4-alpha.1",
             digest="0" * 64,
             size=len(archive),
         )
@@ -393,7 +516,7 @@ class ApplyPlanTests(unittest.TestCase):
         plan_path.write_text(json.dumps(plan), encoding="utf-8")
         return update_root, plan_path, target, project
 
-    def test_replaces_target_keeps_backup_and_relaunches_original_path(self) -> None:
+    def test_replaces_target_retains_backup_until_ui_acknowledgement(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             update_root, plan_path, target, project = self._plan(root)

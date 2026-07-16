@@ -1,20 +1,22 @@
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsClockwise, Lock, WarningCircle, X } from "@phosphor-icons/react";
-import { ApiError, applyProductUpdate, checkProductUpdate, clearRecentProjectHistory, getDevelopmentActivity, getInspectionProgress, getLiveDocuments, getProductUpdateStatus, getRecentProjects, getRule5Candidates, getSnapshot, openProject, pasteProjectPath, pickProjectDirectory, rescanProject, revealPath } from "./api";
+import { acknowledgeProductUpdate, ApiError, applyProductUpdate, checkProductUpdate, clearRecentProjectHistory, getDevelopmentActivity, getInspectionProgress, getLiveDocuments, getProductUpdateStatus, getRecentProjects, getRule5Candidates, getSnapshot, openProject, openRepository, pasteProjectPath, pickProjectDirectory, rescanProject, revealPath } from "./api";
 import { CommandBar } from "./components/CommandBar";
 import { InspectorPane } from "./components/InspectorPane";
 import { Overview } from "./components/Overview";
 import { ProjectDialog } from "./components/ProjectDialog";
 import { RepositoryTree } from "./components/RepositoryTree";
 import { StatusBar } from "./components/StatusBar";
+import { StartupShell } from "./components/StartupShell";
 import { UpdateNotice } from "./components/UpdateNotice";
 import { useI18n } from "./i18n";
 import { packetWorkItems } from "./packetWork";
 import { selectionFor } from "./selection";
 import { useTheme } from "./theme";
+import { useUiScale } from "./uiScale";
 import type { DevelopmentActivity, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, RescanMode, Rule5Candidates, Snapshot } from "./types";
 
-type LoadState = "loading" | "ready" | "error";
+type LoadState = "loading" | "ready" | "project-required" | "error";
 type WorkspaceStyle = CSSProperties & { "--repository-width": string; "--inspector-width": string };
 const MIN_PROGRESS_VISIBILITY_MS = 700;
 const AUTO_INTERVAL_SECONDS = 15;
@@ -49,6 +51,7 @@ function initialPaneWidths(): { repository: number; inspector: number } {
 export function App() {
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
+  const { scale: uiScale, increaseScale, decreaseScale, resetScale } = useUiScale();
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; }, [t]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -75,18 +78,21 @@ export function App() {
   const autoDeadline = useRef(Date.now() + AUTO_INTERVAL_SECONDS * 1000);
   const rescanAction = useRef<() => Promise<void>>(async () => undefined);
   const updateApplyStarted = useRef(false);
+  const acknowledgedUpdateVersion = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadState("loading"); setError(null);
     try {
-      const [next, signals, recent] = await Promise.all([
-        getSnapshot(),
-        loadWorkspaceSignals(),
-        getRecentProjects().catch(() => []),
-      ]);
+      const next = await getSnapshot();
+      const [signals, recent] = await Promise.all([loadWorkspaceSignals(), getRecentProjects().catch(() => [])]);
       setSnapshot(next); setLiveDocuments(signals.documents); setActivity(signals.activity); setRule5(signals.rule5); setRecentProjects(recent); setLoadState("ready");
     }
-    catch (reason) { setLoadState("error"); setError(reason instanceof Error ? reason.message : tRef.current("snapshotLoadFailed")); }
+    catch (reason) {
+      if (reason instanceof ApiError && reason.code === "project_required") {
+        setRecentProjects(await getRecentProjects().catch(() => [])); setProjectDialog(true); setLoadState("project-required"); return;
+      }
+      setLoadState("error"); setError(reason instanceof Error ? reason.message : tRef.current("snapshotLoadFailed"));
+    }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -115,6 +121,29 @@ export function App() {
     }, 650);
     return () => { stopped = true; window.clearInterval(timer); };
   }, [productUpdate?.state]);
+
+  const dismissProductUpdateNotice = useCallback(() => {
+    setProductUpdate((current) => current?.state === "updated" ? {
+      ...current,
+      state: "up_to_date",
+      available_version: null,
+      release_url: null,
+      message: null,
+      error: null,
+    } : current);
+  }, []);
+
+  useEffect(() => {
+    if (productUpdate?.state !== "updated") return;
+    const version = productUpdate.current_version;
+    if (acknowledgedUpdateVersion.current === version) return;
+    acknowledgedUpdateVersion.current = version;
+    void acknowledgeProductUpdate().catch(() => {
+      if (acknowledgedUpdateVersion.current === version) {
+        acknowledgedUpdateVersion.current = null;
+      }
+    });
+  }, [productUpdate?.state, productUpdate?.current_version]);
 
   useEffect(() => {
     if (productUpdate?.state !== "ready" || updatePostponed || busy) {
@@ -219,7 +248,7 @@ export function App() {
       const editing = target?.matches("input, textarea, [contenteditable='true']");
       if (event.key === "/" && !editing) { event.preventDefault(); document.querySelector<HTMLInputElement>("#repository-filter")?.focus(); }
       if (event.altKey && event.key.toLocaleLowerCase() === "r" && !editing && !busy) { event.preventDefault(); void handleRescan(); }
-      if (event.key === "Escape") { setProjectDialog(false); setRepositoryOpen(false); setInspectorOpen(false); }
+      if (event.key === "Escape") { if (loadState !== "project-required") setProjectDialog(false); setRepositoryOpen(false); setInspectorOpen(false); }
     }
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
@@ -237,7 +266,7 @@ export function App() {
         getRecentProjects().catch(() => []),
       ]);
       await finishProgressFeedback(startedAt);
-      setSnapshot(next); setLiveDocuments(signals.documents); setActivity(signals.activity); setRule5(signals.rule5); setRecentProjects(recent); setSelectedId("overview"); setProjectDialog(false);
+      setSnapshot(next); setLiveDocuments(signals.documents); setActivity(signals.activity); setRule5(signals.rule5); setRecentProjects(recent); setSelectedId("overview"); setProjectDialog(false); setLoadState("ready");
       setAnnouncement(t("openedProject", { project: next.project.name }));
     } catch (reason) {
       const message = reason instanceof ApiError ? `${reason.code}: ${reason.message}` : t("projectOpenFailed");
@@ -308,12 +337,18 @@ export function App() {
 
   if (loadState === "error" && !snapshot) return <main className="error-surface"><span className="error-icon"><WarningCircle size={28} /></span><p className="section-kicker">{t("localInspectionUnavailable")}</p><h1>{t("couldNotLoadProject")}</h1><p>{error}</p><button onClick={() => void load()}><ArrowsClockwise size={18} /> {t("tryAgain")}</button><small><Lock size={15} /> {t("noWriteAttempted")}</small></main>;
 
+  if (loadState === "project-required" && !snapshot) return (
+    <StartupShell theme={theme} onToggleTheme={toggleTheme} uiScale={uiScale} onDecreaseUiScale={decreaseScale} onIncreaseUiScale={increaseScale} onResetUiScale={resetScale} onOpenRepository={() => void openRepository()}>
+      <ProjectDialog currentPath={null} open={projectDialog} required busy={busy} error={error} recentProjects={recentProjects} onClose={() => undefined} onSubmit={(path) => void handleOpenProject(path)} onBrowse={async (initialPath) => (await pickProjectDirectory(initialPath)).project_root} onPaste={async () => (await pasteProjectPath()).project_root} onClearRecent={() => void handleClearRecent()} />
+    </StartupShell>
+  );
+
   if (!snapshot || !selection) return null;
   const workspaceStyle: WorkspaceStyle = { "--repository-width": `${paneWidths.repository}px`, "--inspector-width": `${paneWidths.inspector}px` };
   return (
     <div className="app-shell">
-      <CommandBar snapshot={snapshot} busy={busy} onRescan={() => void handleRescan()} onReveal={() => void reveal(".")} onCopy={() => void copy(snapshot.project.root, t("projectPath"))} onOpenProject={() => setProjectDialog(true)} onCopySnapshot={() => void copy(JSON.stringify(snapshot, null, 2), t("labelSnapshotJson"))} onToggleRepository={() => setRepositoryOpen((value) => !value)} onToggleInspector={() => setInspectorOpen((value) => !value)} theme={theme} onToggleTheme={toggleTheme} rescanMode={rescanMode} autoSeconds={autoSeconds} onRescanModeChange={setRescanMode} update={productUpdate} onCheckUpdate={() => void checkForProductUpdate(true)} />
-      <UpdateNotice status={productUpdate} countdown={updateCountdown} inspectionBusy={busy} postponed={updatePostponed} onApply={() => void handleProductUpdateApply()} onPostpone={() => setUpdatePostponed(true)} onRetry={() => { updateApplyStarted.current = false; setUpdatePostponed(false); void checkForProductUpdate(true); }} />
+      <CommandBar snapshot={snapshot} busy={busy} onRescan={() => void handleRescan()} onReveal={() => void reveal(".")} onCopy={() => void copy(snapshot.project.root, t("projectPath"))} onOpenProject={() => setProjectDialog(true)} onCopySnapshot={() => void copy(JSON.stringify(snapshot, null, 2), t("labelSnapshotJson"))} onToggleRepository={() => setRepositoryOpen((value) => !value)} onToggleInspector={() => setInspectorOpen((value) => !value)} theme={theme} onToggleTheme={toggleTheme} uiScale={uiScale} onDecreaseUiScale={decreaseScale} onIncreaseUiScale={increaseScale} onResetUiScale={resetScale} rescanMode={rescanMode} autoSeconds={autoSeconds} onRescanModeChange={setRescanMode} update={productUpdate} onCheckUpdate={() => void checkForProductUpdate(true)} />
+      <UpdateNotice status={productUpdate} countdown={updateCountdown} inspectionBusy={busy} postponed={updatePostponed} onApply={() => void handleProductUpdateApply()} onPostpone={() => setUpdatePostponed(true)} onRetry={() => { updateApplyStarted.current = false; setUpdatePostponed(false); void checkForProductUpdate(true); }} onDismiss={dismissProductUpdateNotice} />
       {error && <div className="inline-error" role="alert"><WarningCircle size={17} />{error}<button onClick={() => setError(null)} aria-label={t("dismissError")}><X size={18} /></button></div>}
       <div className="workspace" ref={workspaceRef} style={workspaceStyle}>
         {(repositoryOpen || inspectorOpen) && <button className="mobile-scrim" aria-label={t("closeOpenPane")} onClick={() => { setRepositoryOpen(false); setInspectorOpen(false); }} />}
@@ -323,8 +358,8 @@ export function App() {
         <div className="pane-resizer inspector-resizer" role="separator" aria-orientation="vertical" aria-label={t("resizeInspector")} aria-valuemin={280} aria-valuemax={480} aria-valuenow={Math.round(paneWidths.inspector)} tabIndex={0} title={t("resetPaneWidth")} onPointerDown={(event) => startResize("inspector", event)} onKeyDown={(event) => resizeWithKeyboard("inspector", event)} onDoubleClick={() => persistPaneWidths({ ...paneWidths, inspector: 320 })}><span /></div>
         <InspectorPane snapshot={snapshot} selection={selection} onReveal={(path) => void reveal(path)} onCopy={(value, label) => void copy(value, label)} mobileOpen={inspectorOpen} onCloseMobile={() => setInspectorOpen(false)} />
       </div>
-      <StatusBar snapshot={snapshot} />
-      <ProjectDialog currentPath={snapshot.project.root} open={projectDialog} busy={busy} recentProjects={recentProjects.filter((project) => project.path.toLocaleLowerCase() !== snapshot.project.root.toLocaleLowerCase())} onClose={() => setProjectDialog(false)} onSubmit={(path) => void handleOpenProject(path)} onBrowse={async (initialPath) => (await pickProjectDirectory(initialPath)).project_root} onPaste={async () => (await pasteProjectPath()).project_root} onClearRecent={() => void handleClearRecent()} />
+      <StatusBar snapshot={snapshot} onOpenRepository={() => void openRepository()} />
+      <ProjectDialog currentPath={snapshot.project.root} open={projectDialog} busy={busy} error={error} recentProjects={recentProjects.filter((project) => project.path.toLocaleLowerCase() !== snapshot.project.root.toLocaleLowerCase())} onClose={() => setProjectDialog(false)} onSubmit={(path) => void handleOpenProject(path)} onBrowse={async (initialPath) => (await pickProjectDirectory(initialPath)).project_root} onPaste={async () => (await pasteProjectPath()).project_root} onClearRecent={() => void handleClearRecent()} />
       <div className="sr-only" aria-live="polite">{announcement}</div>
     </div>
   );

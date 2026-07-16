@@ -10,6 +10,7 @@ from typing import Any
 from .engine import EngineInfo
 from .dialogs import read_clipboard_text
 from .errors import InspectorError
+from .preferences import RecentProjectsStore
 from .protocols import ProtocolAdapterReference
 from .server import InspectorHTTPServer, InspectorService, create_server
 
@@ -65,19 +66,21 @@ def desktop_icon_path(static_root: Path, module_file: str | Path | None = None) 
 class DesktopApplication:
     def __init__(
         self,
-        project_root: str | Path,
+        project_root: str | Path | None,
         sdad_checkout: str | Path,
         web_root: str | Path,
         *,
         port: int = 0,
         engine_info: EngineInfo | None = None,
         protocol_adapter: ProtocolAdapterReference = None,
+        preferences_store: RecentProjectsStore | None = None,
     ) -> None:
         service = InspectorService(
             project_root,
             sdad_checkout,
             engine_info=engine_info,
             protocol_adapter=protocol_adapter,
+            preferences_store=preferences_store,
         )
         self.service = service
         self.server: InspectorHTTPServer = create_server(service, web_root, port=port)
@@ -135,11 +138,12 @@ class DesktopApplication:
         )
 
         def pick_project(initial: str | None) -> str | None:
-            selected = window.create_file_dialog(
-                webview.FOLDER_DIALOG,
-                directory=initial or str(self.service.project_root),
-                allow_multiple=False,
-            )
+            options: dict[str, object] = {"allow_multiple": False}
+            current = self.service.optional_project_root
+            directory = initial or (str(current) if current is not None else None)
+            if directory:
+                options["directory"] = directory
+            selected = window.create_file_dialog(webview.FOLDER_DIALOG, **options)
             if isinstance(selected, (list, tuple)):
                 return str(selected[0]) if selected else None
             return str(selected) if selected else None
@@ -194,7 +198,7 @@ class DesktopApplication:
 
 
 def run_desktop(
-    project_root: str | Path,
+    project_root: str | Path | None,
     sdad_checkout: str | Path | None = None,
     web_root: str | Path | None = None,
     *,
@@ -202,6 +206,7 @@ def run_desktop(
     smoke_seconds: float | None = None,
     port: int = 0,
     protocol_adapter: ProtocolAdapterReference = None,
+    preferences_store: RecentProjectsStore | None = None,
 ) -> int:
     resolved_web, resolved_engine = resolve_resources(
         sdad_checkout=sdad_checkout,
@@ -213,5 +218,6 @@ def run_desktop(
         resolved_web,
         port=port,
         protocol_adapter=protocol_adapter,
+        preferences_store=preferences_store,
     )
     return application.run(hidden=hidden, smoke_seconds=smoke_seconds)

@@ -17,7 +17,7 @@ from urllib.parse import unquote, urlsplit
 
 from .dialogs import normalize_clipboard_path, read_clipboard_text, select_markdown_export_path, select_project_directory
 from .engine import EngineInfo
-from .errors import InspectorError
+from .errors import InspectorError, ProjectRequiredError
 from .paths import canonical_directory, safe_project_path
 from .preferences import PREFERENCES_SCHEMA_VERSION, RecentProjectsStore
 from .progress import InspectionProgress
@@ -27,12 +27,13 @@ from .snapshot import SNAPSHOT_SCHEMA_VERSION, inspect_project
 from .updater import ProductUpdateManager
 
 MAX_REQUEST_BYTES = 64 * 1024
+REPOSITORY_URL = "https://github.com/LiveTrack-X/sdad-inspector"
 
 
 class InspectorService:
     def __init__(
         self,
-        project_root: str | Path,
+        project_root: str | Path | None,
         sdad_checkout: str | Path,
         *,
         timeout: float = 30,
@@ -61,10 +62,17 @@ class InspectorService:
         self._rule_export_picker = rule_export_picker
         self._updates = update_manager or ProductUpdateManager()
         self._update_exit_callback: Callable[[], None] | None = None
-        root = canonical_directory(project_root, label="Project root")
-        snapshot = self._inspect(root, kind="initial")
-        self._project_root = root
-        self._snapshot = snapshot
+        self._project_root: Path | None = None
+        self._snapshot: dict[str, Any] | None = None
+        if project_root is not None:
+            root = canonical_directory(project_root, label="Project root")
+            snapshot = self._inspect(root, kind="initial")
+            self._project_root = root
+            self._snapshot = snapshot
+            try:
+                self._recent_projects.remember(((root, root.name),))
+            except OSError:
+                pass
 
     def _inspect(self, root: Path, *, kind: str) -> dict[str, Any]:
         self._progress.start(kind)
@@ -86,11 +94,22 @@ class InspectorService:
     @property
     def project_root(self) -> Path:
         with self._lock:
+            root = self._project_root
+        if root is None:
+            raise ProjectRequiredError("Choose an SDAD project to begin inspection.")
+        return root
+
+    @property
+    def optional_project_root(self) -> Path | None:
+        with self._lock:
             return self._project_root
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
-            return self._snapshot
+            snapshot = self._snapshot
+        if snapshot is None:
+            raise ProjectRequiredError("Choose an SDAD project to begin inspection.")
+        return snapshot
 
     def progress(self) -> dict[str, Any]:
         return self._progress.snapshot()
@@ -127,21 +146,73 @@ class InspectorService:
         timer.start()
         return status
 
+    def acknowledge_product_update(self) -> dict[str, Any]:
+        return self._updates.acknowledge_successful_update()
+
     def documents(self) -> dict[str, Any]:
-        with self._lock:
-            root = self._project_root
+        root = self.project_root
         return self.protocol_adapter.load_live_documents(root)
 
     def activity(self) -> dict[str, Any]:
-        with self._lock:
-            root = self._project_root
+        root = self.project_root
         return self.protocol_adapter.load_development_activity(root)
 
     def recent_projects(self) -> dict[str, Any]:
+        records = self._recent_projects.load()
+        with self._lock:
+            current = self._project_root
+        if current is not None:
+            current_key = os.path.normcase(str(current))
+            records = [
+                record
+                for record in records
+                if os.path.normcase(record["path"]) != current_key
+            ]
         return {
             "schema_version": PREFERENCES_SCHEMA_VERSION,
-            "recent_projects": self._recent_projects.load(),
+            "recent_projects": records,
         }
+
+    def ui_preferences(self) -> dict[str, Any]:
+        preferences = self._recent_projects.load_ui_preferences()
+        return {
+            "schema_version": PREFERENCES_SCHEMA_VERSION,
+            "theme": preferences.get("theme"),
+            "locale": preferences.get("locale"),
+            "scale": preferences.get("scale"),
+        }
+
+    def update_ui_preferences(self, payload: dict[str, Any]) -> dict[str, Any]:
+        theme = payload.get("theme")
+        locale = payload.get("locale")
+        scale = payload.get("scale")
+        if theme is None and locale is None and scale is None:
+            raise InspectorError("A theme, locale, or scale preference is required.")
+        if theme is not None and not isinstance(theme, str):
+            raise InspectorError("The UI theme preference is invalid.")
+        if locale is not None and not isinstance(locale, str):
+            raise InspectorError("The UI locale preference is invalid.")
+        if scale is not None and (
+            not isinstance(scale, int) or isinstance(scale, bool)
+        ):
+            raise InspectorError("The UI scale preference is invalid.")
+        try:
+            preferences = self._recent_projects.update_ui_preferences(
+                theme=theme,
+                locale=locale,
+                scale=scale,
+            )
+        except ValueError as exc:
+            raise InspectorError(str(exc)) from exc
+        return {
+            "schema_version": PREFERENCES_SCHEMA_VERSION,
+            "theme": preferences.get("theme"),
+            "locale": preferences.get("locale"),
+            "scale": preferences.get("scale"),
+        }
+
+    def open_repository(self) -> dict[str, Any]:
+        return {"opened": bool(webbrowser.open(REPOSITORY_URL, new=2)), "url": REPOSITORY_URL}
 
     def clear_recent_projects(self) -> dict[str, Any]:
         self._recent_projects.clear()
@@ -210,8 +281,7 @@ class InspectorService:
 
     def rescan(self) -> dict[str, Any]:
         with self._operation_lock:
-            with self._lock:
-                root = self._project_root
+            root = self.project_root
             snapshot = self._inspect(root, kind="rescan")
             with self._lock:
                 self._snapshot = snapshot
@@ -227,9 +297,10 @@ class InspectorService:
                 self._project_root = candidate
                 self._snapshot = snapshot
             try:
-                self._recent_projects.remember(
-                    ((previous, previous.name), (candidate, candidate.name))
-                )
+                projects = [(candidate, candidate.name)]
+                if previous is not None:
+                    projects.insert(0, (previous, previous.name))
+                self._recent_projects.remember(projects)
             except OSError:
                 # Preference persistence must never block an otherwise valid
                 # read-only project switch.
@@ -237,8 +308,7 @@ class InspectorService:
             return snapshot
 
     def reveal(self, relative_path: str) -> Path:
-        with self._lock:
-            root = self._project_root
+        root = self.project_root
         if relative_path in {"", "."}:
             target = root
         else:
@@ -390,7 +460,12 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                 )
                 return
             if path == "/api/snapshot":
-                self._send_json(HTTPStatus.OK, self.server.service.snapshot())
+                try:
+                    snapshot = self.server.service.snapshot()
+                except InspectorError as exc:
+                    self._send_json(HTTPStatus.UNPROCESSABLE_ENTITY, exc.to_payload())
+                    return
+                self._send_json(HTTPStatus.OK, snapshot)
                 return
             if path == "/api/progress":
                 self._send_json(HTTPStatus.OK, self.server.service.progress())
@@ -404,6 +479,9 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                     return
                 if path == "/api/recent-projects":
                     self._send_json(HTTPStatus.OK, self.server.service.recent_projects())
+                    return
+                if path == "/api/preferences":
+                    self._send_json(HTTPStatus.OK, self.server.service.ui_preferences())
                     return
                 if path == "/api/rule5-candidates":
                     self._send_json(HTTPStatus.OK, self.server.service.rule5_candidates())
@@ -469,6 +547,20 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                     return
                 self._send_json(HTTPStatus.OK, result)
                 return
+            if path == "/api/preferences":
+                try:
+                    result = self.server.service.update_ui_preferences(payload)
+                except OSError:
+                    self._send_json(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {"error": {"code": "preferences_unavailable"}},
+                    )
+                    return
+                self._send_json(HTTPStatus.OK, result)
+                return
+            if path == "/api/open-repository":
+                self._send_json(HTTPStatus.OK, self.server.service.open_repository())
+                return
             if path == "/api/rule5/preview":
                 self._send_json(HTTPStatus.OK, self.server.service.rule5_preview(payload))
                 return
@@ -490,6 +582,12 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/update/apply":
                 self._send_json(HTTPStatus.OK, self.server.service.apply_product_update())
+                return
+            if path == "/api/update/acknowledge":
+                self._send_json(
+                    HTTPStatus.OK,
+                    self.server.service.acknowledge_product_update(),
+                )
                 return
             if path == "/api/reveal":
                 relative_path = payload.get("relative_path")
@@ -541,6 +639,16 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
         if candidate.name == "index.html":
             data = data.replace(
                 b"__SDAD_SESSION_TOKEN__", self.server.session_token.encode("ascii")
+            )
+            preferences = self.server.service.ui_preferences()
+            data = data.replace(
+                b"__SDAD_THEME__", str(preferences.get("theme") or "").encode("ascii")
+            )
+            data = data.replace(
+                b"__SDAD_LOCALE__", str(preferences.get("locale") or "").encode("ascii")
+            )
+            data = data.replace(
+                b"__SDAD_UI_SCALE__", str(preferences.get("scale") or "").encode("ascii")
             )
         content_type, _ = mimetypes.guess_type(candidate.name)
         self.send_response(HTTPStatus.OK)

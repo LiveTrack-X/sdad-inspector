@@ -8,14 +8,17 @@ import {
   Folder,
   FolderOpen,
   HandPalm,
+  Minus,
   Moon,
+  Plus,
   Sun,
   Timer,
   Translate as TranslateIcon,
 } from "@phosphor-icons/react";
-import { type Locale, useI18n } from "../i18n";
+import { type Locale, LOCALE_OPTIONS, useI18n } from "../i18n";
 import type { Theme } from "../theme";
 import type { ProductUpdateStatus, RescanMode, Snapshot } from "../types";
+import { DEFAULT_UI_SCALE } from "../uiScale";
 
 interface Props {
   snapshot: Snapshot;
@@ -29,6 +32,10 @@ interface Props {
   onToggleInspector: () => void;
   theme: Theme;
   onToggleTheme: () => void;
+  uiScale: number;
+  onDecreaseUiScale: () => void;
+  onIncreaseUiScale: () => void;
+  onResetUiScale: () => void;
   rescanMode: RescanMode;
   autoSeconds: number;
   onRescanModeChange: (mode: RescanMode) => void;
@@ -48,6 +55,10 @@ export function CommandBar({
   onToggleInspector,
   theme,
   onToggleTheme,
+  uiScale,
+  onDecreaseUiScale,
+  onIncreaseUiScale,
+  onResetUiScale,
   rescanMode,
   autoSeconds,
   onRescanModeChange,
@@ -104,8 +115,7 @@ export function CommandBar({
             value={locale}
             onChange={(event) => setLocale(event.target.value as Locale)}
           >
-            <option value="ko">{t("korean")}</option>
-            <option value="en">{t("english")}</option>
+            {LOCALE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
           </select>
         </label>
         <button
@@ -134,6 +144,13 @@ export function CommandBar({
               <button role="menuitem" onClick={() => { setMenuOpen(false); onCopySnapshot(); }}>
                 <Copy size={17} /> {t("copySnapshotJson")}
               </button>
+              <div className="menu-scale-control" aria-label={t("uiScale")}>
+                <span>{t("uiScale")}</span>
+                <button type="button" onClick={onDecreaseUiScale} disabled={uiScale <= 90} aria-label={t("decreaseUiScale")} title={t("decreaseUiScale")}><Minus size={15} /></button>
+                <output>{uiScale}%</output>
+                <button type="button" onClick={onIncreaseUiScale} disabled={uiScale >= 150} aria-label={t("increaseUiScale")} title={t("increaseUiScale")}><Plus size={15} /></button>
+                <button type="button" className="scale-reset" onClick={onResetUiScale} aria-label={t("resetUiScale", { scale: DEFAULT_UI_SCALE })} title={t("resetUiScale", { scale: DEFAULT_UI_SCALE })}>{DEFAULT_UI_SCALE}%</button>
+              </div>
               <button
                 role="menuitem"
                 disabled={!update?.supported || ["checking", "downloading", "applying"].includes(update.state)}

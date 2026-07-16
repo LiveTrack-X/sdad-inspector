@@ -4,7 +4,7 @@ export function formatAbsolute(value: string | null | undefined, locale: Locale)
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+  return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -19,7 +19,7 @@ export function formatRelative(value: string | null | undefined, locale: Locale,
   const timestamp = new Date(value).getTime();
   if (Number.isNaN(timestamp)) return value;
   const seconds = Math.round((timestamp - now) / 1000);
-  const formatter = new Intl.RelativeTimeFormat(locale === "ko" ? "ko-KR" : "en-US", { numeric: "auto" });
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   if (Math.abs(seconds) < 60) return formatter.format(seconds, "second");
   const minutes = Math.round(seconds / 60);
   if (Math.abs(minutes) < 60) return formatter.format(minutes, "minute");

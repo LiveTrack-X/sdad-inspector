@@ -53,3 +53,7 @@ class PackageError(InspectorError):
 
 class InteractionError(InspectorError):
     code = "interaction_unavailable"
+
+
+class ProjectRequiredError(InspectorError):
+    code = "project_required"

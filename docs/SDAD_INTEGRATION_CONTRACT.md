@@ -44,7 +44,7 @@ loop. The React renderer uses this metadata for visible engine and source labels
 it does not import adapter code or access the filesystem.
 
 The built-in adapter is `official-sdad-3`. It is the only adapter shipped in the
-0.0.2 portable executable and retains the exact compatibility lane documented
+0.0.3 portable executable and retains the exact compatibility lane documented
 below. A source-mode host may install another adapter by subclassing
 `sdad_inspector.protocols.ProtocolAdapter`, registering an already imported
 instance, and selecting it explicitly:

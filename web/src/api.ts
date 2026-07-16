@@ -1,5 +1,12 @@
 import type { DevelopmentActivity, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, Rule5Candidate, Rule5Candidates, Rule5ExportResult, Rule5Preview, Snapshot } from "./types";
 
+export interface UiPreferences {
+  schema_version: number;
+  theme: "light" | "dark" | null;
+  locale: "en" | "ko" | "ja" | "zh-CN" | null;
+  scale: number | null;
+}
+
 function sessionToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="sdad-session"]')?.content ?? "";
 }
@@ -133,6 +140,27 @@ export function checkProductUpdate(force = false): Promise<ProductUpdateStatus> 
 
 export function applyProductUpdate(): Promise<ProductUpdateStatus> {
   return request<ProductUpdateStatus>("/api/update/apply", {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function acknowledgeProductUpdate(): Promise<ProductUpdateStatus> {
+  return request<ProductUpdateStatus>("/api/update/acknowledge", {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function updateUiPreferences(preferences: Partial<Pick<UiPreferences, "theme" | "locale" | "scale">>): Promise<UiPreferences> {
+  return request<UiPreferences>("/api/preferences", {
+    method: "POST",
+    body: JSON.stringify(preferences),
+  });
+}
+
+export function openRepository(): Promise<{ opened: boolean; url: string }> {
+  return request<{ opened: boolean; url: string }>("/api/open-repository", {
     method: "POST",
     body: "{}",
   });

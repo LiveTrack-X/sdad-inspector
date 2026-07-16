@@ -6,13 +6,16 @@ import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
 
 PREFERENCES_SCHEMA_VERSION = 1
 MAX_RECENT_PROJECTS = 6
 MAX_PREFERENCES_BYTES = 64 * 1024
 MAX_PATH_CHARS = 4096
 MAX_NAME_CHARS = 255
+UI_THEMES = frozenset({"light", "dark"})
+UI_LOCALES = frozenset({"en", "ko", "ja", "zh-CN"})
+UI_SCALES = frozenset(range(90, 151, 10))
 
 
 def default_preferences_path(
@@ -66,6 +69,25 @@ def _validated_records(payload: object) -> list[dict[str, str]]:
     return result
 
 
+def _validated_ui_preferences(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("schema_version") != PREFERENCES_SCHEMA_VERSION:
+        return {}
+    raw = payload.get("ui")
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, Any] = {}
+    theme = raw.get("theme")
+    locale = raw.get("locale")
+    scale = raw.get("scale")
+    if isinstance(theme, str) and theme in UI_THEMES:
+        result["theme"] = theme
+    if isinstance(locale, str) and locale in UI_LOCALES:
+        result["locale"] = locale
+    if isinstance(scale, int) and not isinstance(scale, bool) and scale in UI_SCALES:
+        result["scale"] = scale
+    return result
+
+
 class RecentProjectsStore:
     def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path) if path is not None else default_preferences_path()
@@ -73,17 +95,53 @@ class RecentProjectsStore:
 
     def load(self) -> list[dict[str, str]]:
         with self._lock:
+            return _validated_records(self._read_payload())
+
+    def load_ui_preferences(self) -> dict[str, Any]:
+        with self._lock:
+            return _validated_ui_preferences(self._read_payload())
+
+    def latest_existing_project(self) -> Path | None:
+        for record in self.load():
+            candidate = Path(record["path"]).expanduser()
             try:
-                if not self.path.is_file() or self.path.stat().st_size > MAX_PREFERENCES_BYTES:
-                    return []
-                payload = json.loads(self.path.read_text(encoding="utf-8"))
-            except (OSError, UnicodeError, json.JSONDecodeError):
-                return []
-            return _validated_records(payload)
+                if candidate.is_dir():
+                    return candidate
+            except OSError:
+                continue
+        return None
+
+    def update_ui_preferences(
+        self,
+        *,
+        theme: str | None = None,
+        locale: str | None = None,
+        scale: int | None = None,
+    ) -> dict[str, Any]:
+        if theme is not None and theme not in UI_THEMES:
+            raise ValueError("Unsupported UI theme.")
+        if locale is not None and locale not in UI_LOCALES:
+            raise ValueError("Unsupported UI locale.")
+        if scale is not None and scale not in UI_SCALES:
+            raise ValueError("Unsupported UI scale.")
+        with self._lock:
+            payload = self._read_payload()
+            records = _validated_records(payload)
+            preferences = _validated_ui_preferences(payload)
+            if theme is not None:
+                preferences["theme"] = theme
+            if locale is not None:
+                preferences["locale"] = locale
+            if scale is not None:
+                preferences["scale"] = scale
+            self._write(records, preferences)
+            return preferences
 
     def remember(self, projects: Iterable[tuple[str | Path, str]]) -> list[dict[str, str]]:
         with self._lock:
-            records = self.load()
+            payload = self._read_payload()
+            records = _validated_records(payload)
+            preferences = _validated_ui_preferences(payload)
             opened_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             for project_path, project_name in projects:
                 path = str(project_path)
@@ -94,22 +152,43 @@ class RecentProjectsStore:
                 records = [item for item in records if os.path.normcase(item["path"]) != key]
                 records.insert(0, {"path": path, "name": name, "opened_at": opened_at})
             records = records[:MAX_RECENT_PROJECTS]
-            self._write(records)
+            self._write(records, preferences)
             return records
 
     def clear(self) -> None:
         with self._lock:
-            try:
+            preferences = self.load_ui_preferences()
+            if preferences:
+                self._write([], preferences)
+            else:
                 self.path.unlink(missing_ok=True)
-            except OSError:
-                raise
 
-    def _write(self, records: list[dict[str, str]]) -> None:
+    def _read_payload(self) -> object:
+        try:
+            if not self.path.is_file() or self.path.stat().st_size > MAX_PREFERENCES_BYTES:
+                return {}
+            return json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return {}
+
+    def _write(
+        self,
+        records: list[dict[str, str]],
+        ui_preferences: Mapping[str, Any] | None = None,
+    ) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "schema_version": PREFERENCES_SCHEMA_VERSION,
             "recent_projects": records,
         }
+        validated_ui = _validated_ui_preferences(
+            {
+                "schema_version": PREFERENCES_SCHEMA_VERSION,
+                "ui": dict(ui_preferences or {}),
+            }
+        )
+        if validated_ui:
+            payload["ui"] = validated_ui
         encoded = (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
         if len(encoded) > MAX_PREFERENCES_BYTES:
             raise OSError("Inspector preferences exceeded the bounded size.")

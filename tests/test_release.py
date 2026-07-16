@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 
 from sdad_inspector.errors import PackageError
-from scripts.build_native import require_release_python
+from scripts.build_native import require_release_python, resolve_npm_executable
 from scripts.package_release import build_release_archive, normalized_architecture
 from scripts.smoke_release_archive import extract_single_executable
 from scripts.write_checksums import write_checksums
@@ -31,13 +31,13 @@ class ReleasePackagingTests(unittest.TestCase):
             dist_root=self.dist,
             output_dir=self.output,
             platform_name="windows",
-            version="0.0.2",
+            version="0.0.3",
             architecture="X64",
         )
 
         archive = Path(str(evidence["archive"]))
         self.assertEqual(
-            archive.name, "SDAD-Inspector-0.0.2-windows-x64.zip"
+            archive.name, "SDAD-Inspector-0.0.3-windows-x64.zip"
         )
         self.assertEqual(len(str(evidence["sha256"])), 64)
         self.assertTrue(evidence["unsigned"])
@@ -63,13 +63,13 @@ class ReleasePackagingTests(unittest.TestCase):
             dist_root=self.dist,
             output_dir=self.output,
             platform_name="macos",
-            version="0.0.2",
+            version="0.0.3",
             architecture="ARM64",
         )
 
         archive = Path(str(evidence["archive"]))
         self.assertEqual(
-            archive.name, "SDAD-Inspector-0.0.2-macos-arm64.tar.gz"
+            archive.name, "SDAD-Inspector-0.0.3-macos-arm64.tar.gz"
         )
         with tarfile.open(archive, "r:gz") as bundled:
             self.assertEqual(bundled.getnames(), ["SDAD-Inspector"])
@@ -88,12 +88,25 @@ class ReleasePackagingTests(unittest.TestCase):
                 executable="python",
             )
 
+    def test_native_builder_uses_windows_npm_command_wrapper(self) -> None:
+        requested: list[str] = []
+
+        def fake_which(command: str) -> str:
+            requested.append(command)
+            return f"C:/tools/{command}"
+
+        self.assertEqual(
+            resolve_npm_executable(platform_name="nt", which=fake_which),
+            "C:/tools/npm.cmd",
+        )
+        self.assertEqual(requested, ["npm.cmd"])
+
     def test_checksum_manifest_requires_one_archive_per_platform(self) -> None:
         self.output.mkdir(parents=True)
         for name in (
-            "SDAD-Inspector-0.0.2-linux-x64.tar.gz",
-            "SDAD-Inspector-0.0.2-macos-arm64.tar.gz",
-            "SDAD-Inspector-0.0.2-windows-x64.zip",
+            "SDAD-Inspector-0.0.3-linux-x64.tar.gz",
+            "SDAD-Inspector-0.0.3-macos-arm64.tar.gz",
+            "SDAD-Inspector-0.0.3-windows-x64.zip",
         ):
             (self.output / name).write_text(name, encoding="utf-8")
 

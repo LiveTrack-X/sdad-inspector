@@ -16,12 +16,12 @@ VSVersionInfo(
         [
           StringStruct('CompanyName', 'LiveTrack-X'),
           StringStruct('FileDescription', 'SDAD Inspector'),
-          StringStruct('FileVersion', '0.0.2.0'),
+          StringStruct('FileVersion', '0.0.3.0'),
           StringStruct('InternalName', 'SDAD-Inspector'),
           StringStruct('LegalCopyright', 'Copyright 2026 LiveTrack-X'),
           StringStruct('OriginalFilename', 'SDAD-Inspector.exe'),
           StringStruct('ProductName', 'SDAD Inspector'),
-          StringStruct('ProductVersion', '0.0.2')
+          StringStruct('ProductVersion', '0.0.3')
         ]
       )
     ]),

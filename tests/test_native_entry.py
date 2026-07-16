@@ -39,5 +39,34 @@ class FrozenWindowsIconTests(unittest.TestCase):
             self.assertFalse(native_entry.refresh_frozen_windows_icon())
 
 
+class StartupProjectTests(unittest.TestCase):
+    def test_no_argument_reopens_the_latest_existing_project(self) -> None:
+        project = Path("C:/projects/latest")
+        with (
+            patch.object(native_entry, "refresh_frozen_windows_icon", return_value=False),
+            patch.object(
+                native_entry.RecentProjectsStore,
+                "latest_existing_project",
+                return_value=project,
+            ),
+            patch.object(native_entry, "run_desktop", return_value=0) as run_desktop,
+        ):
+            self.assertEqual(native_entry.main([]), 0)
+        self.assertEqual(run_desktop.call_args.args[0], project)
+
+    def test_first_launch_opens_desktop_without_invoking_a_native_folder_picker(self) -> None:
+        with (
+            patch.object(native_entry, "refresh_frozen_windows_icon", return_value=False),
+            patch.object(
+                native_entry.RecentProjectsStore,
+                "latest_existing_project",
+                return_value=None,
+            ),
+            patch.object(native_entry, "run_desktop", return_value=0) as run_desktop,
+        ):
+            self.assertEqual(native_entry.main([]), 0)
+        self.assertIsNone(run_desktop.call_args.args[0])
+
+
 if __name__ == "__main__":
     unittest.main()

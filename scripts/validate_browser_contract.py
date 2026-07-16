@@ -195,6 +195,54 @@ def main(argv: list[str] | None = None) -> int:
         require(json.loads(recent_body)["recent_projects"] == [], "Recent-project contract was not isolated.")
         require(recent_headers.get("Cache-Control") == "no-store", "Recent projects are cacheable.")
 
+        preferences_status, preferences_headers, preferences_body = request(
+            server, "/api/preferences", token=token
+        )
+        require(preferences_status == 200, "Authenticated preferences route failed.")
+        preferences = json.loads(preferences_body)
+        require(
+            preferences["theme"] is None
+            and preferences["locale"] is None
+            and preferences["scale"] is None,
+            "Preference contract was not isolated.",
+        )
+        require(preferences_headers.get("Cache-Control") == "no-store", "Preferences are cacheable.")
+        preferences_missing_origin, _, _ = request(
+            server,
+            "/api/preferences",
+            method="POST",
+            token=token,
+            body={"theme": "dark"},
+        )
+        require(preferences_missing_origin == 403, "Preferences accepted a missing Origin.")
+        preferences_update, _, preferences_update_body = request(
+            server,
+            "/api/preferences",
+            method="POST",
+            token=token,
+            origin=server.origin,
+            body={"theme": "dark", "locale": "ja", "scale": 130},
+        )
+        require(preferences_update == 200, "Authenticated preference update failed.")
+        require(
+            json.loads(preferences_update_body)
+            == {"schema_version": 1, "theme": "dark", "locale": "ja", "scale": 130},
+            "Preference update was not normalized.",
+        )
+        invalid_scale, _, _ = request(
+            server,
+            "/api/preferences",
+            method="POST",
+            token=token,
+            origin=server.origin,
+            body={"scale": 115},
+        )
+        require(invalid_scale == 422, "An unsupported UI scale was accepted.")
+        injected_status, _, injected_index = request(server, "/")
+        require(injected_status == 200, "Preference-injected index route failed.")
+        for injected in (b'name="sdad-theme" content="dark"', b'name="sdad-locale" content="ja"', b'name="sdad-ui-scale" content="130"'):
+            require(injected in injected_index, f"Persisted preference was not injected: {injected!r}")
+
         update_status, update_headers, update_body = request(
             server, "/api/update", token=token
         )
@@ -225,6 +273,30 @@ def main(argv: list[str] | None = None) -> int:
         require(
             json.loads(update_check_body)["state"] == "unsupported",
             "Source-mode update check attempted network or apply behavior.",
+        )
+        update_ack_missing_origin, _, _ = request(
+            server,
+            "/api/update/acknowledge",
+            method="POST",
+            token=token,
+            body={},
+        )
+        require(
+            update_ack_missing_origin == 403,
+            "Product update acknowledgement accepted a missing Origin.",
+        )
+        update_ack, _, update_ack_body = request(
+            server,
+            "/api/update/acknowledge",
+            method="POST",
+            token=token,
+            origin=server.origin,
+            body={},
+        )
+        require(update_ack == 200, "Authenticated source-mode update acknowledgement failed.")
+        require(
+            json.loads(update_ack_body)["state"] == "unsupported",
+            "Source-mode update acknowledgement mutated update state.",
         )
 
         rule5_status, rule5_headers, rule5_body = request(

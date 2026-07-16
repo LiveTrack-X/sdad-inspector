@@ -1,9 +1,9 @@
-name: Release 0.0.2
+name: Release 0.0.3
 
 on:
   push:
     tags:
-      - v0.0.2
+      - v0.0.3
 
 permissions:
   contents: read
@@ -99,7 +99,7 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_native.py .
       - name: Package platform archive
-        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.2"
+        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.3"
       - name: Upload platform archive
         uses: actions/upload-artifact@v7
         with:
@@ -191,8 +191,8 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --draft \
             --verify-tag \
-            --title "SDAD Inspector 0.0.2" \
-            --notes-file docs/releases/v0.0.2.md
+            --title "SDAD Inspector 0.0.3" \
+            --notes-file docs/releases/v0.0.3.md
       - name: Attest portable archives and checksum manifest
         uses: actions/attest@v4
         with:

@@ -1,11 +1,13 @@
 ![SDAD Inspector — Read-Only Control Plane for SPEC-Directed AI Development](web/public/sdad-inspector-banner.png)
 
-> **Languages:** **English** | [한국어](README.ko.md)
+> **Languages:** **[English](README.md)** | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
 # SDAD Inspector
 
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/Sponsor-LiveTrack--X-ea4aaa?logo=githubsponsors)](https://github.com/sponsors/LiveTrack-X)
 
 SDAD Inspector is a local desktop viewer for understanding the current state of
 an SDAD repository without hunting through control files by hand. Select a
@@ -18,11 +20,15 @@ validation commands and does not edit source, SPEC, state, TODO, or findings
 files. Only the Inspector product updater writes to Inspector-owned app data and
 the portable executable being updated.
 
-> **0.0.2 is a regular GitHub Release, but remains unsigned.** It is not an
+> **0.0.3 is a regular GitHub Release, but remains unsigned.** It is not an
 > installer and has no code signing or notarization. Your operating system may
 > warn or block it. Verify `SHA256SUMS` before running it. If your organization
 > does not allow unsigned software, do not bypass that policy; use the source
 > workflow instead.
+
+> **Release/source note:** `v0.0.3` is built from the matching immutable tag.
+> The release archives, checksums, and attestations are produced only after the
+> tagged Windows, macOS, and Linux jobs pass.
 
 ## Start in three minutes
 
@@ -30,17 +36,17 @@ You do not need to install Python or Node.js on the destination computer. Every
 archive contains exactly one **single portable executable** with the runtime,
 UI, and authenticated SDAD 3.2.2 engine embedded.
 
-1. Open the [`v0.0.2` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.2).
+1. Open the [`v0.0.3` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3).
 2. Download the archive for your machine and `SHA256SUMS`.
 3. Verify the archive hash using the command below.
 4. Extract and run the only executable in the archive.
-5. Choose a project root containing `sdad-state.yaml`.
+5. Choose a project root containing `sdad-state.yaml` when prompted.
 
 | Computer | Download | Executable inside |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.2-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.2-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.2-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.3-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.3-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.3-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 Do not assume that an architecture missing from this table, such as Intel macOS,
 is covered by the published evidence. Source execution may work, but that is not
@@ -51,7 +57,7 @@ the same claim as a released and smoke-tested portable asset.
 Windows PowerShell, with the archive and `SHA256SUMS` in the same folder:
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.2-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.3-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -85,20 +91,31 @@ On Windows, double-click the EXE or pass a project path explicitly:
 .\SDAD-Inspector.exe "C:\path\to\your-project"
 ```
 
+### Startup behavior in the current source
+
+Inspector opens its own window first. If a previously opened project still
+exists, the newest one is loaded automatically. On first use, the Inspector UI
+appears and then shows its in-app project chooser; the operating-system folder
+picker opens only after you select **Browse**. You can always switch projects
+from the folder control in the command bar.
+
 ## Reading the interface
 
 ![SDAD Inspector in Korean, with repository navigation on the left, active packet and TODO in the center, and field provenance on the right](docs/assets/sdad-inspector-overview-ko.png)
 
 *This public screenshot uses a synthetic SDAD 3.2.2 fixture with no personal
 paths or private operating documents. Use the language menu in the upper-right
-corner to switch between English and 한국어, and the moon icon to change theme.*
+corner to switch between English, 한국어, 日本語, and 简体中文. Theme and UI scale
+are saved in Inspector-owned user preferences.*
 
 The one-line banner at the top of this README is repository introduction art.
 It is intentionally absent from the app Overview, which starts directly with
 the active packet and repository evidence.
 
 - **Command bar** — shows the project and bundled engine, and provides Manual or
-  AUTO 15s refresh, reveal-in-folder, path copy, language, and theme controls.
+  AUTO 15s refresh, reveal-in-folder, path copy, language, theme, and 90–150%
+  UI-scale controls. `Ctrl/Cmd` + `+`, `-`, or `0` also changes or resets scale;
+  the default is 110%.
 - **Repository pane** — opens state, active SPEC, active packet, TODO,
   development flow, Rule 5 proposal, routed documents, and findings.
 - **Work area** — brings together the packet objective and status, remaining and
@@ -127,7 +144,7 @@ Inspector can attach to a product repository that follows
 has `sdad-state.yaml` at its root. It is not limited to inspecting the SDAD
 framework repository itself.
 
-| Contract | 0.0.2 scope |
+| Contract | 0.0.3 scope |
 | --- | --- |
 | Bundled runtime baseline | Official SDAD Protocol `v3.2.2` |
 | Built-in protocol adapter | `official-sdad-3` |
@@ -146,7 +163,7 @@ the engine, invokes Doctor, normalizes report/state schemas, selects control
 paths and evidence documents, and exposes optional Rule 5 behavior through
 Inspector snapshot schema 2. The UI reads only that normalized snapshot.
 
-The 0.0.2 portable app bundles only the tested `official-sdad-3` adapter and SDAD
+The 0.0.3 portable app bundles only the tested `official-sdad-3` adapter and SDAD
 3.2.2 engine. An extensible boundary is not a claim that every SDAD variant is
 already supported. A different family needs its own adapter, immutable engine
 identity, schema fixtures, no-write tests, and bounded platform evidence.
@@ -216,8 +233,8 @@ recent commit metadata from the selected repository. It does **not**:
 - send telemetry;
 - automatically download an SDAD engine or migrate a project.
 
-Recent projects, language/theme/panel preferences, and product-update staging
-live in per-user Inspector app data, never in the inspected repository.
+Recent projects, language/theme/UI-scale/panel preferences, and product-update
+staging live in per-user Inspector app data, never in the inspected repository.
 
 ## Automatic product update
 
@@ -230,9 +247,12 @@ archive member.
 After a verified background download, the UI shows a restart countdown when no
 inspection is active. The copied helper waits for the current process, retains
 one `.previous` backup, atomically replaces the original portable executable,
-and relaunches the same project. A failed replacement restores the previous file
-when possible and blocks automatic retry loops until the user retries. This
-updates Inspector only; it never updates the bundled engine or writes the
+and relaunches the same project. After the replacement starts successfully, the
+new app acknowledges the handoff, removes the exact `.previous` rollback file,
+and consumes the one-time success marker. Its completion notice can be closed
+and also disappears automatically. A failed replacement restores the previous
+file when possible and blocks automatic retry loops until the user retries.
+This updates Inspector only; it never updates the bundled engine or writes the
 selected project.
 
 ## Troubleshooting another computer
@@ -244,7 +264,7 @@ The current CPython 3.12 one-file release does not need an adjacent `_internal`
 folder.
 
 1. Do not mix an old launcher or `_internal` folder with the current release.
-2. Download the official `v0.0.2` asset into a new folder.
+2. Download the official `v0.0.3` asset into a new folder.
 3. Verify `SHA256SUMS`.
 4. Extract and run the archive's only executable.
 
@@ -253,16 +273,16 @@ shortcut points to an old copy.
 
 ### Windows Explorer still shows the old Python icon
 
-The v0.0.2 EXE embeds the SDAD Inspector icon and product metadata. Explorer can
+The v0.0.3 EXE embeds the SDAD Inspector icon and product metadata. Explorer can
 cache icons by full path, so manually replacing a different
 `SDAD-Inspector.exe` at the same location may leave old artwork visible before
 the first launch.
 
-1. Run v0.0.2 once. Normal frozen Windows startup notifies the shell about the
+1. Run v0.0.3 once. Normal frozen Windows startup notifies the shell about the
    exact running EXE path and refreshes icon associations.
 2. Select the desktop and press <kbd>F5</kbd>.
 3. Open **Properties → Details** and confirm product name `SDAD Inspector` and
-   product version `0.0.2`.
+   product version `0.0.3`.
 4. For a pre-launch comparison, extract the release into a new folder whose path
    has no previous icon-cache history.
 
@@ -315,7 +335,8 @@ npm --prefix web run build
 sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.2
 ```
 
-Omit the project path to use the folder picker. For browser development, run:
+Omit the project path to reopen the newest valid recent project, or to show the
+in-app chooser after the GUI loads on first use. For browser development, run:
 
 ```bash
 sdad-inspector serve /path/to/your-project \
@@ -345,6 +366,8 @@ update is separate from engine acquisition and project migration.
 ## Public documentation
 
 - [`README.ko.md`](README.ko.md) — complete Korean guide
+- [`README.ja.md`](README.ja.md) — Japanese guide
+- [`README.zh-CN.md`](README.zh-CN.md) — Simplified Chinese guide
 - [`docs/SDAD_INTEGRATION_CONTRACT.md`](docs/SDAD_INTEGRATION_CONTRACT.md) —
   engine, report, state, and adapter compatibility
 - [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md) — exact platform targets
@@ -353,8 +376,9 @@ update is separate from engine acquisition and project migration.
   components, and responsive behavior
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — product UI translation and
   verbatim repository-evidence boundary
-- [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — current release scope,
-  update behavior, and limitations
+- [`docs/releases/v0.0.3.md`](docs/releases/v0.0.3.md) — current release scope,
+  startup, localization, display preferences, update cleanup, and limitations
+- [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — icon and evidence patch
 - [`docs/releases/v0.0.1.md`](docs/releases/v0.0.1.md) — first regular release
 
 ## Build and validation
@@ -387,7 +411,7 @@ macOS, and Linux candidates. A separate clean runner downloads each archive,
 checks its single member, and launches it again. These short-lived CI artifacts
 are not releases.
 
-The exact `v0.0.2` tag repeats those gates, creates three archives plus
+The exact `v0.0.3` tag repeats those gates, creates three archives plus
 `SHA256SUMS`, makes GitHub artifact attestations, uploads to a draft, and
 publishes a regular release only after every required job passes. Immutable
 release settings prevent later tag or asset replacement.
@@ -407,6 +431,13 @@ release settings prevent later tag or asset replacement.
 - Python is embedded, but Windows WebView2 and Linux display/browser libraries
   remain operating-system prerequisites.
 - Inspector is not an SDAD editor or autonomous repair agent.
+
+## License and sponsorship
+
+SDAD Inspector is available under the [MIT License](LICENSE). If the project is
+useful to you, you can support ongoing maintenance through
+[GitHub Sponsors](https://github.com/sponsors/LiveTrack-X). Sponsorship does not
+change the license, support boundary, or release evidence.
 
 When reporting a problem, include the Inspector version, OS and architecture,
 SDAD version, Doctor exit code, and reproduction steps. Do not attach `.env`,

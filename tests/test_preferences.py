@@ -61,6 +61,44 @@ class RecentProjectsStoreTests(unittest.TestCase):
             self.assertFalse(path.exists())
             store.clear()
 
+    def test_ui_preferences_survive_project_history_changes_and_reopen(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "preferences.json"
+            project = root / "project"
+            project.mkdir()
+            store = RecentProjectsStore(path)
+
+            self.assertEqual(
+                store.update_ui_preferences(theme="dark", locale="ja", scale=130),
+                {"theme": "dark", "locale": "ja", "scale": 130},
+            )
+            store.remember(((project, "project"),))
+            self.assertEqual(store.latest_existing_project(), project)
+            store.clear()
+
+            reopened = RecentProjectsStore(path)
+            self.assertEqual(reopened.load(), [])
+            self.assertEqual(
+                reopened.load_ui_preferences(),
+                {"theme": "dark", "locale": "ja", "scale": 130},
+            )
+
+    def test_invalid_ui_preferences_are_rejected_without_overwriting_valid_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            store = RecentProjectsStore(Path(temporary) / "preferences.json")
+            store.update_ui_preferences(theme="dark", locale="zh-CN", scale=110)
+            with self.assertRaises(ValueError):
+                store.update_ui_preferences(theme="sepia")
+            with self.assertRaises(ValueError):
+                store.update_ui_preferences(locale="fr")
+            with self.assertRaises(ValueError):
+                store.update_ui_preferences(scale=115)
+            self.assertEqual(
+                store.load_ui_preferences(),
+                {"theme": "dark", "locale": "zh-CN", "scale": 110},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

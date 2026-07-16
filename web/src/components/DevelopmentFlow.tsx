@@ -62,12 +62,12 @@ function WorkChecklist({ work, todoPath, showCurrent = true }: { work: PacketWor
             </div>
           )}
           <div className="work-columns">
-            <div><h3><WarningCircle size={17} />{t("remainingWork")} <span>{open.length}</span></h3><ul>{open.map((item, index) => <li key={index}><span className="check-indicator" />{itemText(item)}</li>)}</ul></div>
+            <div><h3><WarningCircle size={17} />{t(currentItems.length ? "otherRemainingWork" : "remainingWork")} <span>{open.length}</span></h3><ul>{open.map((item, index) => <li key={index}><span className="check-indicator" />{itemText(item)}</li>)}</ul></div>
             <div><h3><CheckCircle size={17} />{t("completedWork")} <span>{completed.length}</span></h3><ul>{completed.map((item, index) => <li className="completed" key={index}><CheckCircle size={18} weight="fill" />{itemText(item)}</li>)}</ul></div>
           </div>
         </>
       )}
-      <div className="info-note"><Info size={19} /><p>{t("todoEvidenceNote")}</p></div>
+      <div className="info-note"><Info size={19} /><p>{t(currentItems.length ? "todoEvidenceNoteWithCurrent" : "todoEvidenceNote")}</p></div>
     </section>
   );
 }

@@ -1,4 +1,5 @@
-import { ArrowsClockwise, CheckCircle, DownloadSimple, WarningCircle } from "@phosphor-icons/react";
+import { useEffect } from "react";
+import { ArrowsClockwise, CheckCircle, DownloadSimple, WarningCircle, X } from "@phosphor-icons/react";
 import { useI18n } from "../i18n";
 import type { ProductUpdateStatus } from "../types";
 
@@ -10,15 +11,24 @@ interface Props {
   onApply: () => void;
   onPostpone: () => void;
   onRetry: () => void;
+  onDismiss: () => void;
 }
+
+export const UPDATE_SUCCESS_NOTICE_MS = 8_000;
 
 function formatBytes(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0 MB";
   return `${(value / (1024 * 1024)).toFixed(value >= 100 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
-export function UpdateNotice({ status, countdown, inspectionBusy, postponed, onApply, onPostpone, onRetry }: Props) {
+export function UpdateNotice({ status, countdown, inspectionBusy, postponed, onApply, onPostpone, onRetry, onDismiss }: Props) {
   const { t } = useI18n();
+  useEffect(() => {
+    if (status?.state !== "updated") return undefined;
+    const timer = window.setTimeout(onDismiss, UPDATE_SUCCESS_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [status?.state, status?.current_version, onDismiss]);
+
   if (!status?.supported || ["idle", "unsupported", "up_to_date"].includes(status.state)) return null;
 
   if (status.state === "checking") {
@@ -62,7 +72,13 @@ export function UpdateNotice({ status, countdown, inspectionBusy, postponed, onA
   }
 
   if (status.state === "updated") {
-    return <aside className="update-notice success" role="status"><CheckCircle size={20} weight="fill" /><span><strong>{t("updateCompleted")}</strong><small>{t("updateCompletedDetail", { version: status.current_version })}</small></span></aside>;
+    return (
+      <aside className="update-notice success" role="status">
+        <CheckCircle size={20} weight="fill" />
+        <span><strong>{t("updateCompleted")}</strong><small>{t("updateCompletedDetail", { version: status.current_version })}</small></span>
+        <button type="button" className="update-notice-dismiss" onClick={onDismiss} aria-label={t("dismissUpdateNotice")} title={t("dismissUpdateNotice")}><X size={18} /></button>
+      </aside>
+    );
   }
 
   return (

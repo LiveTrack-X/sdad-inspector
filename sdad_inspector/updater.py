@@ -411,6 +411,8 @@ class ProductUpdateManager:
         self._verified: VerifiedUpdate | None = None
         self._automatic_retry_blocked = False
         self._recent_success_loaded_at: float | None = None
+        self._pending_success_result: Path | None = None
+        self._pending_success_backup: Path | None = None
         self._opener = opener
         self._launcher = launcher
         self.current_version = current_version
@@ -471,6 +473,10 @@ class ProductUpdateManager:
             status = payload.get("status")
             version = payload.get("version")
             if status == "success" and version == self.current_version:
+                cleanup_paths = self._success_cleanup_paths(result_path, payload)
+                if cleanup_paths is None:
+                    return
+                self._pending_success_result, self._pending_success_backup = cleanup_paths
                 self._recent_success_loaded_at = time.monotonic()
                 self._state.update(
                     state="updated",
@@ -486,6 +492,84 @@ class ProductUpdateManager:
                 )
         except (OSError, UnicodeError, json.JSONDecodeError):
             return
+
+    def _success_cleanup_paths(
+        self, result_path: Path, payload: Mapping[str, Any]
+    ) -> tuple[Path, Path] | None:
+        """Bind one success marker to this app's exact backup without trusting it."""
+
+        try:
+            root = self.update_root.resolve(strict=True)
+            if result_path.is_symlink() or result_path.parent.is_symlink():
+                return None
+            resolved_result = result_path.resolve(strict=True)
+            relative = resolved_result.relative_to(root)
+            if (
+                len(relative.parts) != 2
+                or not relative.parts[0].startswith("handoff-")
+                or relative.parts[1] != "result.json"
+            ):
+                return None
+            backup_value = payload.get("backup_path")
+            if not isinstance(backup_value, str) or not backup_value:
+                return None
+            expected_backup = self.executable.with_name(
+                self.executable.name + ".previous"
+            ).resolve(strict=False)
+            declared_backup = Path(backup_value).expanduser()
+            if declared_backup.is_symlink():
+                return None
+            if declared_backup.resolve(strict=False) != expected_backup:
+                return None
+            return resolved_result, expected_backup
+        except (OSError, RuntimeError, ValueError):
+            return None
+
+    def acknowledge_successful_update(self) -> dict[str, Any]:
+        """Consume one valid success after the replacement UI has loaded."""
+
+        with self._lock:
+            result_path = self._pending_success_result
+            backup_path = self._pending_success_backup
+            if self._state["state"] != "updated" or result_path is None or backup_path is None:
+                return dict(self._state)
+            try:
+                if result_path.is_symlink() or (
+                    result_path.exists() and not result_path.is_file()
+                ):
+                    raise ProductUpdateError(
+                        "The successful update marker is unsafe and was not consumed."
+                    )
+                if backup_path.is_symlink():
+                    raise ProductUpdateError(
+                        "The previous-version backup path is unsafe and was not removed."
+                    )
+                if backup_path.exists():
+                    if not backup_path.is_file():
+                        raise ProductUpdateError(
+                            "The previous-version backup path is unsafe and was not removed."
+                        )
+                    backup_path.unlink()
+                result_path.unlink(missing_ok=True)
+            except ProductUpdateError:
+                raise
+            except OSError as exc:
+                raise ProductUpdateError(
+                    "The previous update cleanup could not be completed."
+                ) from exc
+            self._pending_success_result = None
+            self._pending_success_backup = None
+            self._recent_success_loaded_at = None
+            self._state.update(
+                state="up_to_date",
+                available_version=None,
+                release_url=None,
+                downloaded_bytes=0,
+                total_bytes=0,
+                message=None,
+                error=None,
+            )
+            return dict(self._state)
 
     def start_background_check(self, *, force: bool = False) -> dict[str, Any]:
         if not self.supported:

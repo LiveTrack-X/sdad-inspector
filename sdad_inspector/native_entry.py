@@ -8,9 +8,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from sdad_inspector.desktop import resource_root, run_desktop
-from sdad_inspector.dialogs import select_project_directory
 from sdad_inspector.engine import authenticate_release_archive
 from sdad_inspector.errors import InspectorError
+from sdad_inspector.preferences import RecentProjectsStore
 from sdad_inspector.updater import (
     INTERNAL_UPDATE_FLAG,
     apply_update_plan,
@@ -95,18 +95,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     refresh_frozen_windows_icon()
     arguments = _parser().parse_args(raw_arguments)
     project_root = arguments.project_root
+    preferences = RecentProjectsStore()
     try:
         if project_root is None:
-            project_root = select_project_directory()
-            if project_root is None:
-                return 0
+            project_root = preferences.latest_existing_project()
         return run_desktop(
-            Path(project_root),
+            Path(project_root) if project_root is not None else None,
             arguments.sdad_checkout,
             arguments.web_root,
             hidden=arguments.hidden,
             smoke_seconds=arguments.smoke_seconds,
             port=arguments.port,
+            preferences_store=preferences,
         )
     except InspectorError as exc:
         json.dump(exc.to_payload(), sys.stderr, ensure_ascii=False, indent=2)

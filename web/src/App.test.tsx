@@ -36,7 +36,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.2", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     }));
   });
@@ -58,6 +58,36 @@ describe("Split Inspector", () => {
     expect(headers.get("X-SDAD-Session")).toBe("test-session-token");
   });
 
+  it("opens the Inspector shell and in-app chooser on a true first launch", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/snapshot") return jsonResponse({ error: { code: "project_required", message: "Choose a project." } }, 422);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      return jsonResponse();
+    });
+
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "Choose an SDAD project" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Open SDAD project" })).toBeVisible();
+    expect(screen.getByText("No recent projects yet.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the SDAD Inspector repository" })).toHaveTextContent("Created by LiveTrack");
+  });
+
+  it("offers persisted whole-UI zoom controls from the action menu", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await screen.findByRole("heading", { name: "SI-003-browser-mvp" });
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.getByText("110%", { selector: "output" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Increase UI scale" }));
+    expect(document.documentElement).toHaveAttribute("data-ui-scale", "120");
+    expect(window.localStorage.getItem("sdad-inspector:ui-scale:v1")).toBe("120");
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([path]) => path === "/api/preferences")).toBe(true));
+  });
+
   it("keeps crowded engine, tree, and owner-gate text available without collision-only labels", async () => {
     renderApp();
     expect(await screen.findByRole("heading", { name: "SI-003-browser-mvp" })).toBeVisible();
@@ -73,7 +103,7 @@ describe("Split Inspector", () => {
 
   it("shows a verified product update and starts the replacement handoff", async () => {
     const user = userEvent.setup();
-    const ready = { supported: true, automatic: true, current_version: "0.0.1", state: "ready", available_version: "0.0.2", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.2", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-16T00:00:00Z", message: "ready", error: null };
+    const ready = { supported: true, automatic: true, current_version: "0.0.2", state: "ready", available_version: "0.0.3", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-16T00:00:00Z", message: "ready", error: null };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
@@ -85,11 +115,36 @@ describe("Split Inspector", () => {
       return jsonResponse();
     });
     renderApp();
-    expect(await screen.findByText("SDAD Inspector 0.0.2 is verified and ready")).toBeVisible();
+    expect(await screen.findByText("SDAD Inspector 0.0.3 is verified and ready")).toBeVisible();
     expect(screen.getByText(/replace this portable executable in \d+ seconds/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Restart and update" }));
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([path]) => path === "/api/update/apply")).toBe(true));
     expect(await screen.findByText("Restarting to apply the verified update…")).toBeVisible();
+  });
+
+  it("acknowledges a successful replacement and lets the user dismiss its one-time notice", async () => {
+    const user = userEvent.setup();
+    const updated = { supported: true, automatic: true, current_version: "0.0.3", state: "updated", available_version: "0.0.3", release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: "2026-07-16T00:00:00Z", message: "updated", error: null };
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
+      if (path === "/api/activity") return jsonResponse(activityFixture);
+      if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check") return jsonResponse(updated);
+      if (path === "/api/update/acknowledge") return jsonResponse({ ...updated, state: "up_to_date", available_version: null, message: null });
+      return jsonResponse();
+    });
+
+    renderApp();
+    expect(await screen.findByText("Product update completed")).toBeVisible();
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([path]) => path === "/api/update/acknowledge")).toBe(true));
+    const acknowledgement = vi.mocked(fetch).mock.calls.find(([path]) => path === "/api/update/acknowledge");
+    expect(acknowledgement?.[1]?.method).toBe("POST");
+    expect(new Headers(acknowledgement?.[1]?.headers).get("X-SDAD-Session")).toBe("test-session-token");
+
+    await user.click(screen.getByRole("button", { name: "Dismiss update notification" }));
+    expect(screen.queryByText("Product update completed")).not.toBeInTheDocument();
   });
 
   it("filters the repository tree and updates the selected field details", async () => {
@@ -454,7 +509,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.2", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
 
@@ -727,7 +782,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.2", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
     renderApp();

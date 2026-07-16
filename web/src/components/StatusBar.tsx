@@ -2,10 +2,13 @@ import { Lock } from "@phosphor-icons/react";
 import { useI18n } from "../i18n";
 import type { Snapshot } from "../types";
 
-export function StatusBar({ snapshot }: { snapshot: Snapshot }) {
+const REPOSITORY_URL = "https://github.com/LiveTrack-X/sdad-inspector";
+
+export function StatusBar({ snapshot, onOpenRepository }: { snapshot: Snapshot; onOpenRepository: () => void }) {
   const { t } = useI18n();
   return (
     <footer className="status-bar" aria-label={t("inspectionProvenance")}>
+      <a className="creator-link" href={REPOSITORY_URL} target="_blank" rel="noreferrer" onClick={(event) => { event.preventDefault(); onOpenRepository(); }} aria-label={t("openProductRepository")}>{t("createdByLiveTrack")}</a>
       <span><em>{t("doctor")}</em><strong>{snapshot.contracts.doctor_version}</strong></span>
       <span><em>{t("reportSchema")}</em><strong>{snapshot.contracts.report_schema_version}</strong></span>
       <span><em>{t("stateSchema")}</em><strong>{snapshot.contracts.state_schema_version ?? "—"}</strong></span>

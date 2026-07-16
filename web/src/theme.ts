@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import { updateUiPreferences } from "./api";
 
 export type Theme = "light" | "dark";
 export const THEME_STORAGE_KEY = "sdad-inspector:theme:v1";
 
 function initialTheme(): Theme {
+  const nativePreference = document.querySelector<HTMLMetaElement>('meta[name="sdad-theme"]')?.content;
+  if (nativePreference === "light" || nativePreference === "dark") return nativePreference;
   try {
     const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
     if (saved === "light" || saved === "dark") return saved;
@@ -28,6 +31,7 @@ export function useTheme() {
     } catch {
       // The active session still changes theme when storage is unavailable.
     }
+    void updateUiPreferences({ theme: next }).catch(() => undefined);
   }, []);
 
   const toggleTheme = useCallback(() => {

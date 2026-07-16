@@ -100,6 +100,15 @@ def main() -> int:
             raise AssertionError(f"missing Inspector/SDAD adapter contract: {protocol_contract}")
 
     native_entry = (ROOT / "sdad_inspector" / "native_entry.py").read_text(encoding="utf-8")
+    for startup_contract in (
+        "RecentProjectsStore",
+        "latest_existing_project",
+        "preferences_store=preferences",
+    ):
+        if startup_contract not in native_entry:
+            raise AssertionError(f"missing recent-project startup contract: {startup_contract}")
+    if "select_project_directory" in native_entry:
+        raise AssertionError("native startup still opens a folder picker before the GUI")
     updater = (ROOT / "sdad_inspector" / "updater.py").read_text(encoding="utf-8")
     for update_contract in (
         "INTERNAL_UPDATE_FLAG",
@@ -110,12 +119,25 @@ def main() -> int:
         "PARENT_EXIT_TIMEOUT_SECONDS",
         "refresh_windows_icon_cache",
         "refresh_frozen_windows_icon",
+        "acknowledge_successful_update",
         "SHCNE_UPDATEITEM",
         "SHCNF_PATHW",
         "SHCNF_FLUSH",
     ):
         if update_contract not in native_entry and update_contract not in updater:
             raise AssertionError(f"missing bounded product-update contract: {update_contract}")
+    server_source = (ROOT / "sdad_inspector" / "server.py").read_text(encoding="utf-8")
+    if '"/api/update/acknowledge"' not in server_source:
+        raise AssertionError("missing authenticated update-success acknowledgement route")
+    for preference_contract in (
+        '"/api/preferences"',
+        '"__SDAD_THEME__"',
+        '"__SDAD_LOCALE__"',
+        '"__SDAD_UI_SCALE__"',
+        "ProjectRequiredError",
+    ):
+        if preference_contract not in server_source:
+            raise AssertionError(f"missing native preference/startup contract: {preference_contract}")
     brand_assets = (
         ROOT / "web" / "public" / "sdad-inspector-logo.png",
         ROOT / "web" / "public" / "sdad-inspector-banner.png",
@@ -126,8 +148,8 @@ def main() -> int:
         if not asset.is_file() or asset.stat().st_size < 1024:
             raise AssertionError(f"missing or empty product brand asset: {asset.relative_to(ROOT)}")
     version_info = ROOT / "packaging" / "sdad-inspector-version.txt"
-    if not version_info.is_file() or "ProductVersion', '0.0.2'" not in version_info.read_text(encoding="utf-8"):
-        raise AssertionError("missing Windows 0.0.2 version resource")
+    if not version_info.is_file() or "ProductVersion', '0.0.3'" not in version_info.read_text(encoding="utf-8"):
+        raise AssertionError("missing Windows 0.0.3 version resource")
 
     simulated = ROOT / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
     if resource_root(simulated) != ROOT / "bundle" / "_MEI12345":
