@@ -18,22 +18,22 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 しません。書き込みは Inspector 自身の設定、更新用データ、更新対象のポータブル
 実行ファイルに限定されます。
 
-> **0.0.3 は通常の GitHub Release ですが、未署名です。** インストーラーでは
+> **0.0.4 は通常の GitHub Release ですが、未署名です。** インストーラーでは
 > なく、コード署名と notarization はありません。実行前に `SHA256SUMS` を確認
 > してください。組織のポリシーが未署名ソフトウェアを禁止する場合は、保護を
 > 回避せず、ソースから実行してください。
 
-> **リリースとソース:** `v0.0.3` の実行ファイルは同じ immutable タグから
+> **リリースとソース:** `v0.0.4` の実行ファイルは同じ immutable タグから
 > ビルドされます。Windows、macOS、Linux のタグ検証がすべて成功した後にのみ、
 > アーカイブ、チェックサム、attestation を公開します。
 
 ## 3 分で始める
 
 配布先のコンピューターに Python や Node.js をインストールする必要はありません。
-各アーカイブには、ランタイム、UI、認証済み SDAD 3.2.2 エンジンを含む
+各アーカイブには、ランタイム、UI、認証済み SDAD 3.2.3 エンジンを含む
 **single portable executable** が一つだけ入っています。
 
-1. [`v0.0.3` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3) を開きます。
+1. [`v0.0.4` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4) を開きます。
 2. 自分の環境用アーカイブと `SHA256SUMS` をダウンロードします。
 3. 下記のコマンドで SHA-256 を確認します。
 4. 展開して、唯一の実行ファイルを起動します。
@@ -41,9 +41,9 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 
 | 環境 | ダウンロード | アーカイブ内の実行ファイル |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.3-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.3-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.3-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 Intel Mac など表にないアーキテクチャは、公開アセットとして検証済みとは主張
 しません。ソース実行が可能でも、配布アセットのビルドとスモークテストの証拠とは
@@ -54,7 +54,7 @@ Intel Mac など表にないアーキテクチャは、公開アセットとし�
 Windows PowerShell:
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.3-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -93,7 +93,7 @@ OS のフォルダー選択画面を開きます。上部のフォルダー操�
 
 ![左にリポジトリナビゲーション、中央にアクティブパケットと TODO、右に証拠の出所を表示する SDAD Inspector](docs/assets/sdad-inspector-overview-ko.png)
 
-この公開スクリーンショットは、個人パスや内部運用文書を含まない合成 SDAD 3.2.2
+この公開スクリーンショットは、個人パスや内部運用文書を含まない合成 SDAD 3.2.3
 fixture を使用しています。上部の言語メニューでは English、한국어、日本語、
 简体中文を選べます。テーマと UI サイズは Inspector 専用のユーザー設定に保存
 されます。
@@ -118,13 +118,13 @@ fixture を使用しています。上部の言語メニューでは English、�
 ## 対応する SDAD
 
 標準の対象は [SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)
-`v3.2.2` です。
+`v3.2.3` です。
 
-| 契約 | 0.0.3 の範囲 |
+| 契約 | 0.0.4 の範囲 |
 | --- | --- |
-| バンドル実行基準 | Official SDAD Protocol `v3.2.2` |
+| バンドル実行基準 | Official SDAD Protocol `v3.2.3` |
 | 既定アダプター | `official-sdad-3` |
-| Doctor fixture | `v3.2.1`, `v3.2.2` |
+| Doctor fixture | `v3.2.1`, `v3.2.2`, `v3.2.3` |
 | state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -158,14 +158,14 @@ python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop --sdad-checkout .runtime/sdad-v3.2.2
+sdad-inspector desktop --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 プロジェクトパスを省略すると、最新の有効な履歴を開くか、初回用のアプリ内
 選択画面を表示します。明示する場合:
 
 ```bash
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.2
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 主要な検証:
@@ -177,8 +177,8 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.2
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 ## 制限

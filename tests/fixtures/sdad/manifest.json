@@ -99,6 +99,54 @@
           "sha256": "381a29b815e958c969be42aca916ff950699e190e8b1ab7862278b043decea6a"
         }
       ]
+    },
+    "3.2.3": {
+      "tag": "v3.2.3",
+      "tag_object": "12a3d94473dd5f5128efa186a495c605c2944b46",
+      "commit": "707cc8861df0340b2a2bb7c9761d3529ca387684",
+      "source_clean": true,
+      "capture_checkout_mode": "clean detached annotated tag",
+      "reports": [
+        {
+          "scenario": "exit-0-state-v1-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.3/exit-0-state-v1-unguarded.json",
+          "command": "doctor <STATE_V1_PROJECT> --json",
+          "exit_code": 0,
+          "report_schema": 1,
+          "state_schema": 1,
+          "sha256": "3d8c20d7180e17ccb3b29504478cd477b70fb05cf365c43d46e853445414c1be"
+        },
+        {
+          "scenario": "exit-0-state-v2-guarded",
+          "path": "tests/fixtures/sdad/v3.2.3/exit-0-state-v2-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.3 --json",
+          "exit_code": 0,
+          "report_schema": 2,
+          "state_schema": 2,
+          "sha256": "2d4528b92b261bf9fba684858a77b6e8ea013d6947e206487c5ee25a867187e0"
+        },
+        {
+          "scenario": "exit-1-missing-state-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.3/exit-1-missing-state-unguarded.json",
+          "command": "doctor <MISSING_STATE_PROJECT> --json",
+          "exit_code": 1,
+          "report_schema": 1,
+          "state_schema": null,
+          "sha256": "5562fbb78c85ab9f0c450a616dbe21a7f1b4ac18579edced1fd9dbe441cdbf54"
+        },
+        {
+          "scenario": "exit-2-invalid-invocation-guarded",
+          "path": "tests/fixtures/sdad/v3.2.3/exit-2-invalid-invocation-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.3 --json --unknown",
+          "exit_code": 2,
+          "report_schema": 2,
+          "state_schema": null,
+          "sha256": "86bfbc065762c688ebcc3b8824ae8fe20fa409c334978fccb4e8e4d50b03f38f"
+        }
+      ],
+      "captured_on": "2026-09-13"
     }
-  }
+  },
+  "logical_clock": "2026-07-15",
+  "logical_clock_reason": "Golden project state dates; Doctor date dependency only, live freshness is tested separately."
 }

@@ -31,7 +31,7 @@ def _tree_fingerprint(root: Path) -> str:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate native preview contracts.")
-    parser.add_argument("--sdad-checkout", default=".runtime/sdad-v3.2.2")
+    parser.add_argument("--sdad-checkout", default=".runtime/sdad-v3.2.3")
     return parser
 
 
@@ -60,8 +60,8 @@ def main() -> int:
         "portable-smoke",
         "actions/upload-artifact@v7",
         "actions/download-artifact@v8",
-        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.2",
-        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.2",
+        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3",
+        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3",
         "scripts/smoke_release_archive.py",
         "scripts/validate_windows_branding.py",
         "retention-days: 3",
@@ -148,8 +148,8 @@ def main() -> int:
         if not asset.is_file() or asset.stat().st_size < 1024:
             raise AssertionError(f"missing or empty product brand asset: {asset.relative_to(ROOT)}")
     version_info = ROOT / "packaging" / "sdad-inspector-version.txt"
-    if not version_info.is_file() or "ProductVersion', '0.0.3'" not in version_info.read_text(encoding="utf-8"):
-        raise AssertionError("missing Windows 0.0.3 version resource")
+    if not version_info.is_file() or "ProductVersion', '0.0.4'" not in version_info.read_text(encoding="utf-8"):
+        raise AssertionError("missing Windows 0.0.4 version resource")
 
     simulated = ROOT / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
     if resource_root(simulated) != ROOT / "bundle" / "_MEI12345":

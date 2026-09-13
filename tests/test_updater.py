@@ -375,6 +375,7 @@ class ManagerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             manager = ProductUpdateManager(
                 frozen=True,
+                current_version="0.0.3",
                 executable=Path(raw) / "SDAD-Inspector.exe",
                 platform_name="windows",
                 architecture="x64",

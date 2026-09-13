@@ -77,6 +77,30 @@ class LoopbackServerTests(WorkspaceCase):
         except urllib.error.HTTPError as exc:
             return exc.code, dict(exc.headers.items()), exc.read()
 
+    def test_correction_api_requires_origin_and_exact_project_without_project_writes(self) -> None:
+        draft = {"id": "C1", "request_id": "R1", "packet": "P1", "base_revision": "r1",
+                 "project_root": str(self.project), "before": "browser", "correction": "account",
+                 "supersedes": "", "copy_state": "draft"}
+        before = tree_fingerprint(self.project)
+        status, _, _ = self.request("/api/corrections", method="POST", token=self.token, payload=draft)
+        self.assertEqual(status, 403)
+        status, _, _ = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload={**draft, "project_root": "other"})
+        self.assertEqual(status, 422)
+        status, _, _ = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload=draft)
+        self.assertEqual(status, 200)
+        status, _, body = self.request("/api/corrections", token=self.token)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["drafts"], [{**draft, "revision": 1}])
+        self.assertEqual(tree_fingerprint(self.project), before)
+
+    def test_correction_store_inside_inspected_root_is_rejected(self) -> None:
+        self.server.service._corrections.path = self.project / "corrections.json"
+        before = tree_fingerprint(self.project)
+        status, _, _ = self.request("/api/corrections", method="POST", token=self.token, origin=True,
+                                   payload={"project_root": str(self.project)})
+        self.assertEqual(status, 422)
+        self.assertEqual(tree_fingerprint(self.project), before)
+
     def test_index_injects_session_and_sets_browser_security_headers(self) -> None:
         status, headers, body = self.request("/")
         self.assertEqual(status, 200)

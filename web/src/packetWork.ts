@@ -8,6 +8,9 @@ export interface PacketWorkItem {
   current: boolean;
   phase: PacketControlPhase | null;
   phaseConflict: boolean;
+  summary?: string;
+  detail?: string;
+  line?: number;
 }
 
 const CONTROL_PHASES = new Set<PacketControlPhase>(["plan", "route", "implement", "verify", "report"]);
@@ -49,7 +52,7 @@ export function packetWorkItems(markdown: string | null | undefined, packetId: s
   const lines = markdown.split(/\r?\n/);
   let current: PacketWorkItem | null = null;
   let section = "Document";
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     const heading = line.match(/^#{2,6}\s+(.+?)\s*$/);
     if (heading) {
       section = heading[1].trim();
@@ -67,12 +70,16 @@ export function packetWorkItems(markdown: string | null | undefined, packetId: s
         current: metadata.current,
         phase: metadata.phase,
         phaseConflict: metadata.phaseConflict,
+        summary: metadata.text,
+        detail: metadata.text,
+        line: index + 1,
       };
       if (current.packetId === packetId) result.push(current);
       continue;
     }
     if (current?.packetId === packetId && /^\s{2,}\S/.test(line) && result.length) {
       result[result.length - 1].text += ` ${line.trim()}`;
+      result[result.length - 1].detail += `\n${line.slice(2)}`;
     } else if (line.startsWith("## ") || /^- \[[ xX]\]/.test(line)) {
       current = null;
     }

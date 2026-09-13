@@ -7,9 +7,9 @@ import { UPDATE_SUCCESS_NOTICE_MS, UpdateNotice } from "./UpdateNotice";
 const updatedStatus: ProductUpdateStatus = {
   supported: true,
   automatic: true,
-  current_version: "0.0.3",
+  current_version: "0.0.4",
   state: "updated",
-  available_version: "0.0.3",
+  available_version: "0.0.4",
   release_url: null,
   downloaded_bytes: 0,
   total_bytes: 0,

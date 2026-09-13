@@ -25,12 +25,12 @@ jobs:
     steps:
       - name: Check out Inspector
         uses: actions/checkout@v6
-      - name: Check out released SDAD v3.2.2
+      - name: Check out released SDAD v3.2.3
         uses: actions/checkout@v6
         with:
           repository: LiveTrack-X/spec-driven-ai-development
-          ref: v3.2.2
-          path: .ci/sdad-v3.2.2
+          ref: v3.2.3
+          path: .ci/sdad-v3.2.3
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -79,13 +79,13 @@ jobs:
         run: npm --prefix web run build
       - name: Validate browser, report, and native contracts
         run: |
-          python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.2
-          python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.2
-          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.2
+          python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3
+          python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3
+          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.3
       - name: Check native prerequisites
-        run: python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.2
+        run: python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.3
       - name: Build unsigned one-file preview
-        run: python scripts/build_native.py --skip-frontend --sdad-checkout .ci/sdad-v3.2.2
+        run: python scripts/build_native.py --skip-frontend --sdad-checkout .ci/sdad-v3.2.3
       - name: Validate Windows executable branding
         if: runner.os == 'Windows'
         run: python scripts/validate_windows_branding.py
@@ -96,7 +96,7 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a python scripts/smoke_native.py .
       - name: Package the single portable executable
-        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.3"
+        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.4"
       - name: Upload the ephemeral portable archive
         uses: actions/upload-artifact@v7
         with:

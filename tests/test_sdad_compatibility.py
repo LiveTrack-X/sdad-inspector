@@ -40,12 +40,12 @@ class SdadCompatibilityContractTests(unittest.TestCase):
             )
 
     def test_frozen_manifest_and_reports_validate(self) -> None:
-        self.assertEqual(MODULE.validate_manifest(), 8)
+        self.assertEqual(MODULE.validate_manifest(), 12)
 
     def test_validation_is_read_only_for_golden_files(self) -> None:
         paths = [MODULE.MANIFEST_PATH, *self.fixture_paths()]
         before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
-        self.assertEqual(MODULE.validate_manifest(), 8)
+        self.assertEqual(MODULE.validate_manifest(), 12)
         after = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
         self.assertEqual(after, before)
 
@@ -56,7 +56,7 @@ class SdadCompatibilityContractTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(
             output.getvalue(),
-            "SDAD compatibility contract OK: 2 releases, 8 normalized reports.\n",
+            "SDAD compatibility contract OK: 3 releases, 12 normalized reports.\n",
         )
 
 

@@ -145,6 +145,60 @@ def read_bounded_text(
     return text
 
 
+def read_bounded_text_preview(
+    root: Path,
+    relative: str,
+    *,
+    purpose: str,
+    required: bool = False,
+    max_bytes: int = 48 * 1024,
+    max_lines: int = 500,
+) -> tuple[str | None, bool]:
+    """Read a safe prefix for a human-facing preview without rejecting a long file."""
+
+    candidate = safe_project_path(
+        root, relative, purpose=purpose, must_exist=False, regular_file=True
+    )
+    if not candidate.exists():
+        if required:
+            raise BoundedReadError(
+                f"{purpose} does not exist.", details={"path": relative}
+            )
+        return None, False
+    candidate = safe_project_path(
+        root, relative, purpose=purpose, must_exist=True, regular_file=True
+    )
+    try:
+        with candidate.open("rb") as stream:
+            data = stream.read(max_bytes + 1)
+    except OSError as exc:
+        raise BoundedReadError(
+            f"{purpose} could not be read.", details={"path": relative}
+        ) from exc
+
+    truncated = len(data) > max_bytes
+    if truncated:
+        data = data[:max_bytes]
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        if (
+            not truncated
+            or exc.reason != "unexpected end of data"
+            or exc.start < len(data) - 4
+        ):
+            raise BoundedReadError(
+                f"{purpose} is not valid UTF-8.", details={"path": relative}
+            ) from exc
+        text = data[: exc.start].decode("utf-8")
+
+    lines = text.splitlines(keepends=True)
+    if len(lines) > max_lines:
+        text = "".join(lines[:max_lines])
+        truncated = True
+    return text, truncated
+
+
 def file_metadata(root: Path, relative: str) -> dict[str, object]:
     candidate = safe_project_path(
         root, relative, purpose="control evidence", must_exist=False

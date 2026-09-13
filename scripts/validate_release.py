@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_VERSION = "0.0.3"
-RELEASE_VERSION = "0.0.3"
+PACKAGE_VERSION = "0.0.4"
+RELEASE_VERSION = "0.0.4"
 RELEASE_TAG = f"v{RELEASE_VERSION}"
 
 
@@ -48,7 +48,7 @@ def validate_release_contract() -> list[str]:
     funding = _read(".github/FUNDING.yml")
     workflow = _read(".github/workflows/release.yml")
     cross_platform_workflow = _read(".github/workflows/cross-platform.yml")
-    notes = _read("docs/releases/v0.0.3.md")
+    notes = _read("docs/releases/v0.0.4.md")
     ignore = _read(".gitignore")
     packager = _read("scripts/package_release.py")
     native_builder = _read("scripts/build_native.py")
@@ -69,10 +69,10 @@ def validate_release_contract() -> list[str]:
 
     for needle in (
         RELEASE_TAG,
-        "0.0.3 is a regular GitHub Release, but remains unsigned",
+        "0.0.4 is a regular GitHub Release, but remains unsigned",
         "web/public/sdad-inspector-banner.png",
         "Which SDAD projects can it inspect?",
-        "Official SDAD Protocol `v3.2.2`",
+        "Official SDAD Protocol `v3.2.3`",
         "official-sdad-3",
         "Inspector snapshot schema | 2",
         "Windows",
@@ -119,8 +119,8 @@ def validate_release_contract() -> list[str]:
         "scripts/package_release.py",
         "portable-smoke",
         "scripts/smoke_release_archive.py",
-        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.2",
-        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.2",
+        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3",
+        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3",
         'python-version: "3.12"',
         "needs: [build, portable-smoke]",
         "scripts/write_checksums.py",
@@ -137,7 +137,7 @@ def validate_release_contract() -> list[str]:
     if "--clobber" in workflow:
         issues.append(".github/workflows/release.yml: immutable release assets may not be refreshed with --clobber")
     if "--prerelease" in workflow:
-        issues.append(".github/workflows/release.yml: v0.0.3 must publish as a regular release")
+        issues.append(".github/workflows/release.yml: v0.0.4 must publish as a regular release")
     for needle in (
         f'--version "{RELEASE_VERSION}"',
         "windows-latest",
@@ -153,11 +153,11 @@ def validate_release_contract() -> list[str]:
         )
 
     for needle in (
-        "# SDAD Inspector 0.0.3",
+        "# SDAD Inspector 0.0.4",
         "Unsigned portable release",
-        "exact `v0.0.3` tag",
+        "exact `v0.0.4` tag",
         "SHA256SUMS",
-        "SDAD Protocol `v3.2.2`",
+        "SDAD Protocol `v3.2.3`",
         "single portable executable",
         "automatic product update",
         "successful-update acknowledgement",
@@ -170,7 +170,7 @@ def validate_release_contract() -> list[str]:
         "Snapshot schema 2",
         "exact executable path",
     ):
-        _require(issues, notes, needle, source="docs/releases/v0.0.3.md")
+        _require(issues, notes, needle, source="docs/releases/v0.0.4.md")
 
     for needle in ("design/qa/", "design-qa.md", "web/.npmrc", "release-artifacts/"):
         _require(issues, ignore, needle, source=".gitignore")
@@ -207,17 +207,19 @@ def validate_release_contract() -> list[str]:
         _require(issues, updater, needle, source="sdad_inspector/updater.py")
 
     for needle in (
+        "filevers=(0, 0, 4, 0)",
+        "prodvers=(0, 0, 4, 0)",
         "FileDescription', 'SDAD Inspector'",
         "ProductName', 'SDAD Inspector'",
-        "FileVersion', '0.0.3.0'",
-        "ProductVersion', '0.0.3'",
+        "FileVersion', '0.0.4.0'",
+        "ProductVersion', '0.0.4'",
         "OriginalFilename', 'SDAD-Inspector.exe'",
     ):
         _require(issues, version_info, needle, source="packaging/sdad-inspector-version.txt")
     for needle in (
         'pefile.RESOURCE_TYPE["RT_ICON"]',
         "packaging/sdad-inspector.ico",
-        'b"ProductVersion": b"0.0.3"',
+        'b"ProductVersion": b"0.0.4"',
         '"icon": "matches-source"',
     ):
         _require(issues, windows_branding, needle, source="scripts/validate_windows_branding.py")

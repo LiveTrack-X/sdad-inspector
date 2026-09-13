@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import unquote, urlsplit
 
+from .corrections import CorrectionStore
 from .dialogs import normalize_clipboard_path, read_clipboard_text, select_markdown_export_path, select_project_directory
 from .engine import EngineInfo
 from .errors import InspectorError, ProjectRequiredError
@@ -59,6 +60,7 @@ class InspectorService:
         self._project_picker = project_picker
         self._clipboard_reader = clipboard_reader
         self._recent_projects = preferences_store or RecentProjectsStore()
+        self._corrections = CorrectionStore(self._recent_projects.path.with_name("corrections-v1.json"))
         self._rule_export_picker = rule_export_picker
         self._updates = update_manager or ProductUpdateManager()
         self._update_exit_callback: Callable[[], None] | None = None
@@ -152,6 +154,20 @@ class InspectorService:
     def documents(self) -> dict[str, Any]:
         root = self.project_root
         return self.protocol_adapter.load_live_documents(root)
+
+    def corrections(self) -> dict[str, Any]:
+        root = str(self.project_root)
+        return {"schema_version": 1, "project_root": root, "drafts": self._corrections.load(root)}
+
+    def save_correction(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            root = self.project_root
+            if self._corrections.path.resolve().is_relative_to(root.resolve()):
+                raise InspectorError("Correction storage must be outside the inspected project.")
+            try:
+                return self._corrections.save(str(root), payload)
+            except OSError as exc:
+                raise InspectorError("Correction storage is unavailable; no delivery was attempted.") from exc
 
     def activity(self) -> dict[str, Any]:
         root = self.project_root
@@ -471,6 +487,9 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.OK, self.server.service.progress())
                 return
             try:
+                if path == "/api/corrections":
+                    self._send_json(HTTPStatus.OK, self.server.service.corrections())
+                    return
                 if path == "/api/documents":
                     self._send_json(HTTPStatus.OK, self.server.service.documents())
                     return
@@ -504,6 +523,9 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
         if payload is None:
             return
         try:
+            if path == "/api/corrections":
+                self._send_json(HTTPStatus.OK, self.server.service.save_correction(payload))
+                return
             if path == "/api/rescan":
                 self._send_json(HTTPStatus.OK, self.server.service.rescan())
                 return

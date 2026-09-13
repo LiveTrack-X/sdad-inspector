@@ -49,11 +49,16 @@ size is 14 px, compact labels are 12 px, and the active packet title is 22 px.
 - `Overview`: active packet/status, objective, Doctor summary, relationships,
   and validation declarations with a persistent not-executed notice. It starts
   directly with repository evidence and does not render README marketing art.
-- `DevelopmentFlow`: exact `Plan → Route → Implement → Verify → Report` rail,
-  conditional Gate/Handoff cards, neutral evidence states, an active-packet
-  summary, explicit-only current TODO/phase emphasis, openable bounded evidence
-  documents, and a secondary worktree evidence lens. Current emphasis uses the
-  cobalt focus treatment and never reuses the green verified treatment.
+- `DevelopmentFlow`: a compact exact `Plan → Route → Implement → Verify →
+  Report` orientation rail followed by one plain-language current-situation
+  statement and a four-row Now / Reason / Caution / Next Check evidence stack.
+  Each reasoning row opens its bounded source and distinguishes declared,
+  observed, structurally verified, and unknown facts. The rail is never a
+  progress meter: only an explicit matching open TODO with `[current]` and one
+  consistent `[phase:...]` marker receives the cobalt current treatment.
+  Active packet/current TODO, bounded evidence documents, conditional
+  Gate/Handoff branches, and the secondary worktree lens remain available below
+  the primary explanation. Green remains reserved for verified evidence.
 - `DocumentViewer`: bounded Markdown content, routed-document navigation, safe
   image fallbacks, and no HTML/script or automatic remote-image execution.
 - `EvidenceView`: provenance metadata followed by the same bounded evidence
@@ -70,3 +75,36 @@ Phosphor is the UI control icon family; the generated logo is an app brand asset
 and the one-line banner is a README-only introduction asset. Neither is a
 control icon. State never relies on color alone. All
 interactive elements expose a visible focus indicator and accessible name.
+
+## SI-021 request and correction surface
+
+DevelopmentFlow retains the Split Inspector layout and adds the request selector,
+attributed request, explicit interpretation and requirement/decision reports above
+the stage situation summary. Correction drafts use native labeled fields, a
+reviewable text preview and explicit save/copy actions. Copied requests remain
+read-only and can be superseded by a new correction. History displays transport
+and AI-report stages without green verification or acceptance styling. Existing
+surface/divider/ink tokens cover both themes; controls wrap at narrow widths.
+
+## Plan and task detail access
+
+The Plan label is a keyboard-operable disclosure in the existing orientation
+rail. It opens a center-pane section with the declared objective, explicitly
+Plan-tagged work and bounded connected documents. Source previews use the same
+Markdown renderer and open the full central reader on request. The selected
+detail does not change `aria-current`, evidence status or execution meaning.
+TODO summaries expand inline to reveal continuation/child lines, declared
+status/stage, source section and line. The remaining-work heading opens the full
+TODO from both Overview and Development Flow. Native disclosures retain visible
+focus and use the existing light/dark tokens and narrow-width wrapping.
+# Request review entry and item corrections
+
+Overview begins with the current request and AI interpretation, using the same
+report component and refresh cycle as Development Flow. The paired reports use
+two columns where space permits and stack on narrow screens. Existing source,
+uncertainty and correction-response meanings remain unchanged.
+
+Declared objectives and expanded TODO items offer a compact correction disclosure.
+It previews the exact selected source/item and editable user request before copy.
+Keep missing/stale sources disabled and state that copy does not confirm delivery.
+Preserve input across workspace navigation; reload is the page-session boundary.

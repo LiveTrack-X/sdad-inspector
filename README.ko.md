@@ -18,21 +18,21 @@ SDAD 프로젝트의 현재 상태를 한 화면에서 읽어 주는 로컬 뷰�
 명령을 실행하거나 소스·SDAD 파일을 수정하지 않습니다. 제품 자체의 업데이트만
 Inspector 전용 앱 데이터와 현재 포터블 실행 파일에 씁니다.
 
-> **0.0.3 is a regular GitHub Release, but remains unsigned.** 설치 프로그램이
+> **0.0.4 is a regular GitHub Release, but remains unsigned.** 설치 프로그램이
 > 아니며 코드 서명·공증이 없습니다. 운영체제가
 > 경고하거나 실행을 막을 수 있습니다. 실행 전 `SHA256SUMS`를 확인하고, 조직의
 > 보안 정책이 허용하지 않으면 보호 기능을 우회하지 말고 소스 실행 방식을 이용하세요.
 
-> **릴리스/소스 안내:** `v0.0.3` 실행 파일은 같은 immutable 태그에서 빌드됩니다.
+> **릴리스/소스 안내:** `v0.0.4` 실행 파일은 같은 immutable 태그에서 빌드됩니다.
 > 태그의 Windows·macOS·Linux 검증이 모두 통과한 뒤에만 압축, 체크섬,
 > attestation을 정식 릴리스로 게시합니다.
 
 ## 3분 만에 시작하기
 
 Python이나 Node.js를 설치할 필요가 없습니다. 각 압축 파일 안에는 런타임, UI,
-SDAD 3.2.2 엔진이 포함된 **single portable executable** 하나만 들어 있습니다.
+SDAD 3.2.3 엔진이 포함된 **single portable executable** 하나만 들어 있습니다.
 
-1. [`v0.0.3` 릴리스](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3)를 엽니다.
+1. [`v0.0.4` 릴리스](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4)를 엽니다.
 2. 내 컴퓨터에 맞는 압축 파일과 `SHA256SUMS`를 받습니다.
 3. 아래 방법으로 해시를 확인합니다.
 4. 압축을 풀고 실행 파일을 엽니다.
@@ -40,9 +40,9 @@ SDAD 3.2.2 엔진이 포함된 **single portable executable** 하나만 들어 �
 
 | 컴퓨터 | 받을 파일 | 압축 안의 실행 파일 |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.3-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.3-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.3-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 현재 릴리스에 없는 아키텍처(예: Intel Mac)는 지원된다고 가정하지 마세요. 소스
 실행은 가능할 수 있지만, 공개 릴리스의 빌드·스모크 근거에는 포함되지 않습니다.
@@ -53,7 +53,7 @@ SDAD 3.2.2 엔진이 포함된 **single portable executable** 하나만 들어 �
 마지막 결과가 `True`여야 합니다.
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.3-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -96,7 +96,7 @@ Inspector 창이 먼저 열립니다. 이전에 열었던 유효한 프로젝트
 
 ![왼쪽 저장소 탐색, 가운데 활성 패킷과 TODO, 오른쪽 필드 출처 Inspector가 표시된 SDAD Inspector 한국어 화면](docs/assets/sdad-inspector-overview-ko.png)
 
-*개인 경로나 내부 운영 문서가 없는 공개용 합성 SDAD 3.2.2 fixture를 검사한 한국어
+*개인 경로나 내부 운영 문서가 없는 공개용 합성 SDAD 3.2.3 fixture를 검사한 한국어
 화면입니다. 우측 상단 언어 메뉴에서 English, 한국어, 日本語, 简体中文을 선택할 수
 있습니다. 테마와 UI 확대 비율은 Inspector 전용 사용자 설정에 저장됩니다.*
 
@@ -131,11 +131,11 @@ README 맨 위의 한 줄 제품 배너는 저장소 소개용입니다. 프로�
 SDAD 프레임워크 저장소만 보는 도구가 아니라, SDAD 방식으로 운영하는 실제 제품
 저장소를 읽는 도구입니다.
 
-| 계약 | 0.0.3 범위 |
+| 계약 | 0.0.4 범위 |
 | --- | --- |
-| 번들 실행 기준 | Official SDAD Protocol `v3.2.2` |
+| 번들 실행 기준 | Official SDAD Protocol `v3.2.3` |
 | 기본 프로토콜 어댑터 | `official-sdad-3` |
-| Doctor 호환성 fixture | 릴리스된 `v3.2.1`, `v3.2.2` |
+| Doctor 호환성 fixture | 릴리스된 `v3.2.1`, `v3.2.2`, `v3.2.3` |
 | SDAD state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -149,7 +149,7 @@ Inspector UI와 loopback 서버는 특정 SDAD 버전의 파일 규칙을 직접
 report/state 스키마 정규화, 제어 파일 경로, 근거 문서와 선택적 Rule 5 기능을
 Inspector snapshot schema 2로 변환합니다. UI는 이 정규화된 snapshot만 읽습니다.
 
-`0.0.3` 포터블 앱에는 검증된 `official-sdad-3` 어댑터와 SDAD 3.2.2 엔진만
+`0.0.4` 포터블 앱에는 검증된 `official-sdad-3` 어댑터와 SDAD 3.2.3 엔진만
 포함됩니다. 따라서 구조가 확장 가능하다는 사실을 “모든 SDAD 변형 지원”으로
 해석하면 안 됩니다. 다른 SDAD 계열은 다음 조건을 갖춘 별도 어댑터와 호환성
 fixture가 필요합니다.
@@ -286,7 +286,7 @@ unsigned 코드를 자동 실행할 수 없다면 소스 모드를 사용하세�
 단일 실행 파일이며 옆에 `_internal` 폴더가 필요하지 않습니다.
 
 1. 기존 복사본과 `_internal` 폴더를 섞어 쓰지 않습니다.
-2. 공식 `v0.0.3` 자산을 새 폴더에 다시 받습니다.
+2. 공식 `v0.0.4` 자산을 새 폴더에 다시 받습니다.
 3. `SHA256SUMS`를 확인합니다.
 4. 압축 속 실행 파일 하나를 꺼내 그 파일을 실행합니다.
 
@@ -295,15 +295,15 @@ unsigned 코드를 자동 실행할 수 없다면 소스 모드를 사용하세�
 
 ### Windows 탐색기에 예전 파이썬 아이콘이 보임
 
-`v0.0.3`의 EXE에는 SDAD Inspector 로고와 제품 버전 정보가 들어 있습니다. 다만
+`v0.0.4`의 EXE에는 SDAD Inspector 로고와 제품 버전 정보가 들어 있습니다. 다만
 Windows 탐색기는 실행 파일의 전체 경로를 기준으로 아이콘을 캐시하기 때문에, 같은
 폴더의 같은 `SDAD-Inspector.exe`를 수동 교체하면 실행 전에는 예전 PyInstaller
 아이콘이 남아 있을 수 있습니다.
 
-1. `v0.0.3`를 한 번 실행합니다. 정상적인 Windows 포터블 시작은 현재 EXE의 정확한
+1. `v0.0.4`를 한 번 실행합니다. 정상적인 Windows 포터블 시작은 현재 EXE의 정확한
    경로와 아이콘 연결을 셸에 다시 알립니다.
 2. 바탕 화면을 선택하고 <kbd>F5</kbd>를 눌러 표시를 새로 고칩니다.
-3. 파일 **속성 → 자세히**에서 제품 이름 `SDAD Inspector`, 제품 버전 `0.0.3`을
+3. 파일 **속성 → 자세히**에서 제품 이름 `SDAD Inspector`, 제품 버전 `0.0.4`을
    확인합니다.
 4. 실행 전부터 확인해야 한다면 릴리스 압축을 새 폴더에 풀어, 캐시 이력이 없는
    경로의 아이콘을 비교합니다.
@@ -330,9 +330,9 @@ CPython 3.12를 정확히 사용합니다.
 ```bash
 git clone https://github.com/LiveTrack-X/sdad-inspector.git
 cd sdad-inspector
-git clone --branch v3.2.2 --depth 1 \
+git clone --branch v3.2.3 --depth 1 \
   https://github.com/LiveTrack-X/spec-driven-ai-development.git \
-  .runtime/sdad-v3.2.2
+  .runtime/sdad-v3.2.3
 ```
 
 ### Windows PowerShell
@@ -343,7 +343,7 @@ python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.2
+sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.3
 ```
 
 ### macOS / Linux
@@ -354,7 +354,7 @@ source .venv/bin/activate
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.2
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 프로젝트 경로를 생략하면 가장 최근의 유효한 프로젝트를 다시 엽니다. 기록이 없는
@@ -364,7 +364,7 @@ sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.
 
 ```bash
 sdad-inspector serve /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.2
+  --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 서버는 `127.0.0.1`에만 바인딩되고 매 실행마다 새 세션 토큰을 사용합니다. Host와
@@ -374,7 +374,7 @@ Origin을 확인하고 API 응답에 `no-store`를 적용합니다.
 
 ```bash
 sdad-inspector inspect /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.2 --pretty
+  --sdad-checkout .runtime/sdad-v3.2.3 --pretty
 ```
 
 ### Redacted HTML 보고서
@@ -383,7 +383,7 @@ sdad-inspector inspect /path/to/your-project \
 
 ```bash
 sdad-inspector report /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.2 \
+  --sdad-checkout .runtime/sdad-v3.2.3 \
   --output /path/outside-project/sdad-report.html \
   --redact-paths --redact-evidence
 ```
@@ -438,7 +438,7 @@ docs/                 공개 연동·플랫폼·디자인·현지화·릴리스 
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — 화면 구조, 토큰, 컴포넌트,
   반응형 동작
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — 네 가지 UI 언어와 원문 근거 경계
-- [`docs/releases/v0.0.3.md`](docs/releases/v0.0.3.md) — 현재 릴리스의 시작 흐름,
+- [`docs/releases/v0.0.4.md`](docs/releases/v0.0.4.md) — 현재 릴리스의 시작 흐름,
   다국어, 화면 설정, 업데이트 정리와 알려진 한계
 - [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — 아이콘·증거 표시 패치
 - [`docs/releases/v0.0.1.md`](docs/releases/v0.0.1.md) — 첫 정식 릴리스 기록
@@ -449,7 +449,7 @@ docs/                 공개 연동·플랫폼·디자인·현지화·릴리스 
 
 ```bash
 npm --prefix web run build
-python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.2
+python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.3
 python3.12 scripts/smoke_native.py .
 ```
 
@@ -462,17 +462,17 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.2
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 일반 `cross-platform.yml`은 Windows, macOS, Linux에서 소스·UI·네이티브 빌드와
 직접 실행 스모크를 수행하고, 별도 깨끗한 runner가 내려받은 압축을 다시 검사하고
 실행합니다. 이 단기 CI 자산은 릴리스가 아닙니다.
 
-정확한 `v0.0.3` 태그는 같은 검증을 다시 수행한 뒤 세 플랫폼 압축과
+정확한 `v0.0.4` 태그는 같은 검증을 다시 수행한 뒤 세 플랫폼 압축과
 `SHA256SUMS`를 draft release에 올립니다. 각 자산의 GitHub artifact attestation을
 만들고, 모든 단계가 성공한 뒤에만 regular release를 게시합니다. 저장소의 immutable
 release 설정이 게시 후 태그와 자산 변경을 막습니다.

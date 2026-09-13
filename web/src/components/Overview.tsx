@@ -21,6 +21,8 @@ import { DevelopmentFlowView, PacketEvidencePanel } from "./DevelopmentFlow";
 import { InspectionProgress } from "./InspectionProgress";
 import { MarkdownViewer } from "./MarkdownViewer";
 import { Rule5View } from "./Rule5View";
+import { InteractionPanel } from "./InteractionPanel";
+import { TargetCorrection, TargetCorrectionProvider } from "./TargetCorrection";
 
 interface Props {
   snapshot: Snapshot;
@@ -349,6 +351,7 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
   const positive = errors === 0 && warnings === 0;
   return (
     <>
+      <InteractionPanel snapshot={snapshot} documents={liveDocuments} onSelect={onSelect}/>
       <section className="packet-section" aria-labelledby="active-packet-heading">
         <p className="section-kicker">{t("activePacket")}</p>
         <div className="packet-heading-row">
@@ -360,9 +363,10 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
         </div>
         <h2>{t("objective")}</h2>
         <p className="objective">{packet?.objective ?? t("noPacketObjective")}</p>
+        {packet?.objective && <TargetCorrection source={`${snapshot.protocol.state_path}#active_packet.objective`} before={packet.objective}/>}
       </section>
 
-      <PacketEvidencePanel snapshot={snapshot} documents={liveDocuments} activity={activity} work={packetWork} />
+      <PacketEvidencePanel snapshot={snapshot} documents={liveDocuments} activity={activity} work={packetWork} onSelect={onSelect}/>
 
       <section className="overview-section doctor-summary" aria-labelledby="doctor-summary-heading">
         <h2 id="doctor-summary-heading">{t("doctorSummary")}</h2>
@@ -431,7 +435,7 @@ export function Overview({ snapshot, selectedId, selection, busy, progress, onSe
     if (scrollRef.current) scrollRef.current.scrollTop = scrollPositions.current.get(selectedId) ?? 0;
   }, [selectedId, snapshot.inspection_id, liveDocuments?.read_at, activity?.scanned_at]);
   return (
-    <main className="overview-pane" id="overview" aria-label={t("workspaceView")}>
+    <TargetCorrectionProvider snapshot={snapshot} documents={liveDocuments}><main className="overview-pane" id="overview" aria-label={t("workspaceView")}>
       <div className="pane-tabs overview-tabs" role="tablist" aria-label={t("workspaceView")}>
         <button className={overviewActive ? "active" : ""} role="tab" aria-selected={overviewActive} aria-controls="workspace-panel" onClick={() => onSelect("overview")}>{t("overview")}</button>
         {!overviewActive && <button className="active context-tab" role="tab" aria-selected="true" aria-controls="workspace-panel">{selection.label}</button>}
@@ -441,6 +445,6 @@ export function Overview({ snapshot, selectedId, selection, busy, progress, onSe
       <div className="overview-scroll" id="workspace-panel" role="tabpanel" ref={scrollRef} onScroll={(event) => scrollPositions.current.set(selectedId, event.currentTarget.scrollTop)}>
         {overviewActive ? <PacketOverview snapshot={snapshot} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} /> : <ContextView snapshot={snapshot} selectedId={selectedId} selection={selection} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} rule5={rule5} />}
       </div>
-    </main>
+    </main></TargetCorrectionProvider>
   );
 }

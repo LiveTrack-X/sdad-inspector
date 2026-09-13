@@ -212,7 +212,7 @@ export function App() {
       const signals = await loadWorkspaceSignals();
       await finishProgressFeedback(startedAt);
       setSnapshot(next);
-      if (signals.documents) setLiveDocuments(signals.documents);
+      setLiveDocuments(signals.documents);
       if (signals.activity) setActivity(signals.activity);
       if (signals.rule5) setRule5(signals.rule5);
       setLoadState("ready");

@@ -25,6 +25,7 @@ from sdad_inspector.errors import (
 )
 from sdad_inspector.paths import read_bounded_text, safe_project_path
 from sdad_inspector.snapshot import inspect_project
+from sdad_inspector.state import load_live_documents
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "sdad"
@@ -221,6 +222,54 @@ class CoreInspectionTests(WorkspaceCase):
             snapshot["integrity"]["control_files_unchanged_during_inspection"]
         )
         self.assertTrue(all(not item["executed"] for item in snapshot["state"]["validation"]))
+
+    def test_coordination_profile_uses_existing_routed_markdown_boundary(self) -> None:
+        playbook = (
+            self.project
+            / "docs"
+            / "sdad"
+            / "playbooks"
+            / "coordination-and-decision-trace.md"
+        )
+        playbook.parent.mkdir(parents=True)
+        playbook.write_text(
+            "# Coordination And Decision Trace Playbook\n",
+            encoding="utf-8",
+        )
+        notes = self.project / "docs" / "implementation-notes.md"
+        notes.write_text(
+            "# Implementation Notes\n\n- Origin: packet CORE-1\n",
+            encoding="utf-8",
+        )
+        with (self.project / "sdad-state.yaml").open("a", encoding="utf-8") as state:
+            state.write(
+                "  - docs/sdad/playbooks/coordination-and-decision-trace.md\n"
+                "  - docs/implementation-notes.md\n"
+            )
+
+        before = tree_fingerprint(self.project)
+        documents = load_live_documents(self.project)
+        after = tree_fingerprint(self.project)
+        by_path = {item["path"]: item for item in documents["documents"]}
+
+        self.assertEqual(before, after)
+        self.assertEqual(
+            by_path["docs/sdad/playbooks/coordination-and-decision-trace.md"][
+                "roles"
+            ],
+            ["routed"],
+        )
+        self.assertIn(
+            "Coordination And Decision Trace",
+            by_path["docs/sdad/playbooks/coordination-and-decision-trace.md"][
+                "content"
+            ],
+        )
+        self.assertEqual(
+            by_path["docs/implementation-notes.md"]["roles"],
+            ["routed"],
+        )
+        self.assertIn("Origin", by_path["docs/implementation-notes.md"]["content"])
 
     def test_inspection_emits_observed_pipeline_progress_without_percentages(self) -> None:
         events: list[tuple[str, str, str]] = []

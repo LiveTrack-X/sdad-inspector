@@ -17,20 +17,20 @@ SDAD Inspector 是一个本地桌面查看器，用来在一个界面中了解 S
 SPEC、state、TODO 或 findings。写入仅限 Inspector 自己的用户设置、更新暂存数据
 以及正在更新的便携式可执行文件。
 
-> **0.0.3 是正式 GitHub Release，但仍未签名。** 它不是安装程序，也没有代码
+> **0.0.4 是正式 GitHub Release，但仍未签名。** 它不是安装程序，也没有代码
 > 签名或公证。运行前请核对 `SHA256SUMS`。如果组织策略不允许未签名软件，请不要
 > 绕过系统保护，应改用源码运行方式。
 
-> **发布版与源码：** `v0.0.3` 可执行文件由同一个 immutable 标签构建。只有
+> **发布版与源码：** `v0.0.4` 可执行文件由同一个 immutable 标签构建。只有
 > Windows、macOS 和 Linux 的标签验证全部通过后，才会发布压缩包、校验和与
 > attestation。
 
 ## 三分钟开始使用
 
 目标电脑无需安装 Python 或 Node.js。每个压缩包只包含一个 **single portable
-executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.2 引擎。
+executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.3 引擎。
 
-1. 打开 [`v0.0.3` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3)。
+1. 打开 [`v0.0.4` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4)。
 2. 下载适合当前电脑的压缩包和 `SHA256SUMS`。
 3. 使用下面的命令验证 SHA-256。
 4. 解压并运行其中唯一的可执行文件。
@@ -38,9 +38,9 @@ executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.2 �
 
 | 电脑 | 下载文件 | 压缩包内的可执行文件 |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.3-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.3-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.3-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 不要把表格以外的架构（例如 Intel Mac）视为已经通过公开发布验证。源码可能可以
 运行，但这不等同于便携式发布资产已经完成构建和冒烟测试。
@@ -50,7 +50,7 @@ executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.2 �
 Windows PowerShell：
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.3-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -88,7 +88,7 @@ chmod +x ./SDAD-Inspector
 
 ![SDAD Inspector 界面：左侧仓库导航，中间活动数据包和 TODO，右侧字段来源](docs/assets/sdad-inspector-overview-ko.png)
 
-这张公开截图使用不含个人路径和内部运营文档的合成 SDAD 3.2.2 fixture。右上角
+这张公开截图使用不含个人路径和内部运营文档的合成 SDAD 3.2.3 fixture。右上角
 语言菜单可以切换 English、한국어、日本語和简体中文。主题和 UI 缩放比例会保存到
 Inspector 自己的用户设置中。
 
@@ -111,13 +111,13 @@ TODO 同时带有 `[current]` 和有效 `[phase:…]` 时，界面才突出当�
 ## 可检查哪些 SDAD 项目
 
 默认目标是 [SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)
-`v3.2.2`。
+`v3.2.3`。
 
-| 契约 | 0.0.3 范围 |
+| 契约 | 0.0.4 范围 |
 | --- | --- |
-| 内置运行基准 | Official SDAD Protocol `v3.2.2` |
+| 内置运行基准 | Official SDAD Protocol `v3.2.3` |
 | 默认适配器 | `official-sdad-3` |
-| Doctor fixture | `v3.2.1`, `v3.2.2` |
+| Doctor fixture | `v3.2.1`, `v3.2.2`, `v3.2.3` |
 | state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -146,14 +146,14 @@ python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop --sdad-checkout .runtime/sdad-v3.2.2
+sdad-inspector desktop --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 省略项目路径时，程序会重新打开最新的有效项目；如果没有历史记录，则在 GUI 中
 显示首次运行选择窗口。也可以明确传入路径：
 
 ```bash
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.2
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 主要验证命令：
@@ -165,8 +165,8 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.2
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 ## 当前限制

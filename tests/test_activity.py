@@ -43,6 +43,30 @@ class LiveWorkspaceTests(WorkspaceCase):
         self.assertEqual(state["roles"], ["state"])
         self.assertIn("version: 2", state["content"])
 
+    def test_long_live_document_returns_a_bounded_readable_preview(self) -> None:
+        spec_path = self.project / "SPEC" / "SPEC-COMPLETE.md"
+        spec_path.write_text(
+            "\n".join(f"line {index}" for index in range(700)) + "\n",
+            encoding="utf-8",
+        )
+
+        before = tree_fingerprint(self.project)
+        documents = load_live_documents(self.project)
+        after = tree_fingerprint(self.project)
+        spec = next(
+            item
+            for item in documents["documents"]
+            if item["path"] == "SPEC/SPEC-COMPLETE.md"
+        )
+
+        self.assertEqual(before, after)
+        self.assertTrue(spec["exists"])
+        self.assertTrue(spec["truncated"])
+        self.assertIsNone(spec["error"])
+        self.assertEqual(len(spec["content"].splitlines()), 500)
+        self.assertIn("line 0", spec["content"])
+        self.assertNotIn("line 699", spec["content"])
+
     def test_porcelain_and_commit_parsers_preserve_unicode_without_content_reads(self) -> None:
         unicode_file = self.project / "docs" / "진행.md"
         unicode_file.write_text("work\n", encoding="utf-8")

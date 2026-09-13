@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .interactions import project_interactions
+
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,7 +10,12 @@ from typing import Any, Callable
 import yaml
 
 from .errors import BoundedReadError, InspectorError, UnsupportedContractError
-from .paths import file_metadata, read_bounded_text, safe_project_path
+from .paths import (
+    file_metadata,
+    read_bounded_text,
+    read_bounded_text_preview,
+    safe_project_path,
+)
 
 SUPPORTED_STATE_SCHEMAS = (1, 2)
 _TODO_PATTERN = re.compile(r"^- \[ \] \[packet:[A-Za-z0-9._-]+\] .+")
@@ -253,12 +260,11 @@ def load_live_documents(root: Path) -> dict[str, Any]:
     truncated = len(items) > 30
     for relative, document_roles in items[:30]:
         try:
-            content = read_bounded_text(
+            content, content_truncated = read_bounded_text_preview(
                 root,
                 relative,
                 purpose="live evidence document",
                 required=False,
-                max_lines=800,
             )
             metadata = file_metadata(root, relative)
             documents.append(
@@ -266,6 +272,7 @@ def load_live_documents(root: Path) -> dict[str, Any]:
                     **metadata,
                     "roles": document_roles,
                     "content": content,
+                    "truncated": content_truncated,
                     "error": None,
                 }
             )
@@ -276,12 +283,14 @@ def load_live_documents(root: Path) -> dict[str, Any]:
                     "exists": False,
                     "roles": document_roles,
                     "content": None,
+                    "truncated": False,
                     "error": {"code": exc.code, "message": exc.message},
                 }
             )
+    read_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     return {
-        "project_root": str(root),
-        "read_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-        "documents": documents,
-        "truncated": truncated,
+        "project_root": str(root), "read_at": read_at,
+        "documents": documents, "truncated": truncated,
+        "interactions": project_interactions(documents, packet=(state.get("active_packet") or {}).get("id"),
+            project_root=str(root), read_at=read_at, truncated=truncated),
     }

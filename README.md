@@ -20,13 +20,13 @@ validation commands and does not edit source, SPEC, state, TODO, or findings
 files. Only the Inspector product updater writes to Inspector-owned app data and
 the portable executable being updated.
 
-> **0.0.3 is a regular GitHub Release, but remains unsigned.** It is not an
+> **0.0.4 is a regular GitHub Release, but remains unsigned.** It is not an
 > installer and has no code signing or notarization. Your operating system may
 > warn or block it. Verify `SHA256SUMS` before running it. If your organization
 > does not allow unsigned software, do not bypass that policy; use the source
 > workflow instead.
 
-> **Release/source note:** `v0.0.3` is built from the matching immutable tag.
+> **Release/source note:** `v0.0.4` is built from the matching immutable tag.
 > The release archives, checksums, and attestations are produced only after the
 > tagged Windows, macOS, and Linux jobs pass.
 
@@ -34,9 +34,9 @@ the portable executable being updated.
 
 You do not need to install Python or Node.js on the destination computer. Every
 archive contains exactly one **single portable executable** with the runtime,
-UI, and authenticated SDAD 3.2.2 engine embedded.
+UI, and authenticated SDAD 3.2.3 engine embedded.
 
-1. Open the [`v0.0.3` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3).
+1. Open the [`v0.0.4` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4).
 2. Download the archive for your machine and `SHA256SUMS`.
 3. Verify the archive hash using the command below.
 4. Extract and run the only executable in the archive.
@@ -44,9 +44,9 @@ UI, and authenticated SDAD 3.2.2 engine embedded.
 
 | Computer | Download | Executable inside |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.3-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.3-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.3-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 Do not assume that an architecture missing from this table, such as Intel macOS,
 is covered by the published evidence. Source execution may work, but that is not
@@ -57,7 +57,7 @@ the same claim as a released and smoke-tested portable asset.
 Windows PowerShell, with the archive and `SHA256SUMS` in the same folder:
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.3-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -144,11 +144,11 @@ Inspector can attach to a product repository that follows
 has `sdad-state.yaml` at its root. It is not limited to inspecting the SDAD
 framework repository itself.
 
-| Contract | 0.0.3 scope |
+| Contract | 0.0.4 scope |
 | --- | --- |
-| Bundled runtime baseline | Official SDAD Protocol `v3.2.2` |
+| Bundled runtime baseline | Official SDAD Protocol `v3.2.3` |
 | Built-in protocol adapter | `official-sdad-3` |
-| Doctor compatibility fixtures | released `v3.2.1`, `v3.2.2` |
+| Doctor compatibility fixtures | released `v3.2.1`, `v3.2.2`, `v3.2.3` |
 | SDAD state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -163,8 +163,8 @@ the engine, invokes Doctor, normalizes report/state schemas, selects control
 paths and evidence documents, and exposes optional Rule 5 behavior through
 Inspector snapshot schema 2. The UI reads only that normalized snapshot.
 
-The 0.0.3 portable app bundles only the tested `official-sdad-3` adapter and SDAD
-3.2.2 engine. An extensible boundary is not a claim that every SDAD variant is
+The 0.0.4 portable app bundles only the tested `official-sdad-3` adapter and SDAD
+3.2.3 engine. An extensible boundary is not a claim that every SDAD variant is
 already supported. A different family needs its own adapter, immutable engine
 identity, schema fixtures, no-write tests, and bounded platform evidence.
 
@@ -264,7 +264,7 @@ The current CPython 3.12 one-file release does not need an adjacent `_internal`
 folder.
 
 1. Do not mix an old launcher or `_internal` folder with the current release.
-2. Download the official `v0.0.3` asset into a new folder.
+2. Download the official `v0.0.4` asset into a new folder.
 3. Verify `SHA256SUMS`.
 4. Extract and run the archive's only executable.
 
@@ -273,16 +273,16 @@ shortcut points to an old copy.
 
 ### Windows Explorer still shows the old Python icon
 
-The v0.0.3 EXE embeds the SDAD Inspector icon and product metadata. Explorer can
+The v0.0.4 EXE embeds the SDAD Inspector icon and product metadata. Explorer can
 cache icons by full path, so manually replacing a different
 `SDAD-Inspector.exe` at the same location may leave old artwork visible before
 the first launch.
 
-1. Run v0.0.3 once. Normal frozen Windows startup notifies the shell about the
+1. Run v0.0.4 once. Normal frozen Windows startup notifies the shell about the
    exact running EXE path and refreshes icon associations.
 2. Select the desktop and press <kbd>F5</kbd>.
 3. Open **Properties → Details** and confirm product name `SDAD Inspector` and
-   product version `0.0.3`.
+   product version `0.0.4`.
 4. For a pre-launch comparison, extract the release into a new folder whose path
    has no previous icon-cache history.
 
@@ -308,9 +308,9 @@ CPython 3.12.
 ```bash
 git clone https://github.com/LiveTrack-X/sdad-inspector.git
 cd sdad-inspector
-git clone --branch v3.2.2 --depth 1 \
+git clone --branch v3.2.3 --depth 1 \
   https://github.com/LiveTrack-X/spec-driven-ai-development.git \
-  .runtime/sdad-v3.2.2
+  .runtime/sdad-v3.2.3
 ```
 
 Windows PowerShell:
@@ -321,7 +321,7 @@ python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.2
+sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.3
 ```
 
 macOS or Linux:
@@ -332,7 +332,7 @@ source .venv/bin/activate
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.2
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 Omit the project path to reopen the newest valid recent project, or to show the
@@ -340,7 +340,7 @@ in-app chooser after the GUI loads on first use. For browser development, run:
 
 ```bash
 sdad-inspector serve /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.2
+  --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 The service binds only to `127.0.0.1`, creates a new session token for every
@@ -351,7 +351,7 @@ run, validates Host and Origin, and applies `no-store` to API responses.
 ```mermaid
 flowchart LR
     Repo["Selected SDAD repository\nread-only bounded files"] --> Adapter["ProtocolAdapter\nofficial-sdad-3"]
-    Engine["Authenticated SDAD 3.2.2\nDoctor runtime"] --> Adapter
+    Engine["Authenticated SDAD 3.2.3\nDoctor runtime"] --> Adapter
     Adapter --> Snapshot["Inspector snapshot schema 2"]
     Snapshot --> Service["Token-authenticated\n127.0.0.1 service"]
     Service --> UI["React UI\nbrowser or pywebview"]
@@ -376,7 +376,7 @@ update is separate from engine acquisition and project migration.
   components, and responsive behavior
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — product UI translation and
   verbatim repository-evidence boundary
-- [`docs/releases/v0.0.3.md`](docs/releases/v0.0.3.md) — current release scope,
+- [`docs/releases/v0.0.4.md`](docs/releases/v0.0.4.md) — current release scope,
   startup, localization, display preferences, update cleanup, and limitations
 - [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — icon and evidence patch
 - [`docs/releases/v0.0.1.md`](docs/releases/v0.0.1.md) — first regular release
@@ -387,7 +387,7 @@ An unsigned local one-file build must use official CPython 3.12:
 
 ```bash
 npm --prefix web run build
-python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.2
+python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.3
 python3.12 scripts/smoke_native.py .
 ```
 
@@ -400,10 +400,10 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.2
-python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.2
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
 The regular cross-platform workflow builds and directly smoke-launches Windows,
@@ -411,7 +411,7 @@ macOS, and Linux candidates. A separate clean runner downloads each archive,
 checks its single member, and launches it again. These short-lived CI artifacts
 are not releases.
 
-The exact `v0.0.3` tag repeats those gates, creates three archives plus
+The exact `v0.0.4` tag repeats those gates, creates three archives plus
 `SHA256SUMS`, makes GitHub artifact attestations, uploads to a draft, and
 publishes a regular release only after every required job passes. Immutable
 release settings prevent later tag or asset replacement.

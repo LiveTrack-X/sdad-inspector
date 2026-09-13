@@ -1,5 +1,5 @@
 import { Fragment, createElement, type ReactNode, useId, useMemo } from "react";
-import { ArrowSquareOut, CheckSquare, Image, ListBullets, Square } from "@phosphor-icons/react";
+import { ArrowSquareOut, CheckSquare, Image, Info, ListBullets, Square } from "@phosphor-icons/react";
 import { type Translate, useI18n } from "../i18n";
 import type { LiveDocument } from "../types";
 
@@ -180,6 +180,12 @@ export function MarkdownViewer({ document: liveDocument, navigation = false }: {
   if (!liveDocument.exists || liveDocument.content === null) return <div className="document-empty">{t("documentUnavailable")}</div>;
   return (
     <>
+      {liveDocument.truncated && (
+        <div className="document-preview-note" role="note">
+          <Info size={18} />
+          <p>{t("documentPreviewTruncated")}</p>
+        </div>
+      )}
       {navigation && headings.length > 0 && (
         <div className="markdown-navigation">
           <ListBullets size={18} />

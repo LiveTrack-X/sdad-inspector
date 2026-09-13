@@ -165,3 +165,10 @@ export function openRepository(): Promise<{ opened: boolean; url: string }> {
     body: "{}",
   });
 }
+
+export function getCorrections(): Promise<{schema_version: number; project_root: string; drafts: import("./interactions").Correction[]}> {
+  return request("/api/corrections");
+}
+export function saveCorrection(draft: import("./interactions").Correction): Promise<import("./interactions").Correction> {
+  return request("/api/corrections", {method: "POST", body: JSON.stringify(draft)});
+}

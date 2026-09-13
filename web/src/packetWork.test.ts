@@ -16,6 +16,9 @@ describe("packetWorkItems", () => {
       phaseConflict: false,
       section: "Active Work",
       text: "Build the exact view. Keep the continuation.",
+      summary: "Build the exact view.",
+      detail: "Build the exact view.\nKeep the continuation.",
+      line: 3,
     }]);
   });
 

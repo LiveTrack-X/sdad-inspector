@@ -36,7 +36,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.4", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     }));
   });
@@ -63,7 +63,7 @@ describe("Split Inspector", () => {
       const path = String(input);
       if (path === "/api/snapshot") return jsonResponse({ error: { code: "project_required", message: "Choose a project." } }, 422);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.4", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
 
@@ -103,7 +103,7 @@ describe("Split Inspector", () => {
 
   it("shows a verified product update and starts the replacement handoff", async () => {
     const user = userEvent.setup();
-    const ready = { supported: true, automatic: true, current_version: "0.0.2", state: "ready", available_version: "0.0.3", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.3", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-16T00:00:00Z", message: "ready", error: null };
+    const ready = { supported: true, automatic: true, current_version: "0.0.2", state: "ready", available_version: "0.0.4", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-16T00:00:00Z", message: "ready", error: null };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
@@ -115,7 +115,7 @@ describe("Split Inspector", () => {
       return jsonResponse();
     });
     renderApp();
-    expect(await screen.findByText("SDAD Inspector 0.0.3 is verified and ready")).toBeVisible();
+    expect(await screen.findByText("SDAD Inspector 0.0.4 is verified and ready")).toBeVisible();
     expect(screen.getByText(/replace this portable executable in \d+ seconds/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Restart and update" }));
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([path]) => path === "/api/update/apply")).toBe(true));
@@ -124,7 +124,7 @@ describe("Split Inspector", () => {
 
   it("acknowledges a successful replacement and lets the user dismiss its one-time notice", async () => {
     const user = userEvent.setup();
-    const updated = { supported: true, automatic: true, current_version: "0.0.3", state: "updated", available_version: "0.0.3", release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: "2026-07-16T00:00:00Z", message: "updated", error: null };
+    const updated = { supported: true, automatic: true, current_version: "0.0.4", state: "updated", available_version: "0.0.4", release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: "2026-07-16T00:00:00Z", message: "updated", error: null };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
@@ -229,8 +229,8 @@ describe("Split Inspector", () => {
   it("shows packet-tagged TODO, observed files, commits, and handoffs on the overview", async () => {
     renderApp();
     expect(await screen.findByRole("heading", { name: "Current packet TODO" })).toBeVisible();
-    expect(await screen.findByText("Build the live workspace.")).toBeVisible();
-    expect(await screen.findByText("Select the Split Inspector.")).toBeVisible();
+    expect(await screen.findByText("Build the live workspace.", {selector: "summary span"})).toBeVisible();
+    expect(await screen.findByText("Select the Split Inspector.", {selector: "summary span"})).toBeVisible();
     expect(await screen.findByText("web/src/App.tsx")).toBeVisible();
     expect(await screen.findByText("Build the browser MVP")).toBeVisible();
     expect(await screen.findByText("Progress handoff")).toBeVisible();
@@ -280,6 +280,33 @@ describe("Split Inspector", () => {
     expect(within(center).getByRole("link", { name: "Open image" })).toHaveAttribute("href", "https://img.shields.io/badge/build-pass-green");
     expect(within(center).getByRole("group", { name: "Local diagram" })).toHaveTextContent("Image not displayed in the read-only viewer");
     expect(within(center).queryByText(/!\[Build badge\]/)).not.toBeInTheDocument();
+  });
+
+  it("labels a long evidence document as a bounded preview and still renders its body", async () => {
+    const user = userEvent.setup();
+    const documents = {
+      ...liveDocumentsFixture,
+      documents: liveDocumentsFixture.documents.map((item) => item.roles.includes("active_spec") ? {
+        ...item,
+        truncated: true,
+        content: "# Active Product SPEC\n\nThe bounded beginning remains readable.\n",
+      } : item),
+    };
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/documents") return jsonResponse(documents);
+      if (path === "/api/activity") return jsonResponse(activityFixture);
+      if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      return jsonResponse();
+    });
+
+    renderApp();
+    const tree = await screen.findByRole("complementary", { name: "Repository controls" });
+    await user.click(within(tree).getByText("Active SPEC"));
+    const center = screen.getByRole("main", { name: "Workspace view" });
+    expect(await within(center).findByText("The bounded beginning remains readable.")).toBeVisible();
+    expect(within(center).getByRole("note")).toHaveTextContent("safe live-reading budget");
   });
 
   it("navigates live Markdown headings and keeps routed documents in a responsive disclosure", async () => {
@@ -482,9 +509,10 @@ describe("Split Inspector", () => {
     expect(within(officialFlow).getByText("Implement")).toBeVisible();
     expect(within(officialFlow).getByText("Verify")).toBeVisible();
     expect(within(officialFlow).getByText("Report")).toBeVisible();
-    expect(within(officialFlow).getByText("Doctor structural check")).toBeVisible();
-    expect(within(officialFlow).getByText("Execution evidence")).toBeVisible();
-    expect(within(officialFlow).getByText("Owner-accepted")).toBeVisible();
+    expect(within(officialFlow).getByText("Unverified")).toBeVisible();
+    expect(within(center).getByRole("heading", { name: /does not explicitly declare a current phase/ })).toBeVisible();
+    expect(within(center).getByText("No exact current TODO is declared.")).toBeVisible();
+    expect(within(center).getAllByText("Still unknown").length).toBeGreaterThan(0);
     expect(within(center).getByText("New file")).toHaveAttribute("title", "Raw Git status: ??");
     expect(center.querySelector('[aria-current="step"]')).toBeNull();
     expect(within(center).getByText("Gate declared · approval evidence unobserved")).toBeVisible();
@@ -509,7 +537,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.4", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
 
@@ -517,17 +545,59 @@ describe("Split Inspector", () => {
     const tree = await screen.findByRole("complementary", { name: "Repository controls" });
     await user.click(within(tree).getByText("Development Flow"));
     const center = screen.getByRole("main", { name: "Workspace view" });
-    expect(within(center).getByRole("heading", { name: "Current declared work" })).toBeVisible();
-    expect(within(center).getByText("Build the exact declared-work view.")).toBeVisible();
-    expect(within(center).getByText("Keep the remaining work visible.")).toBeVisible();
+    expect(within(center).getByRole("heading", { name: "Active packet and current TODO" })).toBeVisible();
+    expect(within(center).getByRole("heading", { name: /explicitly declares Implement as current/ })).toBeVisible();
+    expect(within(center).getAllByText(/Build the exact declared-work view\./).length).toBeGreaterThan(0);
+    expect(within(center).getByText("Keep the remaining work visible.", {selector: "summary span"})).toBeVisible();
     const currentStage = center.querySelector('[aria-current="step"]');
     expect(currentStage).not.toBeNull();
     expect(currentStage).toHaveTextContent("Implement");
     expect(currentStage).toHaveTextContent("Current");
+    expect(within(center).getAllByRole("button", { name: "Open source docs/TODO-Open-Items.md" })).toHaveLength(3);
+    expect(within(center).getByRole("button", { name: "Open source Doctor Report (JSON)" })).toBeVisible();
 
+    await user.click(within(center).getAllByRole("button", { name: "Open source docs/TODO-Open-Items.md" })[0]);
+    expect(await within(center).findByRole("heading", { name: "Active TODO" })).toBeVisible();
+    await user.click(within(tree).getByText("Development Flow"));
+    await user.click(within(center).getByRole("button", { name: "Open source sdad-state.yaml" }));
+    expect(await within(center).findByRole("heading", { name: "State Evidence" })).toBeVisible();
+    await user.click(within(tree).getByText("Development Flow"));
+    await user.click(within(center).getByRole("button", { name: "Open source Doctor Report (JSON)" }));
+    expect(await within(center).findByRole("heading", { name: "Doctor Report" })).toBeVisible();
+    await user.click(within(tree).getByText("Development Flow"));
     await user.click(within(center).getByRole("button", { name: "Open evidence document review-findings.md" }));
     expect(await within(center).findByRole("heading", { name: "Review Findings" })).toBeVisible();
     expect(within(center).getByText("No active finding.")).toBeVisible();
+  });
+
+  it("explains conflicting current-phase markers without selecting a stage", async () => {
+    const user = userEvent.setup();
+    const documents = {
+      ...liveDocumentsFixture,
+      documents: liveDocumentsFixture.documents.map((document) => document.roles.includes("todo")
+        ? {
+            ...document,
+            content: "# Open Implementation Items\n\n## Active Work\n\n- [ ] [packet:SI-003-browser-mvp] [phase:Implement] [current] Build it.\n- [ ] [packet:SI-003-browser-mvp] [phase:Verify] [current] Verify it.\n",
+          }
+        : document),
+    };
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const path = String(input);
+      if (path === "/api/documents") return jsonResponse(documents);
+      if (path === "/api/activity") return jsonResponse(activityFixture);
+      if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
+      if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.4", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      return jsonResponse();
+    });
+
+    renderApp();
+    const tree = await screen.findByRole("complementary", { name: "Repository controls" });
+    await user.click(within(tree).getByText("Development Flow"));
+    const center = screen.getByRole("main", { name: "Workspace view" });
+    expect(within(center).getByRole("heading", { name: /conflicting or invalid current-phase markers/ })).toBeVisible();
+    expect(within(center).getByText("Current TODO markers are missing, invalid, or conflict across more than one official phase.")).toBeVisible();
+    expect(center.querySelector('[aria-current="step"]')).toBeNull();
   });
 
   it("uses the secondary worktree lens to drill into changed files and restore the full list", async () => {
@@ -761,8 +831,9 @@ describe("Split Inspector", () => {
     await user.click(screen.getByText("Development Flow"));
     const flow = screen.getByRole("region", { name: "Official SDAD control loop" });
     expect(within(flow).getByText("Plan")).toBeVisible();
-    expect(within(flow).getAllByText("Failed").length).toBe(2);
+    expect(within(flow).getAllByText("Failed").length).toBe(1);
     expect(within(flow).getAllByText("Unobserved").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: /does not explicitly declare a current phase/ })).toBeVisible();
   });
 
   it("selects Korean for a Korean browser while preserving repository evidence", async () => {
@@ -782,7 +853,7 @@ describe("Split Inspector", () => {
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
-      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.3", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
+      if (path === "/api/update/check" || path === "/api/update") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.4", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
       return jsonResponse();
     });
     renderApp();
@@ -799,8 +870,9 @@ describe("Split Inspector", () => {
     for (const stage of ["Plan", "Route", "Implement", "Verify", "Report"]) {
       expect(within(flow).getByText(stage)).toBeVisible();
     }
-    expect(screen.getByRole("heading", { name: "현재 선언된 작업" })).toBeVisible();
-    expect(screen.getByText("현재 작업을 정확히 표시한다.")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "현재 패킷 및 활성 TODO" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /현재 단계가 Implement로 명시되었습니다/ })).toBeVisible();
+    expect(screen.getAllByText(/현재 작업을 정확히 표시한다\./).length).toBeGreaterThan(0);
     expect(screen.getByText("근거 문서")).toBeVisible();
     expect(screen.getByRole("main", { name: "작업공간 보기" }).querySelector('[aria-current="step"]')).toHaveTextContent("Implement");
   });

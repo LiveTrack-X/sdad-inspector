@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the frozen SDAD 3.2.1/3.2.2 compatibility fixture contract."""
+"""Validate the frozen SDAD 3.2.1/3.2.2/3.2.3 compatibility fixture contract."""
 
 from __future__ import annotations
 
@@ -16,6 +16,22 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "tests" / "fixtures" / "sdad" / "manifest.json"
+# Golden projects declare this date. Freeze only Doctor's date dependency so
+# recapture tests report compatibility, not elapsed wall time since recording.
+CAPTURE_DATE = "2026-07-15"
+CAPTURE_WRAPPER = """
+import sys
+from pathlib import Path
+from datetime import date
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+import sdad
+class CaptureDate(date):
+    @classmethod
+    def today(cls):
+        return cls.fromisoformat(sys.argv[2])
+sdad.date = CaptureDate
+raise SystemExit(sdad.run_cli(sys.argv[3:]))
+"""
 CHECK_ORDER = [
     "state_schema",
     "path_integrity",
@@ -24,6 +40,7 @@ CHECK_ORDER = [
     "review_state",
 ]
 RELEASES = {
+    "3.2.3": {'tag': 'v3.2.3', 'tag_object': '12a3d94473dd5f5128efa186a495c605c2944b46', 'commit': '707cc8861df0340b2a2bb7c9761d3529ca387684'},
     "3.2.1": {
         "tag": "v3.2.1",
         "tag_object": "9833401b72e2913777ed860009967fdcdadcb219",
@@ -232,7 +249,7 @@ def validate_manifest() -> int:
                 continue
             _validate_report(version, entry, report, errors)
 
-    _require(report_count == 8, f"expected 8 reports, found {report_count}", errors)
+    _require(report_count == len(RELEASES) * len(SCENARIOS), f"expected {len(RELEASES) * len(SCENARIOS)} reports, found {report_count}", errors)
     if errors:
         raise ContractError("\n".join(f"- {error}" for error in errors))
     return report_count
@@ -323,6 +340,11 @@ def _scenario_arguments(version: str, scenario: str) -> list[str]:
     raise ContractError(f"cannot recapture unknown scenario: {scenario}")
 
 
+def capture_command(script: Path, version: str, scenario: str) -> list[str]:
+    return [sys.executable, "-c", CAPTURE_WRAPPER, str(script), CAPTURE_DATE,
+            *_scenario_arguments(version, scenario)]
+
+
 def recapture_tagged_reports(repo: Path) -> int:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     compared = 0
@@ -336,7 +358,7 @@ def recapture_tagged_reports(repo: Path) -> int:
             for entry in release["reports"]:
                 scenario = entry["scenario"]
                 result = subprocess.run(
-                    [sys.executable, str(script), *_scenario_arguments(version, scenario)],
+                    capture_command(script, version, scenario),
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -375,7 +397,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--recapture",
         action="store_true",
-        help="Re-run all eight scenarios from git archives of the released tags.",
+        help="Re-run all supported scenarios from git archives of the released tags.",
     )
     args = parser.parse_args(argv)
     if args.recapture and args.sdad_repo is None:
@@ -397,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
         suffix += " and local tag objects"
     if recaptured:
         suffix += f"; {recaptured} live tagged reports matched"
-    print(f"SDAD compatibility contract OK: 2 releases, {count} normalized reports{suffix}.")
+    print(f"SDAD compatibility contract OK: {len(RELEASES)} releases, {count} normalized reports{suffix}.")
     return 0
 
 

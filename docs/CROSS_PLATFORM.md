@@ -8,13 +8,13 @@ One Python codebase owns inspection, bundled-engine authentication, the closed
 loopback service, the native shell, and product-update verification. React/Vite
 produces one static frontend. pywebview opens that same authenticated loopback
 URL in a native window. PyInstaller produces an unsigned one-file executable
-with CPython 3.12, the web bundle, and the authenticated SDAD 3.2.2 engine
+with CPython 3.12, the web bundle, and the authenticated SDAD 3.2.3 engine
 embedded.
 
 Inspector orchestration reaches that engine through the built-in
 `official-sdad-3` protocol adapter and emits Inspector snapshot schema 2. The
 adapter registry is separate from the renderer and from product update logic;
-the 0.0.3 portable packages do not discover or download additional adapters.
+the 0.0.4 portable packages do not discover or download additional adapters.
 
 The renderer receives no general Python bridge, filesystem bridge, or subprocess
 capability. The packaged product updater is exposed only through fixed
@@ -24,9 +24,9 @@ authenticated loopback routes; source/browser mode reports it as unsupported.
 
 | Platform | UI engine | GitHub runner | Release asset |
 | --- | --- | --- | --- |
-| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.3-windows-x64.zip` |
-| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.3-macos-arm64.tar.gz` |
-| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.3-linux-x64.tar.gz` |
+| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.4-windows-x64.zip` |
+| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` |
+| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` |
 
 The table names exact build targets, not every machine supported by the
 operating-system family. pywebview's platform dependencies are documented in

@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_VERSION_INFO = {
     b"FileDescription": b"SDAD Inspector",
     b"ProductName": b"SDAD Inspector",
-    b"FileVersion": b"0.0.3.0",
-    b"ProductVersion": b"0.0.3",
+    b"FileVersion": b"0.0.4.0",
+    b"ProductVersion": b"0.0.4",
     b"OriginalFilename": b"SDAD-Inspector.exe",
 }
 
@@ -88,6 +88,14 @@ def validate(executable: Path, source_icon: Path) -> dict[str, object]:
         }
         if mismatches:
             raise ValueError(f"Unexpected Windows version metadata: {mismatches}")
+        fixed = pe.VS_FIXEDFILEINFO[0]
+        expected_numeric = (0, 0, 4, 0)
+        for kind in ("File", "Product"):
+            high = getattr(fixed, kind + "VersionMS")
+            low = getattr(fixed, kind + "VersionLS")
+            actual_numeric = (high >> 16, high & 0xffff, low >> 16, low & 0xffff)
+            if actual_numeric != expected_numeric:
+                raise ValueError(f"Unexpected numeric {kind} version: {actual_numeric}")
         expected_frames = _icon_frames(source_icon)
         embedded_frames = _pe_icon_frames(pe, pefile)
         if embedded_frames != expected_frames:

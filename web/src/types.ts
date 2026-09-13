@@ -156,10 +156,12 @@ export interface LiveDocument {
   bytes?: number;
   modified_ns?: number;
   sha256?: string;
+  truncated?: boolean;
   error: { code: string; message: string } | null;
 }
 
 export interface LiveDocuments {
+  interactions?: import("./interactions").InteractionProjection;
   project_root: string;
   read_at: string;
   documents: LiveDocument[];
