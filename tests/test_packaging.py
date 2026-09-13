@@ -11,6 +11,19 @@ from test_core import WorkspaceCase
 
 
 class EngineStagingTests(WorkspaceCase):
+    def test_csv_line_endings_preserve_identity_but_content_changes_do_not(self) -> None:
+        csv = self.engine / "results.csv"
+        csv.write_bytes(b"case,result\nexample,passed\n")
+        digest = _release_tree_digest(self.engine)
+        csv.write_bytes(b"case,result\r\nexample,passed\r\n")
+        self.assertEqual(_release_tree_digest(self.engine), digest)
+        destination = self.root / "staged-csv-engine"
+        with patch.dict(RELEASE_TREE_SHA256, {"3.2.2": digest}):
+            stage_release_engine(self.engine, destination)
+            (destination / "results.csv").write_bytes(b"case,result\nexample,failed\n")
+            with self.assertRaises(EngineError):
+                probe_engine(destination)
+
     def test_authenticated_release_is_copied_and_reauthenticated(self) -> None:
         digest = _release_tree_digest(self.engine)
         destination = self.root / "staged-engine"

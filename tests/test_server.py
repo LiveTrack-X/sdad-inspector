@@ -79,15 +79,15 @@ class LoopbackServerTests(WorkspaceCase):
 
     def test_correction_api_requires_origin_and_exact_project_without_project_writes(self) -> None:
         draft = {"id": "C1", "request_id": "R1", "packet": "P1", "base_revision": "r1",
-                 "project_root": str(self.project), "before": "browser", "correction": "account",
+                 "project_root": str(self.server.service.project_root), "before": "browser", "correction": "account",
                  "supersedes": "", "copy_state": "draft"}
         before = tree_fingerprint(self.project)
         status, _, _ = self.request("/api/corrections", method="POST", token=self.token, payload=draft)
         self.assertEqual(status, 403)
         status, _, _ = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload={**draft, "project_root": "other"})
         self.assertEqual(status, 422)
-        status, _, _ = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload=draft)
-        self.assertEqual(status, 200)
+        status, _, body = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload=draft)
+        self.assertEqual(status, 200, body)
         status, _, body = self.request("/api/corrections", token=self.token)
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["drafts"], [{**draft, "revision": 1}])

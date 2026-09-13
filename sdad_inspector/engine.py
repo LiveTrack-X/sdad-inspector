@@ -19,12 +19,13 @@ RELEASE_COMMITS = {
     "3.2.2": "cd1b1ddb3e6bcb19b531034742c7d67b4257768e",
 }
 RELEASE_TREE_SHA256 = {
-    "3.2.3": "7bdefd4396df44e968626bb2bbed2c7f6c489e8cd3d7463f2be42fb0abcb4381",
+    "3.2.3": "04939680bde62bc7f728b119a0a420ed494474d831380a17d65dc0c4521dc06c",
     "3.2.1": "0e2bc4324cf247c173b1b5fdbb711c3ccbd2e46b02e0108b01bb16a4ef8b44cb",
     "3.2.2": "a2658b011844a5ee4f3683a90bac3d8135da56579aecf29ef4f3b031ddf79401",
 }
 MAX_DOCTOR_OUTPUT_BYTES = 1024 * 1024
 RELEASE_TEXT_SUFFIXES = {
+    ".csv",
     ".html",
     ".json",
     ".md",
