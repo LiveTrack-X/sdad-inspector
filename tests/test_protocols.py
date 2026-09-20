@@ -130,7 +130,7 @@ class ProtocolAdapterTests(unittest.TestCase):
     def test_default_adapter_is_explicit_and_version_bounded(self) -> None:
         adapter = resolve_protocol_adapter()
         self.assertEqual(adapter.descriptor.adapter_id, DEFAULT_PROTOCOL_ADAPTER_ID)
-        self.assertEqual(adapter.descriptor.supported_engine_versions, ("3.2.1", "3.2.2", "3.2.3"))
+        self.assertEqual(adapter.descriptor.supported_engine_versions, ("3.2.1", "3.2.2", "3.2.3", "3.2.4"))
         self.assertIn(
             DEFAULT_PROTOCOL_ADAPTER_ID,
             {descriptor.adapter_id for descriptor in registered_protocol_adapters()},

@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resumeComparisonAction } from '../api';
 import { I18nProvider } from '../i18n';
@@ -33,6 +33,11 @@ async function enable() {
 function row(name: string) {
   return screen.getAllByText(name, { selector: '.resume-change-heading strong' })[0].closest('li')!;
 }
+function deferredStore() {
+  let resolve!: (store: Awaited<ReturnType<typeof resumeComparisonAction>>) => void;
+  const promise = new Promise<Awaited<ReturnType<typeof resumeComparisonAction>>>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 beforeEach(() => {
   localStorage.clear();
@@ -60,11 +65,63 @@ describe('resume comparison controls', () => {
     expect(entries.size).toBe(0);
     expect(action.mock.calls.every(([, , mode]) => mode === 'observe')).toBe(true);
     expect(screen.getByText(/Document bodies are not stored/)).toBeVisible();
+    expect(await screen.findByText('No saved comparison baseline')).toBeVisible();
+    expect(screen.getByText(/changes made before now cannot be reconstructed/)).toBeVisible();
+    expect(screen.getByText(/starting point to compare future changes/)).toBeVisible();
+    expect(screen.getByText(/The inspected project stays read-only/)).toBeVisible();
     await enable();
+    expect(screen.queryByText('No saved comparison baseline')).not.toBeInTheDocument();
     expect(action).toHaveBeenCalledWith(current.project.root, current.inspection_id, 'enable');
     expect(action.mock.calls.every((call) => call.length === 3)).toBe(true);
     expect(Object.keys(localStorage).some((key) => key.includes('resume'))).toBe(false);
     expect(screen.queryByRole('heading', { name: 'Declared state' })).not.toBeInTheDocument();
+  });
+
+  it('confirms absence only after loading finishes and never enables saving while history is unknown', async () => {
+    const response = deferredStore();
+    action.mockReturnValue(response.promise);
+    render(view(snapshot()));
+    expect(screen.getByText('Checking saved comparison history…')).toBeVisible();
+    expect(screen.queryByText('No saved comparison baseline')).not.toBeInTheDocument();
+    expect(screen.queryByText(/changes made before now cannot be reconstructed/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enable and save baseline' })).toBeDisabled();
+    await act(async () => response.resolve({ version: 1, projects: [], retained_projects: 0 }));
+    expect(screen.getByText('No saved comparison baseline')).toBeVisible();
+    expect(screen.queryByText('Checking saved comparison history…')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enable and save baseline' })).toBeEnabled();
+    expect(action.mock.calls.every(([, , mode]) => mode === 'observe')).toBe(true);
+    expect(entries.size).toBe(0);
+  });
+
+  it('does not carry confirmed absence across scans or projects, including a late previous-project read', async () => {
+    const before = snapshot();
+    const mounted = render(view(before));
+    await screen.findByText('No saved comparison baseline');
+    const oldResponse = deferredStore();
+    const currentResponse = deferredStore();
+    action.mockImplementation((root) => root === before.project.root ? oldResponse.promise : currentResponse.promise);
+    mounted.rerender(view(snapshot(1)));
+    expect(screen.queryByText('No saved comparison baseline')).not.toBeInTheDocument();
+    expect(screen.getByText('Checking saved comparison history…')).toBeVisible();
+    const other = snapshot(2); other.project = { ...other.project, root: 'C:\\other', identity: 'other' };
+    mounted.rerender(view(other));
+    await act(async () => oldResponse.resolve({ version: 1, projects: [], retained_projects: 0 }));
+    expect(screen.queryByText('No saved comparison baseline')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enable and save baseline' })).toBeDisabled();
+    await act(async () => currentResponse.resolve({ version: 1, projects: [], retained_projects: 0 }));
+    expect(screen.getByText('No saved comparison baseline')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Enable and save baseline' })).toBeEnabled();
+    expect(entries.size).toBe(0);
+  });
+
+  it('keeps an unavailable current inspection distinct from confirmed missing history', async () => {
+    const stale = snapshot(); stale.inspection_status = 'stale';
+    render(view(stale));
+    await screen.findByText('No saved comparison baseline');
+    expect(screen.getByText(/A coherent completed inspection with readable state is required/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Enable and save baseline' })).toBeDisabled();
+    expect(action.mock.calls.every(([, , mode]) => mode === 'read')).toBe(true);
+    expect(entries.size).toBe(0);
   });
 
   it('retains the pinned baseline across StrictMode, new scans and a page remount, then compares explicitly', async () => {
@@ -162,20 +219,24 @@ describe('resume comparison controls', () => {
     action.mockRejectedValueOnce(new Error('offline')).mockRejectedValueOnce(new Error('offline'));
     render(view(snapshot()));
     await screen.findByRole('alert');
+    expect(screen.queryByText('No saved comparison baseline')).not.toBeInTheDocument();
+    expect(screen.queryByText(/changes made before now cannot be reconstructed/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enable and save baseline' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry reading history' }));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(screen.getByText('No saved comparison baseline')).toBeVisible();
     expect(entries.size).toBe(0);
   });
 
   it.each([
-    ['ko', '재개 전 변경 비교', '켜고 비교 기준 저장'],
-    ['ja', '再開前の変更比較', '有効にして比較基準を保存'],
-    ['zh-CN', '恢复前变更比较', '启用并保存比较基准'],
-  ])('localizes comparison controls in %s', async (locale, title, enableLabel) => {
+    ['ko', '재개 전 변경 비교', '켜고 비교 기준 저장', '저장된 비교 기준 없음'],
+    ['ja', '再開前の変更比較', '有効にして比較基準を保存', '保存した比較基準がありません'],
+    ['zh-CN', '恢复前变更比较', '启用并保存比较基准', '尚未保存比较基准'],
+  ])('localizes comparison controls and confirmed absence in %s', async (locale, title, enableLabel, emptyLabel) => {
     Object.defineProperty(navigator, 'languages', { configurable: true, value: [locale] });
     render(view(snapshot()));
     expect(screen.getByRole('heading', { name: title })).toBeVisible();
     await waitFor(() => expect(screen.getByRole('button', { name: enableLabel })).toBeEnabled());
+    expect(screen.getByText(emptyLabel)).toBeVisible();
   });
 });

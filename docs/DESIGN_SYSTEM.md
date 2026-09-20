@@ -88,6 +88,18 @@ surface/divider/ink tokens cover both themes; controls wrap at narrow widths.
 
 ## Plan and task detail access
 
+The packet TODO separates current markers, other open entries, checked entries,
+and explicitly deferred work. Open entries keep source order without selecting
+an execution priority. Known packet deferral still groups preserved open entries
+as deferred when the TODO observation is incomplete; counts remain unknown.
+The original task text, detail and source access remain unchanged.
+
+Verification comparisons retain two explicitly inspected observations with
+separate timestamps and limits. The responsive table keeps field labels and
+original evidence access available at narrow widths. A missing resume baseline
+is explained only after a successful read for the current project and inspection;
+loading and errors never imply absence or trigger a baseline save.
+
 The Plan label is a keyboard-operable disclosure in the existing orientation
 rail. It opens a center-pane section with the declared objective, explicitly
 Plan-tagged work and bounded connected documents. Source previews use the same

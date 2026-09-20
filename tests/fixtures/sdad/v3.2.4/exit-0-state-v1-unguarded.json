@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "root": "<PROJECT_ROOT>",
+  "strict": false,
+  "summary": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "checks": {
+    "run": [
+      "state_schema",
+      "path_integrity",
+      "packet_coherence",
+      "owner_gates",
+      "review_state"
+    ],
+    "skipped": []
+  },
+  "findings": []
+}

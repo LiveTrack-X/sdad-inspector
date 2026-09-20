@@ -64,12 +64,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--sdad-checkout",
         type=Path,
-        default=ROOT / ".runtime" / "sdad-v3.2.3",
-        help="Path to a clean authenticated SDAD v3.2.3 checkout.",
+        default=ROOT / ".runtime" / "sdad-v3.2.4",
+        help="Path to a clean authenticated SDAD v3.2.4 checkout.",
     )
     args = parser.parse_args(argv)
     engine = args.sdad_checkout.resolve()
-    require(engine.is_dir(), "Clean v3.2.3 runtime archive is missing.")
+    require(engine.is_dir(), "Clean v3.2.4 runtime archive is missing.")
     require(FIXTURE_PROJECT.is_dir(), "Synthetic state-v2 fixture project is missing.")
     with tempfile.TemporaryDirectory(prefix="sdad-inspector-report-") as directory:
         temporary_root = Path(directory)

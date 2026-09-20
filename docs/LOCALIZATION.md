@@ -38,6 +38,12 @@ localized. Repository and engine evidence always remains verbatim, including:
 - Doctor finding messages and remediations;
 - raw snapshot JSON, YAML, Markdown, and timestamps.
 
+Verification details pair recognized product-owned reason codes with localized
+explanations. The original code and returned evidence remain available for
+inspection; unknown messages and receipt-authored scope/limitations are not
+translated or reinterpreted. Resume comparison distinguishes a confirmed missing
+baseline from loading or a failed read in each supported locale.
+
 No translation service or network request is used. Locale selection mutates
 only Inspector-owned user preferences and never writes the inspected
 repository. The language-specific public guides are `README.md`,

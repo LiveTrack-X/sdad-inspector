@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getVerificationReceiptList, inspectVerificationReceipt, revealPath } from "../api";
 import { I18nProvider, LOCALE_STORAGE_KEY } from "../i18n";
 import { snapshotFixture } from "../test/fixture";
 import type { VerificationReceiptInspection, VerificationReceiptList } from "../verificationReceipts";
+import { verificationCopy } from "../verificationCopy";
 import { VerificationRecords } from "./VerificationRecords";
 
 vi.mock("../api", () => ({ getVerificationReceiptList: vi.fn(), inspectVerificationReceipt: vi.fn(), revealPath: vi.fn().mockResolvedValue({ revealed: true }) }));
@@ -85,7 +86,7 @@ describe("verification receipt navigation", () => {
     expect(screen.queryByText(/No verification receipts/)).not.toBeInTheDocument();
     await select();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText("Command succeeded")).toBeInTheDocument();
+    expect(within(screen.getByRole("article", { name: "Selected record" })).getByText("Command succeeded")).toBeInTheDocument();
   });
   it("clears a previous comparison when comparison fails and requires a fresh list", async () => {
     vi.mocked(getVerificationReceiptList).mockResolvedValue(list());
@@ -159,6 +160,150 @@ describe("verification receipt navigation", () => {
   it("disables receipt reads for stale inspections", () => {
     show({ ...snapshotFixture, inspection_status: "stale" });
     expect(screen.getByRole("button", { name: "Read verification records" })).toBeDisabled();
+  });
+  it("compares two explicitly inspected observations without reopening details or reading other records", async () => {
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list(["first.json", "second.json", "unread.json"]));
+    const first = fixture("first.json");
+    first.observation.receipt = { ...first.observation.receipt!, packet: "OLD", scope: "owner first scope", outcome: "failed", exit_code: 7 };
+    const second = fixture("second.json");
+    second.read_at = "2026-09-20T07:00:00Z";
+    second.observation.source_match = "matched";
+    second.observation.receipt = { ...second.observation.receipt!, scope: "owner second scope" };
+    vi.mocked(inspectVerificationReceipt).mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    show(); await read(); await select("first.json");
+    expect(screen.getByText(/Inspect another record/)).toBeVisible();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    await select("second.json");
+    const table = screen.getByRole("table", { name: "Compare inspected records" });
+    const comparison = within(table);
+    expect(comparison.getByText("owner first scope")).toBeVisible();
+    expect(comparison.getByText("owner second scope")).toBeVisible();
+    expect(comparison.getByText("Command failed")).toBeVisible();
+    expect(comparison.getByText("Command succeeded")).toBeVisible();
+    expect(comparison.getByText("Changed")).toBeVisible();
+    expect(comparison.getAllByText("Matches")).toHaveLength(3);
+    expect(comparison.getByText("Another packet")).toBeVisible();
+    expect(comparison.getByText("Exit code: 7")).toBeVisible();
+    expect(table.querySelector('time[datetime="2026-09-20T06:00:00Z"]')).toBeVisible();
+    expect(table.querySelector('time[datetime="2026-09-20T07:00:00Z"]')).toBeVisible();
+    expect(screen.getByText(/not a simultaneous check or a combined completion result/)).toBeVisible();
+    expect(table.parentElement).toHaveFocus();
+    expect(inspectVerificationReceipt).toHaveBeenCalledTimes(2);
+    expect(getVerificationReceiptList).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Recorded command and sources").closest("details")).not.toHaveAttribute("open");
+  });
+  it("keeps only two distinct latest observations and lets users remove or clear without new reads", async () => {
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list(["a.json", "b.json", "c.json"]));
+    vi.mocked(inspectVerificationReceipt).mockImplementation(async (_root, path) => fixture(path));
+    show(); await read(); await select("a.json"); await select("b.json"); await select("c.json");
+    let table = screen.getByRole("table");
+    expect(within(table).queryByText("a.json")).not.toBeInTheDocument();
+    expect(within(table).getByText("b.json")).toBeVisible();
+    expect(within(table).getByText("c.json")).toBeVisible();
+    await select("b.json");
+    table = screen.getByRole("table");
+    expect(within(table).getAllByRole("columnheader")).toHaveLength(3);
+    expect(within(table).getAllByText("b.json")).toHaveLength(1);
+    fireEvent.click(within(table).getByRole("button", { name: "Remove from comparison: c.json" }));
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText(/Inspect another record/)).toHaveTextContent("b.json");
+    fireEvent.click(screen.getByRole("button", { name: "Clear comparison" }));
+    expect(screen.queryByText(/Inspect another record/)).not.toBeInTheDocument();
+    expect(inspectVerificationReceipt).toHaveBeenCalledTimes(4);
+    expect(getVerificationReceiptList).toHaveBeenCalledTimes(1);
+  });
+  it("retains the first observation across pinned list pages and clears both on a fresh read", async () => {
+    vi.mocked(getVerificationReceiptList).mockResolvedValueOnce({ ...list(["a.json"]), total: 11, next_offset: 10 })
+      .mockResolvedValueOnce({ ...list(["b.json"]), offset: 10, total: 11 })
+      .mockResolvedValueOnce(list(["a.json"]));
+    vi.mocked(inspectVerificationReceipt).mockImplementation(async (_root, path) => fixture(path));
+    show(); await read(); await select("a.json");
+    fireEvent.click(screen.getByRole("button", { name: "Next records" }));
+    await screen.findByText("11–11 / 11"); await select("b.json");
+    expect(within(screen.getByRole("table")).getByText("a.json")).toBeVisible();
+    expect(inspectVerificationReceipt).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole("button", { name: "Read records again" }));
+    await screen.findByRole("button", { name: "Read records again" });
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Inspect another record/)).not.toBeInTheDocument();
+  });
+  it.each(["rescan", "packet", "root", "routes", "stale"])("invalidates retained observations on %s changes even without a new project identity", async kind => {
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list(["a.json", "b.json"]));
+    vi.mocked(inspectVerificationReceipt).mockImplementation(async (_root, path) => fixture(path));
+    const view = show(); await read(); await select("a.json"); await select("b.json");
+    const next = structuredClone(snapshotFixture);
+    if (kind === "rescan") next.inspection_id = "new-inspection";
+    if (kind === "packet") next.state.active_packet!.id = "new-packet";
+    if (kind === "root") next.project.root = "/other-root";
+    if (kind === "routes") next.state.routed_docs = [...next.state.routed_docs, "new.json"];
+    if (kind === "stale") next.inspection_status = "stale";
+    view.rerender(<I18nProvider><VerificationRecords snapshot={next} /></I18nProvider>);
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Inspect another record/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Selected record" })).not.toBeInTheDocument();
+    expect(inspectVerificationReceipt).toHaveBeenCalledTimes(2);
+  });
+  it("discards retained comparisons and preserves original API error codes after route failure", async () => {
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list(["a.json", "b.json"]));
+    const error = Object.assign(new Error("Original route revision has changed"), { code: "receipt_navigation_changed" });
+    vi.mocked(inspectVerificationReceipt).mockResolvedValueOnce(fixture("a.json")).mockResolvedValueOnce(fixture("b.json")).mockRejectedValueOnce(error);
+    show(); await read(); await select("a.json"); await select("b.json");
+    fireEvent.click(screen.getByRole("button", { name: "Compare record again" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The record list changed");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Original error details"));
+    expect(screen.getByText(/"code":"receipt_navigation_changed"/)).toBeVisible();
+    expect(screen.getByText(/Original route revision has changed/)).toBeVisible();
+  });
+  it("does not rebuild a comparison from a late observation after routed documents change", async () => {
+    let finish!: (value: VerificationReceiptInspection) => void;
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list(["a.json", "b.json"]));
+    vi.mocked(inspectVerificationReceipt).mockResolvedValueOnce(fixture("a.json")).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const view = show(); await read(); await select("a.json");
+    fireEvent.click(screen.getByRole("button", { name: "Inspect record: b.json" }));
+    const changed = { ...snapshotFixture, state: { ...snapshotFixture.state, routed_docs: ["different.json"] } };
+    view.rerender(<I18nProvider><VerificationRecords snapshot={changed} /></I18nProvider>);
+    await act(async () => finish(fixture("b.json")));
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Inspect another record/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Selected record" })).not.toBeInTheDocument();
+  });
+  it("retains malformed-record errors as unknown in comparison instead of inferring a pass", async () => {
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list(["bad.json", "good.json"]));
+    vi.mocked(inspectVerificationReceipt).mockResolvedValueOnce({ ...envelope, observation: { path: "bad.json", receipt: null, source_match: "unknown", log_match: "unknown", sources: [], error: "owner-original unreadable metadata" } })
+      .mockResolvedValueOnce(fixture("good.json"));
+    show(); await read(); await select("bad.json"); await select("good.json");
+    const table = within(screen.getByRole("table"));
+    expect(table.getByText("owner-original unreadable metadata")).toBeVisible();
+    expect(table.getAllByText("Cannot compare").length).toBeGreaterThan(0);
+    expect(table.getAllByText("Command succeeded")).toHaveLength(1);
+  });
+  it.each(["en", "ko", "ja", "zh-CN"] as const)("explains known reasons in %s and preserves owner text and raw originals", async locale => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    const copy = verificationCopy[locale];
+    vi.mocked(getVerificationReceiptList).mockResolvedValue(list());
+    const result = fixture();
+    result.observation.sources = [{ path: "src/main.py", match: "changed", reason: "changed_since_run" }, { path: "src/extra.py", match: "unknown", reason: "owner-specific reason: keep this original" }];
+    result.observation.receipt!.scope = "Owner scope — 원문";
+    result.observation.receipt!.limits = ["Owner limit — leave this verbatim"];
+    vi.mocked(inspectVerificationReceipt).mockResolvedValue(result);
+    show(); fireEvent.click(screen.getByRole("button", { name: copy.read }));
+    fireEvent.click(await screen.findByRole("button", { name: `${copy.inspect}: evidence/run.json` }));
+    const article = within(await screen.findByRole("article", { name: copy.selected }));
+    fireEvent.click(article.getByText(copy.details));
+    expect(article.getByText(copy.reasonChangedSince)).toBeVisible();
+    expect(article.getByText(copy.reasonOther)).toBeVisible();
+    expect(article.getByText("Owner limit — leave this verbatim")).toBeVisible();
+    expect(article.getByText("Owner scope — 원문")).toBeVisible();
+    const code = article.getByText("changed_since_run");
+    expect(code).not.toBeVisible();
+    fireEvent.click(code.closest("details")!.querySelector("summary")!);
+    expect(code).toBeVisible();
+    const unknown = article.getByText("owner-specific reason: keep this original");
+    fireEvent.click(unknown.closest("details")!.querySelector("summary")!);
+    expect(unknown).toBeVisible();
+    fireEvent.click(article.getByText(copy.rawEvidence));
+    expect(article.getByText(/"outcome": "passed"/)).toBeVisible();
   });
   it.each([["ko", "검증 기록 읽기", "수집한 기록 연결하기"], ["ja", "検証記録を読む", "収集した記録をリンク"], ["zh-CN", "读取验证记录", "关联已收集的记录"]])("localizes navigation and connection controls in %s", (locale, label, help) => {
     localStorage.setItem(LOCALE_STORAGE_KEY, locale); show();

@@ -15,6 +15,9 @@
 .repository-history-content .activity-panel-summary > span { overflow-wrap: anywhere; }
 .repository-history-content .worktree-lens-section { margin: 16px 0; }
 .overview-history > .repository-history { margin-top: 0; }
+.work-columns .work-deferred { grid-column: 1 / -1; }
+.work-group-note { margin: 10px 12px; color: var(--secondary); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.work-item-phase { color: var(--secondary); font-size: 11px; line-height: 1.5; }
 @media (max-width: 760px) {
   .overview-continuity { margin: 0 18px 18px; }
   .repository-history > summary { padding: 14px 12px; min-height: 48px; }

@@ -27,10 +27,10 @@ from test_core import WorkspaceCase, tree_fingerprint
 
 
 def _document_runtime(root, add_cleanup):
-    runtime = root / ".runtime" / "sdad-v3.2.3"
+    runtime = root / ".runtime" / "sdad-v3.2.4"
     if runtime.exists():
         return runtime
-    checkout = root / ".ci" / "sdad-v3.2.3"
+    checkout = root / ".ci" / "sdad-v3.2.4"
     if checkout.exists():
         temporary = tempfile.TemporaryDirectory(prefix="sdad-document-runtime-")
         add_cleanup(temporary.cleanup)
@@ -38,8 +38,8 @@ def _document_runtime(root, add_cleanup):
         stage_release_engine(checkout, runtime)
         return runtime
     if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
-        raise RuntimeError("CI requires the authenticated SDAD 3.2.3 checkout at .ci/sdad-v3.2.3 or a staged .runtime/sdad-v3.2.3.")
-    raise unittest.SkipTest("Authenticated SDAD 3.2.3 runtime or CI checkout is not present in this local checkout.")
+        raise RuntimeError("CI requires the authenticated SDAD 3.2.4 checkout at .ci/sdad-v3.2.4 or a staged .runtime/sdad-v3.2.4.")
+    raise unittest.SkipTest("Authenticated SDAD 3.2.4 runtime or CI checkout is not present in this local checkout.")
 
 
 class DocumentRuntimePreparationTests(unittest.TestCase):
@@ -49,14 +49,14 @@ class DocumentRuntimePreparationTests(unittest.TestCase):
         self.root = Path(temporary.name).resolve()
 
     def test_existing_local_runtime_is_used_without_staging(self):
-        runtime = self.root / ".runtime" / "sdad-v3.2.3"
+        runtime = self.root / ".runtime" / "sdad-v3.2.4"
         runtime.mkdir(parents=True)
         with patch(__name__ + ".stage_release_engine") as stage:
             self.assertEqual(_document_runtime(self.root, self.addCleanup), runtime)
         stage.assert_not_called()
 
     def test_ci_checkout_stages_into_temporary_directory_and_registers_cleanup(self):
-        checkout = self.root / ".ci" / "sdad-v3.2.3"
+        checkout = self.root / ".ci" / "sdad-v3.2.4"
         checkout.mkdir(parents=True)
         cleanups = []
         def stage(source, destination):

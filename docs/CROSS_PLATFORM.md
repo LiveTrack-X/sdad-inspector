@@ -8,8 +8,9 @@ One Python codebase owns inspection, bundled-engine authentication, the closed
 loopback service, the native shell, and product-update verification. React/Vite
 produces one static frontend. pywebview opens that same authenticated loopback
 URL in a native window. PyInstaller produces an unsigned one-file executable
-with CPython 3.12, the web bundle, and the authenticated SDAD 3.2.3 engine
-embedded.
+with CPython 3.12, the web bundle, and an authenticated SDAD engine embedded.
+The current unpublished Inspector 3.2.4 source candidate defaults to SDAD 3.2.4.
+Published Inspector 0.0.5 embeds SDAD 3.2.3; its artifacts remain unchanged.
 
 Both the isolated source reader and the packaged interpreter explicitly enable
 UTF-8 mode. Python environment variables alone are insufficient for these isolated
@@ -19,7 +20,7 @@ runtimes; packaging uses PyInstaller's documented
 Inspector orchestration reaches that engine through the built-in
 `official-sdad-3` protocol adapter and emits Inspector snapshot schema 2. The
 adapter registry is separate from the renderer and from product update logic;
-the 0.0.5 portable packages do not discover or download additional adapters.
+portable packages do not discover or download additional adapters.
 
 The renderer receives no general Python bridge, filesystem bridge, or subprocess
 capability. The packaged product updater is exposed only through fixed
@@ -40,7 +41,9 @@ its [installation guide](https://pywebview.flowrl.com/guide/installation) and
 
 ## Build and portable-smoke contract
 
-1. Authenticate the supplied SDAD checkout as supported clean release content.
+1. Authenticate the supplied SDAD checkout as supported clean release content and
+   require its engine version to match the Inspector product version. Explicit
+   older supported engines remain available for source inspection.
 2. Copy it to a new stage, excluding Git and bytecode artifacts, then
    reauthenticate the complete stage.
 3. Build the frontend and bundle it, the staged engine, pywebview, and the
@@ -66,9 +69,11 @@ its [installation guide](https://pywebview.flowrl.com/guide/installation) and
    required job succeeds. Never replace an existing public tag or Release.
 
 Each release needs its own successful hosted runs; this contract alone does not
-establish a result. Published 0.0.4 artifacts and historical evidence remain unchanged.
+establish a result. Published 0.0.5 and earlier artifacts and historical evidence remain unchanged.
 [Release maintenance](RELEASING.md) documents the single version authority,
-three-day candidate retention, rejection rules and retry procedure.
+three-day candidate retention, rejection rules and retry procedure. The
+[versioning policy](VERSIONING.md) separates shared release numbers from each
+repository's identity, validation and actual publication status.
 
 PyInstaller resource lookup follows its
 [runtime information guidance](https://pyinstaller.org/en/stable/runtime-information.html).
@@ -93,8 +98,11 @@ the shell about the exact executable path before refreshing icon associations.
 This is a cosmetic same-path cache repair; failure never blocks startup,
 replacement success, or rollback.
 
-The product updater never changes the inspected repository or the bundled SDAD
-engine. It is an unsigned-portable update path, not an installer, signing,
+The product updater never changes the inspected repository or downloads an engine
+independently. Replacing the Inspector executable also replaces the engine embedded
+in that verified product release. The app must report the actual selected engine;
+equal product and default-engine numbers do not imply all selected engines match.
+It is an unsigned-portable update path, not an installer, signing,
 notarization, upgrade/uninstall, or stable-support guarantee.
 
 ## Platform prerequisites

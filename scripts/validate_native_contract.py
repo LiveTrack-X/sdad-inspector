@@ -32,7 +32,7 @@ def _tree_fingerprint(root: Path) -> str:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate native preview contracts.")
-    parser.add_argument("--sdad-checkout", default=".runtime/sdad-v3.2.3")
+    parser.add_argument("--sdad-checkout", default=".runtime/sdad-v3.2.4")
     return parser
 
 
@@ -61,8 +61,8 @@ def main() -> int:
         "portable-smoke",
         "actions/upload-artifact@v7",
         "actions/download-artifact@v8",
-        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3",
-        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3",
+        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.4",
+        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.4",
         "scripts/smoke_release_archive.py",
         "scripts/validate_windows_branding.py",
         "retention-days: 3",
@@ -161,6 +161,8 @@ def main() -> int:
         reprobe = probe_engine(staged.path)
         if reprobe.revision != staged.engine.revision or not reprobe.clean:
             raise AssertionError("staged release engine failed reauthentication")
+        if reprobe.doctor_version != VERSION:
+            raise AssertionError(f"Inspector {VERSION} requires a matching bundled SDAD engine; observed {reprobe.doctor_version}")
 
     after = _tree_fingerprint(ROOT)
     if before != after:
@@ -169,6 +171,7 @@ def main() -> int:
         json.dumps(
             {
                 "native_contract": "passed",
+                "product_version": VERSION,
                 "project_writes": 0,
                 "engine_release": reprobe.release_tag,
                 "engine_revision": reprobe.revision,

@@ -28,11 +28,15 @@ export function ResumeComparison({ snapshot, busy = false, onOpenSource }: { sna
   const id = useId();
   const observation = useMemo(() => resumeObservation(snapshot), [snapshot]);
   const project = useMemo(() => ({ projectIdentity: snapshot.project.identity, projectRoot: snapshot.project.root }), [snapshot.project.identity, snapshot.project.root]);
-  const [history, setHistory] = useState<{ store: ResumeStore; error: boolean }>({ store: { version: 1, projects: [] }, error: false });
+  const [history, setHistory] = useState<{ store: ResumeStore; error: boolean; context: (typeof project & { inspectionId: string }) | null }>({ store: { version: 1, projects: [] }, error: false, context: null });
   const [pending, setPending] = useState(false);
   const requestSerial = useRef(0);
   const [open, setOpen] = useState(false);
   const saved = resumeProject(history.store, project);
+  const historyCurrent = history.context !== null && sameResumeProject(history.context, project) && history.context.inspectionId === snapshot.inspection_id;
+  const historyError = historyCurrent && history.error;
+  const readingHistory = !historyCurrent || pending || busy;
+  const noBaseline = !saved && !readingHistory && !historyError;
   const newerSaved = Boolean(saved && observation && Date.parse(saved.latest.inspectedAt) > Date.parse(observation.inspectedAt));
   const changes = saved && observation && !newerSaved ? compareResumeObservations(saved.baseline, observation) : null;
 
@@ -45,10 +49,10 @@ export function ResumeComparison({ snapshot, busy = false, onOpenSource }: { sna
       // Keep a late response or malformed projection from crossing project boundaries.
       if (store.version !== 1 || !Array.isArray(store.projects)
         || store.projects.some((entry) => !sameResumeProject(entry.baseline, project) || !sameResumeProject(entry.latest, project))) throw new Error('project mismatch');
-      setHistory({ store, error: false });
+      setHistory({ store, error: false, context: { ...project, inspectionId: snapshot.inspection_id } });
       return true;
     } catch {
-      if (serial === requestSerial.current) setHistory((old) => ({ ...old, error: true }));
+      if (serial === requestSerial.current) setHistory((old) => ({ ...old, error: true, context: { ...project, inspectionId: snapshot.inspection_id } }));
       return false;
     } finally {
       if (serial === requestSerial.current) setPending(false);
@@ -72,8 +76,15 @@ export function ResumeComparison({ snapshot, busy = false, onOpenSource }: { sna
   return <section className="resume-comparison" aria-labelledby={`${id}-title`}>
     <h2 id={`${id}-title`}>{c.title}</h2>
     <p>{c.introduction}</p>
+    {readingHistory && <p role="status">{c.readingHistory}</p>}
+    {noBaseline && <div className="resume-baseline-state" role="status">
+      <strong>{c.noBaseline}</strong>
+      <p>{c.noEarlierChanges}</p>
+      <p>{c.futureBaseline}</p>
+    </div>}
+    <p className="resume-storage-note">{c.storageBoundary}</p>
     {!saved && <p className="resume-storage-note">{c.privacy}</p>}
-    {history.error && <p role="alert">{c.storageError}</p>}
+    {historyError && <p role="alert">{c.storageError}</p>}
     {!observation && <p role="status">{c.unavailable}</p>}
     {newerSaved && <p role="status">{c.newerSaved}</p>}
     {saved && <>
@@ -84,14 +95,14 @@ export function ResumeComparison({ snapshot, busy = false, onOpenSource }: { sna
       </dl>
     </>}
     <div className="resume-actions">
-      {!saved ? <button type="button" disabled={!observation || busy || pending || history.error} onClick={() => save('enable')}>{c.enable}</button>
+      {!saved ? <button type="button" disabled={!observation || readingHistory || historyError} onClick={() => save('enable')}>{c.enable}</button>
         : <>
           <button type="button" disabled={!changes || busy || pending} aria-expanded={open} aria-controls={`${id}-changes`} onClick={() => setOpen(!open)}>{open ? c.close : c.compare}</button>
-          <button type="button" disabled={!observation || newerSaved || busy || pending || history.error} onClick={() => save('replace')}>{c.replace}</button>
+          <button type="button" disabled={!observation || newerSaved || readingHistory || historyError} onClick={() => save('replace')}>{c.replace}</button>
           <button type="button" disabled={pending || busy} onClick={() => void clear()}>{c.clear}</button>
         </>}
-      {history.error && <button type="button" disabled={pending || busy} onClick={() => void request('read')}>{c.retry}</button>}
-      {((history.store.retained_projects ?? history.store.projects.length) > 0 || history.error) && <button type="button" disabled={pending || busy} onClick={() => void clear(true)}>{c.clearAll}</button>}
+      {historyError && <button type="button" disabled={pending || busy} onClick={() => void request('read')}>{c.retry}</button>}
+      {((history.store.retained_projects ?? history.store.projects.length) > 0 || historyError) && <button type="button" disabled={pending || busy} onClick={() => void clear(true)}>{c.clearAll}</button>}
     </div>
     {open && changes && observation && saved && <div id={`${id}-changes`} className="resume-comparison-results">
       <p>{c.current} · {c.observed}: <time dateTime={observation.inspectedAt}>{formatAbsolute(observation.inspectedAt, locale)}</time></p>

@@ -1,13 +1,29 @@
 # Maintaining a release candidate
 
+Current source candidate: Inspector **3.2.4**, with default bundled SDAD **3.2.4**.
+It is not published. The published Inspector **0.0.5** bundles SDAD **3.2.3**;
+its tag, archives and release notes remain unchanged. Read the
+[versioning policy](VERSIONING.md) before preparing a paired release.
+
 `sdad_inspector/version.py` is the current Inspector version authority. Setuptools,
 the runtime, release checks and CI outputs derive their values from it. To prepare
 an authorized future version change, edit that file, run
 `python scripts/release_metadata.py --sync`, and add its release notes under
 `docs/releases/v<version>.md`. Sync regenerates Windows numeric/string resources
-and current README download guides; historical release notes are preserved.
-Run `--check` to detect stale generated resources. Protocol engine versions and
-authenticated tree identities remain an independent compatibility contract.
+and only the managed source-version block in each README. It does not rewrite
+published download links, publication claims or historical release notes.
+Run `--check` to detect stale resources and missing, duplicate, malformed or stale
+README blocks. Matching release numbers do not merge product and engine identities:
+the selected engine, authenticated tree and schemas remain separate compatibility facts.
+
+Before a native candidate build, authenticate the exact released SDAD checkout
+and require its version to equal the Inspector product version. A supported older
+engine remains usable for explicit source inspection; that does not authorize
+bundling it under a different shared release number. For the initial 3.2.4
+alignment, use the already released Protocol 3.2.4 identity; do not recreate or
+republish its tag. Future paired releases need both repositories' own gates and
+publication evidence. A published Protocol and failed Inspector candidate must
+be reported separately, never as a successfully published pair.
 
 ## Candidate identity and promotion
 

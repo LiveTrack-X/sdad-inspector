@@ -3,6 +3,9 @@
 .resume-comparison h3 { margin: 20px 0 10px; font-size: 14px; }
 .resume-comparison p { margin: 8px 0; line-height: 1.6; font-size: 13px; }
 .resume-comparison .resume-storage-note { color: var(--secondary); }
+.resume-baseline-state { margin: 12px 0; padding-left: 12px; border-left: 2px solid var(--divider-strong); font-size: 13px; }
+.resume-baseline-state strong { color: var(--ink); }
+.resume-baseline-state p { margin: 6px 0; }
 .resume-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .resume-comparison button { padding: 8px 10px; border: 1px solid var(--divider-strong); border-radius: 6px; background: var(--surface-input); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; min-height: 36px; }
 .resume-comparison button:hover:not(:disabled) { background: var(--surface-hover); }

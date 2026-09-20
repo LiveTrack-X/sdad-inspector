@@ -4,6 +4,10 @@
 
 # SDAD Inspector
 
+<!-- inspector-source-version -->Source version: `v3.2.4`<!-- /inspector-source-version -->
+
+**로컬 소스 후보:** Inspector `3.2.4`와 기본 번들 SDAD Protocol `3.2.4`의 버전을 맞춥니다. 이 후보는 아직 발행되지 않았습니다. 아래 다운로드 안내는 SDAD `3.2.3`을 포함한 공개 Inspector `0.0.5` 기준입니다. [버전 운영 규칙](docs/VERSIONING.md)과 [3.2.4 후보 변경 기록](docs/releases/v3.2.4.md)을 참고하세요.
+
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,8 +19,8 @@ SDAD 프로젝트의 현재 상태를 한 화면에서 읽어 주는 로컬 뷰�
 가운데에는 현재 작업, 오른쪽에는 선택한 값의 출처가 표시됩니다.
 
 검사 대상 저장소는 **읽기 전용**입니다. Inspector는 프로젝트에 선언된 검증
-명령을 실행하거나 소스·SDAD 파일을 수정하지 않습니다. 제품 자체의 업데이트만
-Inspector 전용 앱 데이터와 현재 포터블 실행 파일에 씁니다.
+명령을 실행하거나 소스·SDAD 파일을 수정하지 않습니다. 설정·비교 메타데이터·정정
+초안은 Inspector 전용 앱 데이터에 저장하며, 제품 업데이트는 포터블 실행 파일도 교체합니다.
 
 > **0.0.5 is a regular GitHub Release, but remains unsigned.** 설치 프로그램이
 > 아니며 코드 서명·공증이 없습니다. 운영체제가
@@ -131,11 +135,11 @@ README 맨 위의 한 줄 제품 배너는 저장소 소개용입니다. 프로�
 SDAD 프레임워크 저장소만 보는 도구가 아니라, SDAD 방식으로 운영하는 실제 제품
 저장소를 읽는 도구입니다.
 
-| 계약 | 0.0.5 범위 |
+| 계약 | 3.2.4 소스 후보 범위 |
 | --- | --- |
-| 번들 실행 기준 | Official SDAD Protocol `v3.2.3` |
+| 번들 실행 기준 | Official SDAD Protocol `v3.2.4` |
 | 기본 프로토콜 어댑터 | `official-sdad-3` |
-| Doctor 호환성 fixture | 릴리스된 `v3.2.1`, `v3.2.2`, `v3.2.3` |
+| Doctor 호환성 fixture | 릴리스된 `v3.2.1`, `v3.2.2`, `v3.2.3`, `v3.2.4` |
 | SDAD state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -150,7 +154,9 @@ report/state 스키마 정규화, 제어 파일 경로, 근거 문서와 선택�
 Inspector snapshot schema 2로 변환합니다. UI는 이 정규화된 snapshot만 읽습니다.
 
 `0.0.5` 포터블 앱에는 검증된 `official-sdad-3` 어댑터와 SDAD 3.2.3 엔진만
-포함됩니다. 따라서 구조가 확장 가능하다는 사실을 “모든 SDAD 변형 지원”으로
+포함됩니다. 현재 3.2.4 소스 후보는 같은 어댑터와 SDAD 3.2.4를 기본 빌드 대상으로
+사용하며, 소스 검사에서는 지원되는 이전 엔진을 명시적으로 선택할 수 있습니다.
+따라서 구조가 확장 가능하다는 사실을 “모든 SDAD 변형 지원”으로
 해석하면 안 됩니다. 다른 SDAD 계열은 다음 조건을 갖춘 별도 어댑터와 호환성
 fixture가 필요합니다.
 
@@ -244,8 +250,9 @@ TODO 순서·개수, Git 커밋·시간으로 현재 단계를 추측하지 않�
 교체 뒤에는 재시작 루프를 막기 위해 자동 재시도를 중지하며, 사용자가 **다시
 시도**를 눌러야 합니다.
 
-이 기능은 **Inspector 제품 실행 파일만** 업데이트합니다. SDAD 엔진을 몰래 받거나
-검사 대상 프로젝트를 마이그레이션·수정하지 않습니다. 소스 실행과 브라우저 모드는
+이 기능은 **Inspector 제품 실행 파일만** 업데이트합니다. 새 실행 파일에는 해당
+릴리스가 선언한 번들 엔진이 포함됩니다. 엔진을 별도로 내려받거나 검사 대상 프로젝트를
+마이그레이션·수정하지 않습니다. 소스 실행과 브라우저 모드는
 자기 파일을 교체하지 않습니다.
 
 unsigned 포터블 앱의 자동 업데이트는 서명된 설치 프로그램과 같은 보증이 아닙니다. 릴리스
@@ -269,7 +276,7 @@ unsigned 코드를 자동 실행할 수 없다면 소스 모드를 사용하세�
 
 - 프로젝트가 선언한 검증 명령 실행
 - 프로젝트 소스, SPEC, state, TODO 자동 수정
-- 자동 SDAD 엔진 다운로드 또는 프로젝트 마이그레이션
+- 별도의 SDAD 엔진 자동 다운로드 또는 프로젝트 마이그레이션
 - 저장소 Markdown 안의 HTML/스크립트 실행
 - 일반 JavaScript→Python 또는 임의 파일시스템 브리지 제공
 - 텔레메트리 전송
@@ -330,9 +337,9 @@ CPython 3.12를 정확히 사용합니다.
 ```bash
 git clone https://github.com/LiveTrack-X/sdad-inspector.git
 cd sdad-inspector
-git clone --branch v3.2.3 --depth 1 \
+git clone --branch v3.2.4 --depth 1 \
   https://github.com/LiveTrack-X/spec-driven-ai-development.git \
-  .runtime/sdad-v3.2.3
+  .runtime/sdad-v3.2.4
 ```
 
 ### Windows PowerShell
@@ -343,7 +350,7 @@ python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.3
+sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.4
 ```
 
 ### macOS / Linux
@@ -354,7 +361,7 @@ source .venv/bin/activate
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 프로젝트 경로를 생략하면 가장 최근의 유효한 프로젝트를 다시 엽니다. 기록이 없는
@@ -364,7 +371,7 @@ sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.
 
 ```bash
 sdad-inspector serve /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.3
+  --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 서버는 `127.0.0.1`에만 바인딩되고 매 실행마다 새 세션 토큰을 사용합니다. Host와
@@ -374,7 +381,7 @@ Origin을 확인하고 API 응답에 `no-store`를 적용합니다.
 
 ```bash
 sdad-inspector inspect /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.3 --pretty
+  --sdad-checkout .runtime/sdad-v3.2.4 --pretty
 ```
 
 ### Redacted HTML 보고서
@@ -383,7 +390,7 @@ sdad-inspector inspect /path/to/your-project \
 
 ```bash
 sdad-inspector report /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.3 \
+  --sdad-checkout .runtime/sdad-v3.2.4 \
   --output /path/outside-project/sdad-report.html \
   --redact-paths --redact-evidence
 ```
@@ -440,6 +447,8 @@ docs/                 공개 연동·플랫폼·디자인·현지화·릴리스 
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — 화면 구조, 토큰, 컴포넌트,
   반응형 동작
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — 네 가지 UI 언어와 원문 근거 경계
+- [`docs/VERSIONING.md`](docs/VERSIONING.md) — 공통 버전 번호와 각 저장소의 발행 조건
+- [`docs/releases/v3.2.4.md`](docs/releases/v3.2.4.md) — 아직 발행되지 않은 소스 후보
 - [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — 현재 릴리스의 시작 흐름,
   다국어, 화면 설정, 업데이트 정리와 알려진 한계
 - [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — 아이콘·증거 표시 패치
@@ -447,11 +456,12 @@ docs/                 공개 연동·플랫폼·디자인·현지화·릴리스 
 
 ## 빌드와 검증
 
-로컬 unsigned one-file 빌드는 공식 CPython 3.12로 실행합니다.
+로컬 unsigned one-file 빌드는 공식 CPython 3.12와 제품 버전이 일치하는 인증된
+SDAD 엔진으로 실행합니다.
 
 ```bash
 npm --prefix web run build
-python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.3
+python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.4
 python3.12 scripts/smoke_native.py .
 ```
 
@@ -464,10 +474,10 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 일반 `cross-platform.yml`은 Windows, macOS, Linux에서 소스·UI·네이티브 빌드와
@@ -479,8 +489,8 @@ python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.3
 실행 파일을 다시 빌드하지 않으며, 모든 검증을 통과한 세 플랫폼 압축·체크섬·
 후보 출처 manifest를 GitHub attestation과 함께 게시합니다. 기존 태그와 릴리스는
 덮어쓰지 않습니다. 버전 원본·보관 기간·재시도 절차는
-[릴리스 유지보수 안내](docs/RELEASING.md)를 참고하세요. 변경된 호스팅 절차의 실제
-검증은 다음 승인된 CI 실행에서 필요하며, 이미 게시된 `v0.0.5` 자산은 바뀌지 않습니다.
+[릴리스 유지보수 안내](docs/RELEASING.md)를 참고하세요. 3.2.4 후보를 발행하려면 해당
+후보의 승인된 호스팅 검증이 별도로 필요하며, 공개된 `v0.0.5` 자산과 결과는 바뀌지 않습니다.
 
 ## 현재 릴리스의 한계
 
@@ -506,6 +516,6 @@ SDAD Inspector는 [MIT License](LICENSE)로 제공됩니다. 프로젝트가 도
 재현 순서를 적어 주세요. 비밀값, `.env`, 고객 원본 데이터, 비공개 저장소 내용은
 첨부하지 마세요.
 
-현재 소스 후보의 [정정 이력·초안 복구 안내](docs/CORRECTION_HISTORY.md)(영문)도
-참고하세요. 보관·복원과 출처가 이동한 초안 복구는 로컬 후보 기능이며,
-기존 공개 실행 파일에는 포함되지 않습니다.
+[정정 이력·초안 복구 안내](docs/CORRECTION_HISTORY.md)(영문)는 0.0.5에 포함된
+앱 전용 보관·복원과 출처가 이동한 초안 복구를 설명합니다. 3.2.4 후보는 TODO 그룹,
+선택한 두 검증 기록의 명시적 비교, 재개 기준점이 없을 때의 안내를 개선합니다.

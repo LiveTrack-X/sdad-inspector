@@ -5,12 +5,55 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from sdad_inspector.errors import PackageError
 from scripts.build_native import require_release_python, resolve_npm_executable
 from scripts.package_release import build_release_archive, normalized_architecture
 from scripts.smoke_release_archive import extract_single_executable
 from scripts.write_checksums import write_checksums
+from scripts import validate_release as release_contract
+from scripts.release_metadata import VERSION, SOURCE_START, SOURCE_END, source_version_block
+
+
+class ReleaseDocumentationContractTests(unittest.TestCase):
+    def test_source_candidate_does_not_require_published_release_claim(self) -> None:
+        read = release_contract._read
+        def candidate_copy(relative: str) -> str:
+            text = read(relative)
+            if relative.startswith("README"):
+                text = text.replace(f"{VERSION} is a regular GitHub Release, but remains unsigned",
+                                    "This source candidate remains unsigned; publication is separate")
+            return text
+        with patch.object(release_contract, "_read", side_effect=candidate_copy):
+            self.assertEqual(release_contract.validate_release_contract(), [])
+
+    def test_source_identity_cannot_be_missing_stale_or_duplicated(self) -> None:
+        read = release_contract._read
+        for replacement in ("", SOURCE_START + "Source version: `v0.0.5`" + SOURCE_END,
+                            source_version_block() * 2):
+            with self.subTest(replacement=replacement):
+                def changed(relative: str) -> str:
+                    text = read(relative)
+                    return text.replace(source_version_block(), replacement) if relative == "README.md" else text
+                with patch.object(release_contract, "_read", side_effect=changed):
+                    issues = release_contract.validate_release_contract()
+                self.assertTrue(any("README.md:" in issue and "source" in issue for issue in issues), issues)
+
+    def test_candidate_docs_do_not_weaken_immutable_or_asset_replacement_guards(self) -> None:
+        read = release_contract._read
+        for path, old, new, expected in (
+            ("sdad_inspector/updater.py", 'release.get("immutable") is not True', "False", "immutable"),
+            (".github/workflows/release.yml", "--draft=false", "--draft=false --clobber", "--clobber"),
+            (".github/workflows/release.yml", "actions/attest@v4", "removed-attestation", "actions/attest@v4"),
+        ):
+            with self.subTest(path=path, expected=expected):
+                def changed(relative: str) -> str:
+                    text = read(relative)
+                    return text.replace(old, new) if relative == path else text
+                with patch.object(release_contract, "_read", side_effect=changed):
+                    issues = release_contract.validate_release_contract()
+                self.assertTrue(any(expected in issue for issue in issues), issues)
 
 
 class ReleasePackagingTests(unittest.TestCase):

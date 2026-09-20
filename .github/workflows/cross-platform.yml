@@ -27,12 +27,12 @@ jobs:
     steps:
       - name: Check out Inspector
         uses: actions/checkout@v6
-      - name: Check out released SDAD v3.2.3
+      - name: Check out released SDAD v3.2.4
         uses: actions/checkout@v6
         with:
           repository: LiveTrack-X/spec-driven-ai-development
-          ref: v3.2.3
-          path: .ci/sdad-v3.2.3
+          ref: v3.2.4
+          path: .ci/sdad-v3.2.4
       - name: Check out SDAD receipt conformance producer
         uses: actions/checkout@v6
         with:
@@ -92,13 +92,13 @@ jobs:
         run: npm --prefix web run build
       - name: Validate browser, report, and native contracts
         run: |
-          python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3
-          python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3
-          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.3
+          python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.4
+          python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.4
+          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.4
       - name: Check native prerequisites
-        run: python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.3
+        run: python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.4
       - name: Build unsigned one-file preview
-        run: python scripts/build_native.py --skip-frontend --sdad-checkout .ci/sdad-v3.2.3
+        run: python scripts/build_native.py --skip-frontend --sdad-checkout .ci/sdad-v3.2.4
       - name: Validate Windows executable branding
         if: runner.os == 'Windows'
         run: python scripts/validate_windows_branding.py

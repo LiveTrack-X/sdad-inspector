@@ -9,6 +9,8 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
+from sdad_inspector.engine import RELEASE_COMMITS, RELEASE_TREE_SHA256, SUPPORTED_DOCTOR_VERSIONS
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_sdad_compatibility.py"
@@ -33,6 +35,12 @@ class SdadCompatibilityContractTests(unittest.TestCase):
 
     def test_manifest_has_exact_release_and_scenario_sets(self) -> None:
         self.assertEqual(set(self.manifest["releases"]), set(MODULE.RELEASES))
+        self.assertEqual(set(MODULE.RELEASES), set(SUPPORTED_DOCTOR_VERSIONS))
+        self.assertEqual(set(RELEASE_TREE_SHA256), set(SUPPORTED_DOCTOR_VERSIONS))
+        self.assertEqual(
+            {version: release["commit"] for version, release in MODULE.RELEASES.items()},
+            RELEASE_COMMITS,
+        )
         for release in self.manifest["releases"].values():
             self.assertEqual(
                 {report["scenario"] for report in release["reports"]},
@@ -40,12 +48,12 @@ class SdadCompatibilityContractTests(unittest.TestCase):
             )
 
     def test_frozen_manifest_and_reports_validate(self) -> None:
-        self.assertEqual(MODULE.validate_manifest(), 12)
+        self.assertEqual(MODULE.validate_manifest(), 16)
 
     def test_validation_is_read_only_for_golden_files(self) -> None:
         paths = [MODULE.MANIFEST_PATH, *self.fixture_paths()]
         before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
-        self.assertEqual(MODULE.validate_manifest(), 12)
+        self.assertEqual(MODULE.validate_manifest(), 16)
         after = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
         self.assertEqual(after, before)
 
@@ -56,7 +64,7 @@ class SdadCompatibilityContractTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(
             output.getvalue(),
-            "SDAD compatibility contract OK: 3 releases, 12 normalized reports.\n",
+            "SDAD compatibility contract OK: 4 releases, 16 normalized reports.\n",
         )
 
 

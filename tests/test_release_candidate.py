@@ -91,28 +91,72 @@ class CandidateIdentityTests(unittest.TestCase):
 
 
 class ReleaseAuthorityTests(unittest.TestCase):
-    def test_metadata_sync_can_retry_partial_readme_failure_without_losing_old_version(self):
+    def test_metadata_sync_retries_partial_writes_without_rewriting_publication_history(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "packaging").mkdir()
             resource = root / "packaging/sdad-inspector-version.txt"
             resource.write_text("ProductVersion', '0.0.3'")
             (root / "packaging/sdad-inspector-version.txt.in").write_text("ProductVersion', '@PRODUCT_VERSION@'")
-            for name in ("README.md", "README.ko.md", "README.ja.md", "README.zh-CN.md"):
-                (root / name).write_text("Download 0.0.3; historical 0.0.1")
-            original_write = Path.write_text
+            before = ("\ufeffPublished v0.0.5: https://example.test/releases/v0.0.5\r\n"
+                      "Download SDAD-Inspector-0.0.5-windows-x64.zip; historical 0.0.1\r\n"
+                      "<!-- inspector-source-version -->Source version: `v0.0.5`<!-- /inspector-source-version -->\r\n")
+            for name in metadata.GUIDES:
+                (root / name).write_bytes(before.encode("utf-8"))
+            original_write = Path.write_bytes
             def fail_second_readme(path, *args, **kwargs):
                 if path.name == "README.ko.md":
                     raise OSError("simulated failed guide write")
                 return original_write(path, *args, **kwargs)
             with patch.object(metadata, "ROOT", root), patch("sys.argv", ["release_metadata.py", "--sync"]):
-                with patch.object(Path, "write_text", fail_second_readme), self.assertRaises(OSError):
+                with patch.object(Path, "write_bytes", fail_second_readme), self.assertRaises(OSError):
                     metadata.main()
                 self.assertIn("0.0.3", resource.read_text())
+                self.assertIn(metadata.source_version_block(), (root / "README.md").read_text(encoding="utf-8"))
+                # Retry must derive from the managed block, even if an unrelated
+                # resource synchronization already updated the Windows metadata.
+                resource.write_text(metadata.windows_resource(), encoding="utf-8")
                 metadata.main()
-            for name in ("README.md", "README.ko.md", "README.ja.md", "README.zh-CN.md"):
-                self.assertEqual((root / name).read_text(), f"Download {VERSION}; historical 0.0.1")
+                with patch("sys.argv", ["release_metadata.py", "--check"]):
+                    metadata.main()
+            for name in metadata.GUIDES:
+                self.assertEqual((root / name).read_bytes(), metadata.managed_source_guide(before).encode("utf-8"))
             self.assertIn(VERSION, resource.read_text())
+
+    def test_metadata_check_rejects_stale_missing_duplicate_and_malformed_blocks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "packaging").mkdir()
+            (root / "packaging/sdad-inspector-version.txt.in").write_text("@PRODUCT_VERSION@")
+            (root / "packaging/sdad-inspector-version.txt").write_text(VERSION)
+            for name in metadata.GUIDES:
+                (root / name).write_text(metadata.source_version_block())
+            for invalid in ("Published 0.0.5", metadata.source_version_block() * 2,
+                            metadata.SOURCE_END + metadata.SOURCE_START,
+                            metadata.SOURCE_START + "\nSource version: `v0.0.5`" + metadata.SOURCE_END,
+                            metadata.SOURCE_START + "Source version: `v0.0.5`" + metadata.SOURCE_END):
+                with self.subTest(invalid=invalid):
+                    (root / "README.md").write_text(invalid)
+                    before = {p.name: p.read_bytes() for p in root.glob("README*")}
+                    with patch.object(metadata, "ROOT", root), patch("sys.argv", ["release_metadata.py", "--check"]):
+                        with self.assertRaises(SystemExit):
+                            metadata.main()
+                    self.assertEqual(before, {p.name: p.read_bytes() for p in root.glob("README*")})
+
+    def test_sync_prevalidates_all_blocks_before_any_write(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "packaging").mkdir()
+            (root / "packaging/sdad-inspector-version.txt.in").write_text("@PRODUCT_VERSION@")
+            for name in metadata.GUIDES:
+                (root / name).write_text(metadata.SOURCE_START + "Source version: `v0.0.5`" + metadata.SOURCE_END)
+            (root / metadata.GUIDES[-1]).write_text("Missing block")
+            before = {p.name: p.read_bytes() for p in root.glob("README*")}
+            with patch.object(metadata, "ROOT", root), patch("sys.argv", ["release_metadata.py", "--sync"]):
+                with self.assertRaises(SystemExit):
+                    metadata.main()
+            self.assertEqual(before, {p.name: p.read_bytes() for p in root.glob("README*")})
+            self.assertFalse((root / "packaging/sdad-inspector-version.txt").exists())
 
     def test_runtime_package_and_windows_resource_share_authority(self):
         from sdad_inspector import __version__

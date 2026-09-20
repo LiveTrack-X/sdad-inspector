@@ -13,6 +13,11 @@ import time
 from urllib.error import URLError
 from urllib.request import ProxyHandler, Request, build_opener
 
+try:
+    from scripts.release_metadata import VERSION
+except ModuleNotFoundError:
+    from release_metadata import VERSION
+
 
 def fixture(root: Path) -> None:
     root.mkdir()
@@ -54,7 +59,7 @@ def fingerprint(root: Path) -> dict[str, str]:
             for path in root.rglob("*") if path.is_file()}
 
 
-def check_api(origin: str, project: Path, token: str, *, opener=None) -> list[str]:
+def check_api(origin: str, project: Path, token: str, *, opener=None, expected_version: str | None = None) -> list[str]:
     opener = opener or build_opener(ProxyHandler({}))
     def request(path, payload=None):
         data = json.dumps(payload).encode() if payload is not None else None
@@ -65,6 +70,14 @@ def check_api(origin: str, project: Path, token: str, *, opener=None) -> list[st
             raise ValueError("Smoke response exceeded limit")
         return json.loads(raw)
     snapshot = request("/api/snapshot")
+    if expected_version is not None:
+        observed_versions = (
+            snapshot.get("inspector_version"),
+            snapshot.get("engine", {}).get("doctor_version"),
+            snapshot.get("contracts", {}).get("doctor_version"),
+        )
+        if observed_versions != (expected_version,) * 3:
+            raise ValueError(f"Packaged product and engine versions must match {expected_version}; observed {observed_versions}")
     root = str(project.resolve())
     if snapshot["project"]["root"] != root or snapshot["state"]["active_packet"]["id"] != "portable-smoke" or snapshot["inspection_status"] != "completed":
         raise ValueError("The packaged project observation is not the expected completed fixture")
@@ -80,7 +93,10 @@ def check_api(origin: str, project: Path, token: str, *, opener=None) -> list[st
     selected = request("/api/verification-receipt-inspect", {"project_root": root, "path": later["paths"][0], "revision": page["revision"]})["observation"]
     if selected["error"] or selected["source_match"] != "matched" or selected["log_match"] != "matched" or selected["receipt"]["packet"] != "portable-smoke":
         raise ValueError("The packaged selected receipt does not match its fixture")
-    return ["completed_project_observation", "first_page_10_of_11", "malformed_receipt_rejected", "eleventh_receipt_source_and_log_match"]
+    checks = ["completed_project_observation", "first_page_10_of_11", "malformed_receipt_rejected", "eleventh_receipt_source_and_log_match"]
+    if expected_version is not None:
+        checks.append("matching_product_and_engine_version")
+    return checks
 
 
 def smoke_receipts(executable: Path, *, seconds: float = 2, timeout: float = 60) -> dict:
@@ -119,7 +135,7 @@ def smoke_receipts(executable: Path, *, seconds: float = 2, timeout: float = 60)
                 time.sleep(0.1)
             if token is None:
                 raise ValueError("Packaged loopback page did not become ready")
-            checks = check_api(origin, project, token, opener=opener)
+            checks = check_api(origin, project, token, opener=opener, expected_version=VERSION)
             process.communicate(timeout=max(0.1, deadline - time.monotonic()))
         except subprocess.TimeoutExpired:
             timed_out = True

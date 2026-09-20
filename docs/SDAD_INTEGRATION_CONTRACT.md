@@ -99,8 +99,8 @@ loop. The React renderer uses this metadata for visible engine and source labels
 it does not import adapter code or access the filesystem.
 
 The built-in adapter is `official-sdad-3`. It is the only adapter shipped in the
-0.0.4 portable executable and retains the exact compatibility lane documented
-below. A source-mode host may install another adapter by subclassing
+published 0.0.5 portable executable and used by the 3.2.4 source candidate, with
+the exact compatibility lane documented below. A source-mode host may install another adapter by subclassing
 `sdad_inspector.protocols.ProtocolAdapter`, registering an already imported
 instance, and selecting it explicitly:
 
@@ -131,23 +131,33 @@ and bounded platform claims.
 | SDAD 3.2.1 | `v3.2.1` | `1ec10141782c33e6c2ea8be641a7ef95206f10bd` | `https://github.com/LiveTrack-X/spec-driven-ai-development/tree/v3.2.1` |
 | SDAD 3.2.2 | `v3.2.2` | `cd1b1ddb3e6bcb19b531034742c7d67b4257768e` | `https://github.com/LiveTrack-X/spec-driven-ai-development/tree/v3.2.2` |
 | SDAD 3.2.3 | `v3.2.3` | `707cc8861df0340b2a2bb7c9761d3529ca387684` | `https://github.com/LiveTrack-X/spec-driven-ai-development/tree/v3.2.3` |
+| SDAD 3.2.4 | `v3.2.4` | `bd5dd30ca88fa4c2f234d0fcdd295ffaa1f15c2d` | `https://github.com/LiveTrack-X/spec-driven-ai-development/tree/v3.2.4` |
 
-The v3.2.3 tag is pinned to the released commit above; prior tags remain supported. The release
-note declares no new state schema, report schema, Doctor check, or finding ID.
-Golden data is captured from clean detached released-tag checkouts. A dirty
-development tree is never a golden source.
+The 3.2.4 source candidate defaults to the released v3.2.4 engine above; prior
+tags remain supported for explicit source inspection. Published Inspector 0.0.5
+still bundles v3.2.3. The v3.2.4 annotated tag object is
+`c2e67973c0cda501b9e4081caf4b79c8f82a45a9`; its authenticated normalized tree digest
+is `f584014e894826038ad25ccc88ab95cb74034c1ebb17e7d2d0c53a506731931c`.
+Golden data comes from clean released-tag checkouts or immutable tag archives.
+A dirty development tree is never a golden source. Prior identities and raw
+fixture captures are preserved; matching release numbers do not rewrite them.
 
 ## Version And Schema Separation
 
 - Doctor version, state schema version, report schema version, and future
   Inspector snapshot schema are independent contracts.
-- All three engines recognize state schemas 1 and 2.
+- All four engines recognize state schemas 1 and 2.
 - Unguarded state-v1 and unguarded missing-state reports retain report schema 1.
 - A matching `--require-version` guard or effective state v2 selects report schema 2.
 - Report schema 2 includes `doctor_version` and `state_version`; report schema 1 does not.
 - Exit 0 means the completed diagnostic does not fail under the selected strictness.
 - Exit 1 means completed findings failed the selected strictness; it is not a CLI diagnostic error.
 - Exit 2 means invocation/root/version diagnostics prevented a completed project inspection.
+
+Inspector 3.2.4 aligns its product number with its default bundled engine; this
+does not introduce state v3, change report/snapshot schemas, or relabel an older
+selected engine. Native release builds require matching product and engine
+versions as well as authenticated content. See [versioning](VERSIONING.md).
 
 ## Compatibility Fixture Set
 
@@ -165,7 +175,7 @@ SHA-256 for every normalized file.
 
 Recapture fixes only Doctor's date dependency to `2026-07-15`, the golden
 projects' declared state date. The tagged source and CLI arguments remain
-unchanged. This makes the twelve compatibility cases reproducible after their
+unchanged. This makes the sixteen compatibility cases reproducible after their
 recording date; it does not prove current state freshness. The initial 3.2.3
 wall-clock capture correctly reported the old fixture state as stale.
 

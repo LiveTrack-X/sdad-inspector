@@ -13,6 +13,7 @@ from sdad_inspector.adapters import adapt_doctor_report
 from sdad_inspector.engine import (
     RELEASE_COMMITS,
     RELEASE_TREE_SHA256,
+    SUPPORTED_DOCTOR_VERSIONS,
     EngineInfo,
     _release_tree_digest,
     probe_engine,
@@ -194,14 +195,17 @@ class WorkspaceCase(unittest.TestCase):
 
 class AdapterTests(unittest.TestCase):
     def test_all_frozen_reports_normalize_without_erasing_the_raw_contract(self) -> None:
-        for version in ("v3.2.1", "v3.2.2"):
-            for path in sorted((FIXTURES / version).glob("*.json")):
+        for version in SUPPORTED_DOCTOR_VERSIONS:
+            paths = sorted((FIXTURES / f"v{version}").glob("*.json"))
+            self.assertEqual(len(paths), 4, f"Missing frozen reports for {version}")
+            for path in paths:
                 with self.subTest(version=version, fixture=path.name):
                     report = json.loads(path.read_text(encoding="utf-8"))
                     normalized = adapt_doctor_report(
-                        report, engine_version=version[1:], expected_root=None
+                        report, engine_version=version, expected_root=None
                     )
                     self.assertIn(normalized["report_schema_version"], {1, 2})
+                    self.assertEqual(normalized["doctor_version"], version)
                     self.assertEqual(
                         normalized["summary"]["errors"], report["summary"]["errors"]
                     )
@@ -412,11 +416,45 @@ class EngineTrustTests(WorkspaceCase):
         self.assertNotEqual(_release_tree_digest(self.engine), lf_digest)
 
     def test_release_archive_tree_is_authenticated_before_execution(self) -> None:
-        observed = _release_tree_digest(self.engine)
-        with patch.dict(RELEASE_TREE_SHA256, {"3.2.2": observed}):
-            engine = probe_engine(self.engine)
-        self.assertEqual(engine.trust, "release-marker")
-        self.assertEqual(engine.revision, RELEASE_COMMITS["3.2.2"])
+        for version in SUPPORTED_DOCTOR_VERSIONS:
+            with self.subTest(version=version):
+                script = self.engine / "scripts" / "sdad.py"
+                script.write_text(FAKE_ENGINE.replace("3.2.2", version), encoding="utf-8")
+                (self.engine / ".sdad-release.json").write_text(
+                    json.dumps({
+                        "doctor_version": version,
+                        "release_tag": f"v{version}",
+                        "peeled_commit": RELEASE_COMMITS[version],
+                    }),
+                    encoding="utf-8",
+                )
+                observed = _release_tree_digest(self.engine)
+                with patch.dict(RELEASE_TREE_SHA256, {version: observed}):
+                    engine = probe_engine(self.engine)
+                    self.assertEqual(engine.trust, "release-marker")
+                    self.assertEqual(engine.doctor_version, version)
+                    self.assertEqual(engine.revision, RELEASE_COMMITS[version])
+                    script.write_text("raise RuntimeError('must never execute')\n", encoding="utf-8")
+                    with patch("sdad_inspector.engine._run") as execute:
+                        with self.assertRaisesRegex(EngineError, "frozen release tree"):
+                            probe_engine(self.engine)
+                        execute.assert_not_called()
+
+    def test_new_release_marker_cannot_relabel_an_older_authenticated_tree(self) -> None:
+        older_digest = _release_tree_digest(self.engine)
+        (self.engine / ".sdad-release.json").write_text(
+            json.dumps({
+                "doctor_version": "3.2.4",
+                "release_tag": "v3.2.4",
+                "peeled_commit": RELEASE_COMMITS["3.2.4"],
+            }),
+            encoding="utf-8",
+        )
+        with patch.dict(RELEASE_TREE_SHA256, {"3.2.2": older_digest}):
+            with patch("sdad_inspector.engine._run") as execute:
+                with self.assertRaisesRegex(EngineError, "frozen release tree"):
+                    probe_engine(self.engine)
+                execute.assert_not_called()
 
     def test_release_marker_must_match_frozen_commit(self) -> None:
         marker = json.loads((self.engine / ".sdad-release.json").read_text(encoding="utf-8"))

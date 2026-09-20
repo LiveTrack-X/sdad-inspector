@@ -145,6 +145,52 @@
         }
       ],
       "captured_on": "2026-09-13"
+    },
+    "3.2.4": {
+      "tag": "v3.2.4",
+      "tag_object": "c2e67973c0cda501b9e4081caf4b79c8f82a45a9",
+      "commit": "bd5dd30ca88fa4c2f234d0fcdd295ffaa1f15c2d",
+      "capture_checkout_mode": "clean archive of annotated tag",
+      "source_clean": true,
+      "captured_on": "2026-09-20",
+      "reports": [
+        {
+          "scenario": "exit-0-state-v1-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.4/exit-0-state-v1-unguarded.json",
+          "command": "doctor <STATE_V1_PROJECT> --json",
+          "exit_code": 0,
+          "report_schema": 1,
+          "state_schema": 1,
+          "sha256": "3d8c20d7180e17ccb3b29504478cd477b70fb05cf365c43d46e853445414c1be"
+        },
+        {
+          "scenario": "exit-0-state-v2-guarded",
+          "path": "tests/fixtures/sdad/v3.2.4/exit-0-state-v2-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.4 --json",
+          "exit_code": 0,
+          "report_schema": 2,
+          "state_schema": 2,
+          "sha256": "349fedb8e697356cd4affbbfeb1ab4ac1e73e850f109c962995c41d097bb53a5"
+        },
+        {
+          "scenario": "exit-1-missing-state-unguarded",
+          "path": "tests/fixtures/sdad/v3.2.4/exit-1-missing-state-unguarded.json",
+          "command": "doctor <MISSING_STATE_PROJECT> --json",
+          "exit_code": 1,
+          "report_schema": 1,
+          "state_schema": null,
+          "sha256": "5562fbb78c85ab9f0c450a616dbe21a7f1b4ac18579edced1fd9dbe441cdbf54"
+        },
+        {
+          "scenario": "exit-2-invalid-invocation-guarded",
+          "path": "tests/fixtures/sdad/v3.2.4/exit-2-invalid-invocation-guarded.json",
+          "command": "doctor <STATE_V2_PROJECT> --require-version 3.2.4 --json --unknown",
+          "exit_code": 2,
+          "report_schema": 2,
+          "state_schema": null,
+          "sha256": "192801a8eea2fb0f7c8b77405831a17c1dd68de68310b7c5afcd1cc6a85c3f5a"
+        }
+      ]
     }
   },
   "logical_clock": "2026-07-15",

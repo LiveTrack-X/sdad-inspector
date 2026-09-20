@@ -56,3 +56,8 @@ class ReceiptPortableSmokeTests(WorkspaceCase):
             smoke.check_api(self.server.origin, self.project, "wrong-session")
         self.assertEqual(caught.exception.code, 403)
         self.assertEqual(tree_fingerprint(self.project), self.before)
+
+    def test_different_bundled_version_fails_real_api_smoke(self) -> None:
+        with self.assertRaisesRegex(ValueError, "product and engine versions must match"):
+            smoke.check_api(self.server.origin, self.project, self.token, expected_version=smoke.VERSION)
+        self.assertEqual(tree_fingerprint(self.project), self.before)

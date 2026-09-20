@@ -148,6 +148,22 @@ stay distinct in UI and exports. A retained-log match may coexist with truncated
 or incomplete output. Recheck explicitly after edits; results are observations
 at `read_at`, not a background guarantee.
 
+### Comparing two inspected records
+
+The screen retains at most two distinct records that the user explicitly
+inspected, in memory. Selecting a second record exposes requirement, scope,
+packet, execution outcome, current source/log comparisons and timestamps side
+by side. It does not inspect other listed paths automatically. Same-revision
+paging can retain this comparison; a fresh list read, changed project/packet,
+inspection or routes, or a failed/mismatched response invalidates it.
+
+Each column is a separate observation at its displayed time. Different scopes,
+historical packets, failures and incomplete output stay distinct; the table
+does not combine them into a completion or improvement verdict. Known comparison
+reason codes have localized explanations, while original codes and complete
+returned JSON remain available. Requirements, commands and limits authored in
+the receipt remain verbatim.
+
 ## Shared conformance checks
 
 `tests/fixtures/verification-receipts` is an identical, digest-pinned copy of

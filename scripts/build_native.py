@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.release_metadata import windows_resource
+from scripts.release_metadata import VERSION, windows_resource
 from sdad_inspector.engine import RELEASE_TREE_SHA256, probe_engine
 from sdad_inspector.errors import InspectorError, PackageError
 from sdad_inspector.packaging import stage_release_engine
@@ -78,6 +78,11 @@ def check_prerequisites(checkout: str | Path) -> dict[str, object]:
     if (ROOT / "packaging/sdad-inspector-version.txt").read_text(encoding="utf-8") != windows_resource():
         raise PackageError("Stale Windows resource; run python scripts/release_metadata.py --sync")
     engine = probe_engine(checkout)
+    if engine.doctor_version != VERSION:
+        raise PackageError(
+            "The bundled SDAD engine must match the Inspector product version.",
+            details={"product_version": VERSION, "engine_version": engine.doctor_version},
+        )
     missing = [name for name, path in _required_paths().items() if not path.is_file()]
     if missing:
         raise PackageError(
@@ -85,6 +90,7 @@ def check_prerequisites(checkout: str | Path) -> dict[str, object]:
         )
     return {
         "ready": True,
+        "product_version": VERSION,
         "release_tag": engine.release_tag,
         "revision": engine.revision,
         "trust": engine.trust,
@@ -124,6 +130,16 @@ def main() -> int:
             arguments.sdad_checkout,
             output_root / stage_name,
         )
+        if stage.engine.doctor_version != VERSION or stage.engine.revision != evidence["revision"]:
+            raise PackageError(
+                "The staged SDAD engine changed after the native prerequisite check.",
+                details={
+                    "product_version": VERSION,
+                    "engine_version": stage.engine.doctor_version,
+                    "expected_revision": evidence["revision"],
+                    "staged_revision": stage.engine.revision,
+                },
+            )
         environment = os.environ.copy()
         environment["SDAD_INSPECTOR_ENGINE_DIR"] = str(stage.path)
         _run(

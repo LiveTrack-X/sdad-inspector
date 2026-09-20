@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the frozen SDAD 3.2.1/3.2.2/3.2.3 compatibility fixture contract."""
+"""Validate the frozen SDAD 3.2.1/3.2.2/3.2.3/3.2.4 compatibility fixture contract."""
 
 from __future__ import annotations
 
@@ -40,6 +40,12 @@ CHECK_ORDER = [
     "review_state",
 ]
 RELEASES = {
+    "3.2.4": {
+        "tag": "v3.2.4",
+        "tag_object": "c2e67973c0cda501b9e4081caf4b79c8f82a45a9",
+        "commit": "bd5dd30ca88fa4c2f234d0fcdd295ffaa1f15c2d",
+        "capture_checkout_mode": "clean archive of annotated tag",
+    },
     "3.2.3": {'tag': 'v3.2.3', 'tag_object': '12a3d94473dd5f5128efa186a495c605c2944b46', 'commit': '707cc8861df0340b2a2bb7c9761d3529ca387684'},
     "3.2.1": {
         "tag": "v3.2.1",
@@ -209,7 +215,8 @@ def validate_manifest() -> int:
             )
         _require(release.get("source_clean") is True, f"{version}: source_clean must be true", errors)
         _require(
-            release.get("capture_checkout_mode") == "clean detached annotated tag",
+            release.get("capture_checkout_mode")
+            == expected_release.get("capture_checkout_mode", "clean detached annotated tag"),
             f"{version}: capture checkout mode mismatch",
             errors,
         )

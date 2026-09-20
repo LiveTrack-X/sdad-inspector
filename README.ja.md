@@ -4,6 +4,10 @@
 
 # SDAD Inspector
 
+<!-- inspector-source-version -->Source version: `v3.2.4`<!-- /inspector-source-version -->
+
+**ローカルソース候補:** Inspector `3.2.4` と既定の SDAD Protocol `3.2.4` の番号を揃えます。この候補は未公開です。以下のダウンロード手順は、SDAD `3.2.3` を含む公開済み Inspector `0.0.5` のものです。[バージョン運用規則](docs/VERSIONING.md)と [3.2.4 候補ノート](docs/releases/v3.2.4.md)を参照してください。
+
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,8 +19,8 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 
 検査対象のリポジトリは **読み取り専用** です。Inspector は、プロジェクトが
 宣言した検証コマンドを実行せず、ソース、SPEC、state、TODO、findings を変更
-しません。書き込みは Inspector 自身の設定、更新用データ、更新対象のポータブル
-実行ファイルに限定されます。
+しません。設定、比較メタデータ、訂正下書きは Inspector 専用のアプリデータに保存
+され、製品更新時にはポータブル実行ファイルも置き換えられます。
 
 > **0.0.5 は通常の GitHub Release ですが、未署名です。** インストーラーでは
 > なく、コード署名と notarization はありません。実行前に `SHA256SUMS` を確認
@@ -118,13 +122,14 @@ fixture を使用しています。上部の言語メニューでは English、�
 ## 対応する SDAD
 
 標準の対象は [SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)
-`v3.2.3` です。
+`v3.2.4` です。これは現在のソース候補の既定値で、公開済み 0.0.5 の内蔵エンジンは
+3.2.3 のままです。ソース検査では、対応する旧エンジンを明示的に選択できます。
 
-| 契約 | 0.0.5 の範囲 |
+| 契約 | 3.2.4 ソース候補の範囲 |
 | --- | --- |
-| バンドル実行基準 | Official SDAD Protocol `v3.2.3` |
+| バンドル実行基準 | Official SDAD Protocol `v3.2.4` |
 | 既定アダプター | `official-sdad-3` |
-| Doctor fixture | `v3.2.1`, `v3.2.2`, `v3.2.3` |
+| Doctor fixture | `v3.2.1`, `v3.2.2`, `v3.2.3`, `v3.2.4` |
 | state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -145,27 +150,28 @@ SHA-256 digest、サイズ、ホスト、アーカイブ内の単一ファイル
 新しいアプリが正常に起動すると、認証済み UI が成功 handoff を一度だけ確認し、
 正確に対応する `.previous` バックアップと成功マーカーを削除します。完了通知は
 閉じることができ、自動でも消えます。失敗時は可能な範囲で以前の実行ファイルを
-復元し、自動再試行ループを停止します。SDAD エンジンと検査対象プロジェクトは
-更新しません。
+復元し、自動再試行ループを停止します。新しい実行ファイルには、そのリリースで
+宣言された内蔵エンジンが含まれます。エンジンだけを別途ダウンロードしたり、
+検査対象プロジェクトを変更したりすることはありません。
 
 ## ソースから実行
 
 Python 3.10 以上と Node.js 22 以上を使用します。リリース用 one-file ビルドだけは
-CPython 3.12 が必須です。
+CPython 3.12 と、製品バージョンに一致する認証済みエンジンが必須です。
 
 ```bash
 python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop --sdad-checkout .runtime/sdad-v3.2.3
+sdad-inspector desktop --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 プロジェクトパスを省略すると、最新の有効な履歴を開くか、初回用のアプリ内
 選択画面を表示します。明示する場合:
 
 ```bash
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 主要な検証:
@@ -177,16 +183,17 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 ## 今後のリリース保守
 
 現在のソースでは `sdad_inspector/version.py` をバージョンの唯一の原本とします。
 将来の承認済みバージョン変更では `python scripts/release_metadata.py --sync` で
-Windows リソースと現在の README を更新し、`--check` で整合性を確認します。
-過去のリリースノートは書き換えません。
+Windows リソースと README の管理対象ソースバージョン行だけを更新し、`--check`
+で整合性を確認します。公開済みダウンロード URL と過去のリリースノートは
+書き換えません。番号の共通化と各製品の公開条件は[バージョン運用規則](docs/VERSIONING.md)に記載します。
 
 次の承認済みリリースでは、タグと同じコミットの `main` 候補を選択し、バージョンと
 アーカイブのハッシュを確認して、ダウンロード後の 3 OS スモークを再実行します。
@@ -196,7 +203,7 @@ manifest の計 5 資産を attestation とともに公開します。既存の�
 [リリース保守手順](docs/RELEASING.md)と[プラットフォーム契約](docs/CROSS_PLATFORM.md)
 を参照してください。
 
-変更後のホスト側昇格手順は、将来の承認済み CI 実行で検証する必要があります。
+3.2.4 候補の公開には、この候補自身の承認済みホスト検証が必要です。
 公開済み `v0.0.5` のアーカイブや過去の検証結果は変更しません。
 
 ## 制限
@@ -217,6 +224,6 @@ SDAD Inspector は [MIT License](LICENSE) で提供されます。継続的な�
 バージョン、Doctor exit code、再現手順を含めてください。`.env`、顧客データ、
 非公開リポジトリの内容、その他の秘密情報は添付しないでください。
 
-現在のソース候補の[訂正履歴と下書き復元](docs/CORRECTION_HISTORY.md)（英語）も
-参照してください。保管・復元と移動した出典の下書き復元はローカル候補の機能で、
-既存の公開バイナリには含まれていません。
+[訂正履歴と下書き復元](docs/CORRECTION_HISTORY.md)（英語）は、0.0.5 に含まれる
+アプリ専用の保管・復元と出典移動後の下書き復元を説明します。3.2.4 候補では TODO
+の区分、選択した 2 件の検証記録の明示的な比較、再開基準点がない場合の案内を改善します。

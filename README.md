@@ -4,6 +4,10 @@
 
 # SDAD Inspector
 
+<!-- inspector-source-version -->Source version: `v3.2.4`<!-- /inspector-source-version -->
+
+**Local source candidate:** Inspector `3.2.4` now targets bundled SDAD Protocol `3.2.4`. This candidate is not published. The download instructions below describe published Inspector `0.0.5`, which bundles SDAD `3.2.3`. See the [versioning policy](docs/VERSIONING.md) and [3.2.4 candidate notes](docs/releases/v3.2.4.md).
+
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -17,8 +21,9 @@ value on the right.
 
 The inspected repository is **read-only**. Inspector does not run its declared
 validation commands and does not edit source, SPEC, state, TODO, or findings
-files. Only the Inspector product updater writes to Inspector-owned app data and
-the portable executable being updated.
+files. Preferences, saved comparison metadata and correction drafts use
+Inspector-owned app data. The product updater also replaces the portable
+Inspector executable being updated.
 
 > **0.0.5 is a regular GitHub Release, but remains unsigned.** It is not an
 > installer and has no code signing or notarization. Your operating system may
@@ -144,11 +149,11 @@ Inspector can attach to a product repository that follows
 has `sdad-state.yaml` at its root. It is not limited to inspecting the SDAD
 framework repository itself.
 
-| Contract | 0.0.5 scope |
+| Contract | 3.2.4 source candidate |
 | --- | --- |
-| Bundled runtime baseline | Official SDAD Protocol `v3.2.3` |
+| Bundled runtime baseline | Official SDAD Protocol `v3.2.4` |
 | Built-in protocol adapter | `official-sdad-3` |
-| Doctor compatibility fixtures | released `v3.2.1`, `v3.2.2`, `v3.2.3` |
+| Doctor compatibility fixtures | released `v3.2.1`, `v3.2.2`, `v3.2.3`, `v3.2.4` |
 | SDAD state schema | 1, 2 |
 | Doctor report schema | 1, 2 |
 | Inspector snapshot schema | 2 |
@@ -164,7 +169,9 @@ paths and evidence documents, and exposes optional Rule 5 behavior through
 Inspector snapshot schema 2. The UI reads only that normalized snapshot.
 
 The 0.0.5 portable app bundles only the tested `official-sdad-3` adapter and SDAD
-3.2.3 engine. An extensible boundary is not a claim that every SDAD variant is
+3.2.3 engine. The current 3.2.4 source candidate uses the same adapter with SDAD
+3.2.4 as its default build engine; explicitly selected supported older engines
+remain available for source inspection. An extensible boundary is not a claim that every SDAD variant is
 already supported. A different family needs its own adapter, immutable engine
 identity, schema fixtures, no-write tests, and bounded platform evidence.
 
@@ -231,7 +238,7 @@ recent commit metadata from the selected repository. It does **not**:
 - render active HTML or scripts from repository Markdown;
 - expose a general JavaScript-to-Python or filesystem bridge;
 - send telemetry;
-- automatically download an SDAD engine or migrate a project.
+- independently download an SDAD engine or migrate a project.
 
 Recent projects, language/theme/UI-scale/panel preferences, and product-update
 staging live in per-user Inspector app data, never in the inspected repository.
@@ -252,7 +259,8 @@ new app acknowledges the handoff, removes the exact `.previous` rollback file,
 and consumes the one-time success marker. Its completion notice can be closed
 and also disappears automatically. A failed replacement restores the previous
 file when possible and blocks automatic retry loops until the user retries.
-This updates Inspector only; it never updates the bundled engine or writes the
+This replaces Inspector together with the engine embedded in that verified
+product release. It never downloads an engine independently or writes the
 selected project.
 
 ## Troubleshooting another computer
@@ -308,9 +316,9 @@ CPython 3.12.
 ```bash
 git clone https://github.com/LiveTrack-X/sdad-inspector.git
 cd sdad-inspector
-git clone --branch v3.2.3 --depth 1 \
+git clone --branch v3.2.4 --depth 1 \
   https://github.com/LiveTrack-X/spec-driven-ai-development.git \
-  .runtime/sdad-v3.2.3
+  .runtime/sdad-v3.2.4
 ```
 
 Windows PowerShell:
@@ -321,7 +329,7 @@ python -m venv .venv
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.3
+sdad-inspector desktop "C:\path\to\your-project" --sdad-checkout .runtime\sdad-v3.2.4
 ```
 
 macOS or Linux:
@@ -332,7 +340,7 @@ source .venv/bin/activate
 python -m pip install -e ".[desktop,build]"
 npm --prefix web ci
 npm --prefix web run build
-sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.3
+sdad-inspector desktop /path/to/your-project --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 Omit the project path to reopen the newest valid recent project, or to show the
@@ -340,7 +348,7 @@ in-app chooser after the GUI loads on first use. For browser development, run:
 
 ```bash
 sdad-inspector serve /path/to/your-project \
-  --sdad-checkout .runtime/sdad-v3.2.3
+  --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 The service binds only to `127.0.0.1`, creates a new session token for every
@@ -351,7 +359,7 @@ run, validates Host and Origin, and applies `no-store` to API responses.
 ```mermaid
 flowchart LR
     Repo["Selected SDAD repository\nread-only bounded files"] --> Adapter["ProtocolAdapter\nofficial-sdad-3"]
-    Engine["Authenticated SDAD 3.2.3\nDoctor runtime"] --> Adapter
+    Engine["Authenticated SDAD 3.2.4\nDoctor runtime"] --> Adapter
     Adapter --> Snapshot["Inspector snapshot schema 2"]
     Snapshot --> Service["Token-authenticated\n127.0.0.1 service"]
     Service --> UI["React UI\nbrowser or pywebview"]
@@ -378,18 +386,22 @@ update is separate from engine acquisition and project migration.
   components, and responsive behavior
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — product UI translation and
   verbatim repository-evidence boundary
-- [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — current release scope,
+- [`docs/VERSIONING.md`](docs/VERSIONING.md) — shared release numbers, distinct
+  product/engine identities, and publication boundaries
+- [`docs/releases/v3.2.4.md`](docs/releases/v3.2.4.md) — unpublished source candidate
+- [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — published release scope,
   startup, localization, display preferences, update cleanup, and limitations
 - [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — icon and evidence patch
 - [`docs/releases/v0.0.1.md`](docs/releases/v0.0.1.md) — first regular release
 
 ## Build and validation
 
-An unsigned local one-file build must use official CPython 3.12:
+An unsigned local one-file build must use official CPython 3.12 and an
+authenticated engine whose version equals the Inspector product version:
 
 ```bash
 npm --prefix web run build
-python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.3
+python3.12 scripts/build_native.py --sdad-checkout .runtime/sdad-v3.2.4
 python3.12 scripts/smoke_native.py .
 ```
 
@@ -402,10 +414,10 @@ python -m unittest discover -s tests -v
 npm --prefix web run typecheck
 npm --prefix web test -- --run
 npm --prefix web run build
-python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
-python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.3
+python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/validate_static_report.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.4
+python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.4
 ```
 
 The regular cross-platform workflow builds and directly smoke-launches Windows,
@@ -419,8 +431,8 @@ portable smokes without rebuilding. It publishes the three archives,
 `SHA256SUMS`, and a candidate provenance manifest with GitHub attestations only
 after all gates pass. Existing tags and Releases are never replaced. See
 [release maintenance](docs/RELEASING.md) for the version authority, retention and
-retry rules. This revised hosted promotion path still needs a future authorized
-CI run; it does not change the already published `v0.0.5` artifacts.
+retry rules. The 3.2.4 candidate needs its own authorized hosted runs before
+publication; the already published `v0.0.5` artifacts and results remain unchanged.
 
 ## Current limitations
 
@@ -449,6 +461,7 @@ When reporting a problem, include the Inspector version, OS and architecture,
 SDAD version, Doctor exit code, and reproduction steps. Do not attach `.env`,
 customer data, private repository content, or other secrets.
 
-For the current source candidate, see [correction history and draft recovery](docs/CORRECTION_HISTORY.md).
-Archive/restore and moved-source draft recovery are local candidate features;
-they are not part of the previously published binaries.
+See [correction history and draft recovery](docs/CORRECTION_HISTORY.md) for the
+app-owned archive/restore and moved-source recovery already included in 0.0.5.
+The 3.2.4 candidate adds clearer TODO groups, explicit comparison of two selected
+verification records, and guidance when no resume baseline has been saved.

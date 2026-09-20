@@ -90,6 +90,28 @@ def zip_payload(name: str, content: bytes) -> bytes:
 
 
 class VersionAndReleaseTests(unittest.TestCase):
+    def test_aligned_version_upgrades_legacy_app_without_allowing_downgrade(self) -> None:
+        for platform_name, architecture in (("windows", "x64"), ("macos", "arm64"), ("linux", "x64")):
+            with self.subTest(platform=platform_name):
+                release = release_payload("3.2.4", platform_name=platform_name, architecture=architecture)
+                selected = select_release([release], current_version="0.0.5",
+                                          platform_name=platform_name, architecture=architecture)
+                self.assertIsNotNone(selected)
+                self.assertEqual(selected.version, "3.2.4")
+                self.assertEqual(selected.asset_name, expected_asset_name("3.2.4", platform_name, architecture))
+                self.assertEqual(selected.asset_sha256, "a" * 64)
+                self.assertIsNone(select_release([release_payload("0.0.5"), release], current_version="3.2.4",
+                                                 platform_name=platform_name, architecture=architecture))
+
+    def test_aligned_upgrade_keeps_immutable_digest_and_exact_archive_guards(self) -> None:
+        mutable = release_payload("3.2.4", immutable=False)
+        bad_digest = release_payload("3.2.4", digest="invalid")
+        wrong_archive = release_payload("3.2.4")
+        wrong_archive["assets"][0]["name"] = "SDAD-Inspector-0.0.5-windows-x64.zip"
+        for release in (mutable, bad_digest, wrong_archive):
+            with self.subTest(release=release), self.assertRaises(ProductUpdateError):
+                select_release([release], current_version="0.0.5", platform_name="windows", architecture="x64")
+
     def test_candidate_provenance_asset_does_not_change_exact_archive_selection(self) -> None:
         release = release_payload("0.0.4")
         release["assets"].extend([

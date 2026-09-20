@@ -3,6 +3,7 @@ import { VerificationRecords } from "./VerificationRecords";
 import { type ReactNode, useId, useState } from "react";
 import { PlanDetails, WorkItemDetails } from "./WorkDetails";
 import { workDetailCopy } from "../workDetailCopy";
+import { workChecklistCopy } from "../workChecklistCopy";
 import { overviewPriorityCopy } from "../overviewPriorityCopy";
 import "./OverviewPriority.css";
 import {
@@ -60,14 +61,16 @@ function noCurrentWorkCopy(stage: CurrentControlStageSignal, t: ReturnType<typeo
   return t("currentTodoUndeclared");
 }
 
-function WorkChecklist({ work, todoPath, stage, onOpenSource, showCurrent = true }: { work: PacketWorkItem[]; todoPath: string; stage: CurrentControlStageSignal; onOpenSource: () => void; showCurrent?: boolean }) {
+function WorkChecklist({ work, todoPath, stage, onOpenSource, showCurrent = true, packetDeferred = false }: { work: PacketWorkItem[]; todoPath: string; stage: CurrentControlStageSignal; onOpenSource: () => void; showCurrent?: boolean; packetDeferred?: boolean }) {
   const { locale, t } = useI18n();
+  const c = workChecklistCopy[locale];
   const currentItems = currentWorkItems(work,stage);
-  const open = work.filter((item) => !item.completed && !currentItems.includes(item));
+  const deferred = work.filter((item) => !item.completed && (packetDeferred || stage.status === "deferred" || isDeferredWorkItem(item)));
+  const open = work.filter((item) => !item.completed && !currentItems.includes(item) && !deferred.includes(item));
   const completed = work.filter((item) => item.completed);
   const complete = stage.status !== "unavailable";
   const showSections = new Set(work.map((item) => item.section)).size > 1;
-  const itemText = (item: PacketWorkItem) => <div><WorkItemDetails item={item} todoPath={todoPath} allowCurrentLabel={currentItems.includes(item)} onOpenSource={onOpenSource}/>{showSections && <small className="todo-source-section">{t("todoSourceSection", { section: item.section })}</small>}</div>;
+  const itemText = (item: PacketWorkItem) => <div>{!currentItems.includes(item) && item.phase && !item.phaseConflict && <small className="work-item-phase">{workDetailCopy[locale].phase}: {controlStageLabel(item.phase, t)}</small>}<WorkItemDetails item={item} todoPath={todoPath} allowCurrentLabel={currentItems.includes(item)} onOpenSource={onOpenSource}/>{showSections && <small className="todo-source-section">{t("todoSourceSection", { section: item.section })}</small>}</div>;
   return (
     <section className="packet-work" aria-labelledby="packet-work-heading">
       <div className="section-heading-row">
@@ -84,8 +87,9 @@ function WorkChecklist({ work, todoPath, stage, onOpenSource, showCurrent = true
             </div>
           )}
           <div className="work-columns">
-            <div><h3><button type="button" className="remaining-work-trigger" aria-label={workDetailCopy[locale].openRemaining} onClick={onOpenSource}><WarningCircle size={17} />{t(currentItems.length ? "otherRemainingWork" : "remainingWork")} <span>{complete ? open.length : t("unavailable")}</span><ArrowRight size={16}/></button></h3><ul>{open.map((item, index) => <li key={index}><span className="check-indicator" />{itemText(item)}</li>)}</ul></div>
-            <div><h3><CheckCircle size={17} />{t("completedWork")} <span>{complete ? completed.length : t("unavailable")}</span></h3><ul>{completed.map((item, index) => <li className="completed" key={index}><CheckCircle size={18} weight="fill" />{itemText(item)}</li>)}</ul></div>
+            <div role="group" aria-label={c.remaining}><h3><button type="button" className="remaining-work-trigger" aria-label={workDetailCopy[locale].openRemaining} onClick={onOpenSource}><WarningCircle size={17} />{t(currentItems.length ? "otherRemainingWork" : "remainingWork")} <span>{complete ? open.length : t("unavailable")}</span><ArrowRight size={16}/></button></h3>{open.length > 0 && <p className="work-group-note">{c.orderNote}</p>}<ul>{open.map((item, index) => <li key={index}><span className="check-indicator" />{itemText(item)}</li>)}</ul></div>
+            <div role="group" aria-label={c.checked}><h3><CheckCircle size={17} />{t("completedWork")} <span>{complete ? completed.length : t("unavailable")}</span></h3><ul>{completed.map((item, index) => <li className="completed" key={index}><CheckCircle size={18} weight="fill" />{itemText(item)}</li>)}</ul></div>
+            {deferred.length > 0 && <div className="work-deferred" role="group" aria-label={c.deferred}><h3><Clock size={17}/>{c.deferred} <span>{complete ? deferred.length : t("unavailable")}</span></h3><p className="work-group-note">{c.deferredNote}</p><ul>{deferred.map((item, index) => <li key={index}><Clock size={17}/>{itemText(item)}</li>)}</ul></div>}
           </div>
         </>
       )}
@@ -396,7 +400,7 @@ function ActivityHistory({ snapshot, activity: candidate, children, limit = 12, 
 export function PacketWorkPanel({ snapshot, documents, work, onSelect }: { snapshot: Snapshot; documents: LiveDocuments | null; work: PacketWorkItem[]; onSelect: (id:string) => void }) {
   const { t } = useI18n();
   return <section className="overview-section packet-evidence-section" aria-label={t("packetTodo")}>
-    <WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} stage={currentControlStage(work,snapshot.protocol.todo_path,{snapshot,documents})} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/>
+    <WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} stage={currentControlStage(work,snapshot.protocol.todo_path,{snapshot,documents})} packetDeferred={snapshot.state.available && snapshot.state.active_packet?.status === 'deferred'} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/>
   </section>;
 }
 
@@ -457,7 +461,7 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
       <InteractionPanel key={snapshot.project.identity} snapshot={snapshot} documents={documents} onSelect={onSelect} />
       <SituationPanel snapshot={snapshot} work={work} currentStage={currentStage} onSelect={onSelect} />
       <PacketContext snapshot={snapshot} work={work} stage={currentStage} onSelect={onSelect} />
-      <section className="development-work-section"><WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} stage={currentStage} showCurrent={false} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></section>
+      <section className="development-work-section"><WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} stage={currentStage} packetDeferred={snapshot.state.available && snapshot.state.active_packet?.status === 'deferred'} showCurrent={false} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></section>
       <VerificationRecords snapshot={snapshot} />
       <EvidenceDocuments snapshot={snapshot} documents={documents} onSelect={onSelect} />
 

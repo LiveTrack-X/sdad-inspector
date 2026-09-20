@@ -9,9 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 try:
-    from scripts.release_metadata import VERSION, TAG, WINDOWS_VERSION, WINDOWS_VERSION_STRING, windows_resource
+    from scripts.release_metadata import VERSION, TAG, WINDOWS_VERSION, WINDOWS_VERSION_STRING, windows_resource, managed_source_guide
 except ModuleNotFoundError:
-    from release_metadata import VERSION, TAG, WINDOWS_VERSION, WINDOWS_VERSION_STRING, windows_resource
+    from release_metadata import VERSION, TAG, WINDOWS_VERSION, WINDOWS_VERSION_STRING, windows_resource, managed_source_guide
 
 PACKAGE_VERSION = RELEASE_VERSION = VERSION
 RELEASE_TAG = TAG
@@ -70,15 +70,23 @@ def validate_release_contract() -> list[str]:
         issues.append("runtime must import the authoritative version")
     if version_info != windows_resource():
         issues.append("generated Windows resource is stale; run release_metadata.py --sync")
+    for name, guide in (("README.md", readme), ("README.ko.md", korean_readme),
+                        ("README.ja.md", japanese_readme), ("README.zh-CN.md", chinese_readme)):
+        try:
+            if managed_source_guide(guide) != guide:
+                issues.append(f"{name}: managed source version is stale")
+        except ValueError as exc:
+            issues.append(f"{name}: {exc}")
     for needle in ('license = "MIT"', 'license-files = ["LICENSE"]'):
         _require(issues, pyproject, needle, source="pyproject.toml")
 
     for needle in (
         RELEASE_TAG,
-        f"{VERSION} is a regular GitHub Release, but remains unsigned",
+        "unsigned",
+        "immutable",
         "web/public/sdad-inspector-banner.png",
         "Which SDAD projects can it inspect?",
-        "Official SDAD Protocol `v3.2.3`",
+        "Official SDAD Protocol `v3.2.4`",
         "official-sdad-3",
         "Inspector snapshot schema | 2",
         "Windows",
@@ -149,8 +157,8 @@ def validate_release_contract() -> list[str]:
         "needs: [preview, portable-smoke]",
         "npm --prefix web audit --audit-level=high",
         "actions/upload-artifact@v7",
-        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3",
-        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3",
+        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.4",
+        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.4",
         "windows-latest",
         "macos-latest",
         "ubuntu-latest",
@@ -165,10 +173,10 @@ def validate_release_contract() -> list[str]:
 
     for needle in (
         f"# SDAD Inspector {VERSION}",
-        "Unsigned portable release",
+        "unsigned",
         f"exact `{TAG}` tag",
         "SHA256SUMS",
-        "SDAD Protocol `v3.2.3`",
+        "SDAD Protocol `v3.2.4`",
         "single portable executable",
         "automatic product update",
         "successful-update acknowledgement",
@@ -284,7 +292,8 @@ def main() -> int:
         return 1
     print(
         "Release contract validation passed: "
-        f"package {PACKAGE_VERSION}, regular tag {RELEASE_TAG}, 3 unsigned single-file platform archives"
+        f"source package {PACKAGE_VERSION}, intended tag {RELEASE_TAG}, "
+        "3 unsigned single-file platform archive contracts; publication not checked"
     )
     return 0
 

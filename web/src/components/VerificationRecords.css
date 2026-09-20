@@ -20,4 +20,21 @@
 .verification-records details li { overflow-wrap: anywhere; margin-block: 6px; }
 .verification-records small { display: block; }
 .verification-limit, .verification-observed { color: var(--secondary); }
+.verification-comparison { margin-top: 16px; border-top: 1px solid var(--divider); padding-top: 14px; min-width: 0; }
+.verification-comparison h3 { margin: 0; font-size: 14px; }
+.verification-comparison-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--divider); border-radius: 6px; }
+.verification-comparison table { border-collapse: collapse; table-layout: fixed; width: 100%; min-width: 540px; font-size: 12px; line-height: 1.6; }
+.verification-comparison th, .verification-comparison td { padding: 9px 10px; text-align: left; vertical-align: top; overflow-wrap: anywhere; border-bottom: 1px solid var(--divider); }
+.verification-comparison th:first-child { width: 22%; }
+.verification-comparison thead, .verification-comparison tbody th { background: var(--surface-soft); }
+.verification-comparison thead button { display: block; margin-top: 8px; }
+.verification-comparison tbody tr:last-child > * { border-bottom: none; }
+.verification-comparison small { margin-top: 5px; color: var(--secondary); font-weight: normal; }
+.verification-comparison-scroll-hint { display: none; }
+@media (max-width: 760px) {
+  .verification-comparison-scroll-hint { display: block; color: var(--secondary); }
+  .verification-comparison th:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-soft); }
+}
+.verification-records pre { max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; line-height: 1.6; }
+.verification-records h4 { margin: 14px 0 6px; font-size: 12px; }
 @media (max-width: 600px) { .verification-records { padding: 14px; } .verification-records .section-heading-row { align-items: flex-start; flex-direction: column; gap: 10px; } }
