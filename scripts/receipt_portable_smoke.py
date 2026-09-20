@@ -129,7 +129,7 @@ def smoke_receipts(executable: Path, *, seconds: float = 2, timeout: float = 60)
         finally:
             if process.poll() is None:
                 process.kill()
-            process.communicate()
+            output, _ = process.communicate()
         unchanged = fingerprint(project) == before
         exit_code = process.returncode
         if not unchanged:
@@ -137,4 +137,5 @@ def smoke_receipts(executable: Path, *, seconds: float = 2, timeout: float = 60)
         return {"artifact": str(executable), "exit_code": 0 if exit_code == 0 and not error else (exit_code or 1),
                 "native_exit_code": exit_code, "bounded_seconds": duration, "timed_out": timed_out,
                 "checks": checks, "fixture_unchanged": unchanged, "error": error,
+                "diagnostic_output": output[-8192:].decode("utf-8", errors="replace") if error else None,
                 "scope": "Actual packaged loopback APIs and bounded native window lifecycle; not native visual interaction or user acceptance"}

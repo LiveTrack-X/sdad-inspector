@@ -45,7 +45,7 @@ executable = EXE(
     analysis.scripts,
     analysis.binaries,
     analysis.datas,
-    [],
+    [("X utf8", None, "OPTION")],
     name="SDAD-Inspector",
     debug=False,
     bootloader_ignore_signals=False,

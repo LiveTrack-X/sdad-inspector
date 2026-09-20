@@ -11,6 +11,11 @@ URL in a native window. PyInstaller produces an unsigned one-file executable
 with CPython 3.12, the web bundle, and the authenticated SDAD 3.2.3 engine
 embedded.
 
+Both the isolated source reader and the packaged interpreter explicitly enable
+UTF-8 mode. Python environment variables alone are insufficient for these isolated
+runtimes; packaging uses PyInstaller's documented
+[interpreter option](https://pyinstaller.org/en/stable/spec-files.html#specifying-python-interpreter-options).
+
 Inspector orchestration reaches that engine through the built-in
 `official-sdad-3` protocol adapter and emits Inspector snapshot schema 2. The
 adapter registry is separate from the renderer and from product update logic;

@@ -197,7 +197,7 @@ def validate_release_contract() -> list[str]:
         _require(issues, packager, needle, source="scripts/package_release.py")
     for needle in ("CPython 3.12", 'version != (3, 12)', "require_release_python"):
         _require(issues, native_builder, needle, source="scripts/build_native.py")
-    for needle in ("analysis.binaries", "analysis.datas", '"webview"', "sdad-inspector.ico", "sdad-inspector.icns", "icon=ICON", "version=VERSION_INFO"):
+    for needle in ("analysis.binaries", "analysis.datas", '"webview"', "sdad-inspector.ico", "sdad-inspector.icns", "icon=ICON", "version=VERSION_INFO", '("X utf8", None, "OPTION")'):
         _require(issues, native_spec, needle, source="packaging/sdad-inspector.spec")
     for forbidden in ("COLLECT(", "BUNDLE(", "exclude_binaries=True"):
         if forbidden in native_spec:
