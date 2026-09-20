@@ -401,10 +401,18 @@ def main(argv: list[str] | None = None) -> int:
         rescan_result: list[tuple[int, dict[str, str], bytes]] = []
         emitted_progress: list[tuple[str, str, str]] = []
         original_progress_emit = service._progress.emit
+        doctor_started = threading.Event()
+        progress_observed = threading.Event()
 
         def capture_progress(stage: str, source: str, event: str) -> None:
             emitted_progress.append((stage, source, event))
             original_progress_emit(stage, source, event)
+            if stage == "doctor" and event == "doctor_started":
+                # Hold an actual emitted state until HTTP observes it. Polling
+                # alone can miss every short-lived state on a busy runner. This
+                # harness barrier measures visibility, not natural timing.
+                doctor_started.set()
+                require(progress_observed.wait(10), "Live progress observation did not arrive.")
 
         service._progress.emit = capture_progress  # type: ignore[method-assign]
 
@@ -423,6 +431,13 @@ def main(argv: list[str] | None = None) -> int:
         rescan_worker = threading.Thread(target=run_rescan, daemon=True)
         rescan_worker.start()
         observed_progress: list[dict[str, object]] = []
+        try:
+            require(doctor_started.wait(10), "Re-scan never reached the actual Doctor stage.")
+            live_status, _, live_body = request(server, "/api/progress", token=token)
+            require(live_status == 200, "Progress route failed during re-scan.")
+            observed_progress.append(json.loads(live_body))
+        finally:
+            progress_observed.set()
         while rescan_worker.is_alive():
             live_status, _, live_body = request(server, "/api/progress", token=token)
             require(live_status == 200, "Progress route failed during re-scan.")
