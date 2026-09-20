@@ -6,7 +6,7 @@
 
 <!-- inspector-source-version -->Source version: `v3.2.4`<!-- /inspector-source-version -->
 
-**로컬 소스 후보:** Inspector `3.2.4`와 기본 번들 SDAD Protocol `3.2.4`의 버전을 맞춥니다. 이 후보는 아직 발행되지 않았습니다. 아래 다운로드 안내는 SDAD `3.2.3`을 포함한 공개 Inspector `0.0.5` 기준입니다. [버전 운영 규칙](docs/VERSIONING.md)과 [3.2.4 후보 변경 기록](docs/releases/v3.2.4.md)을 참고하세요.
+**공개 릴리스:** Inspector `3.2.4`는 SDAD Protocol `3.2.4`를 포함합니다. 아래 다운로드 안내는 이 릴리스 기준입니다. 이전 Inspector `0.0.5`와 번들 SDAD `3.2.3`은 그대로 보존됩니다. [버전 운영 규칙](docs/VERSIONING.md)과 [3.2.4 변경 기록](docs/releases/v3.2.4.md)을 참고하세요.
 
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
@@ -22,21 +22,21 @@ SDAD 프로젝트의 현재 상태를 한 화면에서 읽어 주는 로컬 뷰�
 명령을 실행하거나 소스·SDAD 파일을 수정하지 않습니다. 설정·비교 메타데이터·정정
 초안은 Inspector 전용 앱 데이터에 저장하며, 제품 업데이트는 포터블 실행 파일도 교체합니다.
 
-> **0.0.5 is a regular GitHub Release, but remains unsigned.** 설치 프로그램이
+> **3.2.4 is a regular GitHub Release, but remains unsigned.** 설치 프로그램이
 > 아니며 코드 서명·공증이 없습니다. 운영체제가
 > 경고하거나 실행을 막을 수 있습니다. 실행 전 `SHA256SUMS`를 확인하고, 조직의
 > 보안 정책이 허용하지 않으면 보호 기능을 우회하지 말고 소스 실행 방식을 이용하세요.
 
-> **릴리스/소스 안내:** `v0.0.5` 실행 파일은 같은 immutable 태그에서 빌드됩니다.
+> **릴리스/소스 안내:** `v3.2.4` 실행 파일은 같은 immutable 태그에서 빌드됩니다.
 > 태그의 Windows·macOS·Linux 검증이 모두 통과한 뒤에만 압축, 체크섬,
 > attestation을 정식 릴리스로 게시합니다.
 
 ## 3분 만에 시작하기
 
 Python이나 Node.js를 설치할 필요가 없습니다. 각 압축 파일 안에는 런타임, UI,
-SDAD 3.2.3 엔진이 포함된 **single portable executable** 하나만 들어 있습니다.
+SDAD 3.2.4 엔진이 포함된 **single portable executable** 하나만 들어 있습니다.
 
-1. [`v0.0.5` 릴리스](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.5)를 엽니다.
+1. [`v3.2.4` 릴리스](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v3.2.4)를 엽니다.
 2. 내 컴퓨터에 맞는 압축 파일과 `SHA256SUMS`를 받습니다.
 3. 아래 방법으로 해시를 확인합니다.
 4. 압축을 풀고 실행 파일을 엽니다.
@@ -44,9 +44,9 @@ SDAD 3.2.3 엔진이 포함된 **single portable executable** 하나만 들어 �
 
 | 컴퓨터 | 받을 파일 | 압축 안의 실행 파일 |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.5-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.5-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.5-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-3.2.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-3.2.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-3.2.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 현재 릴리스에 없는 아키텍처(예: Intel Mac)는 지원된다고 가정하지 마세요. 소스
 실행은 가능할 수 있지만, 공개 릴리스의 빌드·스모크 근거에는 포함되지 않습니다.
@@ -57,7 +57,7 @@ SDAD 3.2.3 엔진이 포함된 **single portable executable** 하나만 들어 �
 마지막 결과가 `True`여야 합니다.
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.5-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-3.2.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -135,7 +135,7 @@ README 맨 위의 한 줄 제품 배너는 저장소 소개용입니다. 프로�
 SDAD 프레임워크 저장소만 보는 도구가 아니라, SDAD 방식으로 운영하는 실제 제품
 저장소를 읽는 도구입니다.
 
-| 계약 | 3.2.4 소스 후보 범위 |
+| 계약 | 3.2.4 범위 |
 | --- | --- |
 | 번들 실행 기준 | Official SDAD Protocol `v3.2.4` |
 | 기본 프로토콜 어댑터 | `official-sdad-3` |
@@ -154,7 +154,7 @@ report/state 스키마 정규화, 제어 파일 경로, 근거 문서와 선택�
 Inspector snapshot schema 2로 변환합니다. UI는 이 정규화된 snapshot만 읽습니다.
 
 `0.0.5` 포터블 앱에는 검증된 `official-sdad-3` 어댑터와 SDAD 3.2.3 엔진만
-포함됩니다. 현재 3.2.4 소스 후보는 같은 어댑터와 SDAD 3.2.4를 기본 빌드 대상으로
+포함됩니다. Inspector 3.2.4는 같은 어댑터와 SDAD 3.2.4를 기본 빌드 대상으로
 사용하며, 소스 검사에서는 지원되는 이전 엔진을 명시적으로 선택할 수 있습니다.
 따라서 구조가 확장 가능하다는 사실을 “모든 SDAD 변형 지원”으로
 해석하면 안 됩니다. 다른 SDAD 계열은 다음 조건을 갖춘 별도 어댑터와 호환성
@@ -293,7 +293,7 @@ unsigned 코드를 자동 실행할 수 없다면 소스 모드를 사용하세�
 단일 실행 파일이며 옆에 `_internal` 폴더가 필요하지 않습니다.
 
 1. 기존 복사본과 `_internal` 폴더를 섞어 쓰지 않습니다.
-2. 공식 `v0.0.5` 자산을 새 폴더에 다시 받습니다.
+2. 공식 `v3.2.4` 자산을 새 폴더에 다시 받습니다.
 3. `SHA256SUMS`를 확인합니다.
 4. 압축 속 실행 파일 하나를 꺼내 그 파일을 실행합니다.
 
@@ -302,15 +302,15 @@ unsigned 코드를 자동 실행할 수 없다면 소스 모드를 사용하세�
 
 ### Windows 탐색기에 예전 파이썬 아이콘이 보임
 
-`v0.0.5`의 EXE에는 SDAD Inspector 로고와 제품 버전 정보가 들어 있습니다. 다만
+`v3.2.4`의 EXE에는 SDAD Inspector 로고와 제품 버전 정보가 들어 있습니다. 다만
 Windows 탐색기는 실행 파일의 전체 경로를 기준으로 아이콘을 캐시하기 때문에, 같은
 폴더의 같은 `SDAD-Inspector.exe`를 수동 교체하면 실행 전에는 예전 PyInstaller
 아이콘이 남아 있을 수 있습니다.
 
-1. `v0.0.5`를 한 번 실행합니다. 정상적인 Windows 포터블 시작은 현재 EXE의 정확한
+1. `v3.2.4`를 한 번 실행합니다. 정상적인 Windows 포터블 시작은 현재 EXE의 정확한
    경로와 아이콘 연결을 셸에 다시 알립니다.
 2. 바탕 화면을 선택하고 <kbd>F5</kbd>를 눌러 표시를 새로 고칩니다.
-3. 파일 **속성 → 자세히**에서 제품 이름 `SDAD Inspector`, 제품 버전 `0.0.5`을
+3. 파일 **속성 → 자세히**에서 제품 이름 `SDAD Inspector`, 제품 버전 `3.2.4`를
    확인합니다.
 4. 실행 전부터 확인해야 한다면 릴리스 압축을 새 폴더에 풀어, 캐시 이력이 없는
    경로의 아이콘을 비교합니다.
@@ -448,8 +448,8 @@ docs/                 공개 연동·플랫폼·디자인·현지화·릴리스 
   반응형 동작
 - [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) — 네 가지 UI 언어와 원문 근거 경계
 - [`docs/VERSIONING.md`](docs/VERSIONING.md) — 공통 버전 번호와 각 저장소의 발행 조건
-- [`docs/releases/v3.2.4.md`](docs/releases/v3.2.4.md) — 아직 발행되지 않은 소스 후보
-- [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — 현재 릴리스의 시작 흐름,
+- [`docs/releases/v3.2.4.md`](docs/releases/v3.2.4.md) — 현재 공개 릴리스
+- [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — 이전 공개 릴리스의 시작 흐름,
   다국어, 화면 설정, 업데이트 정리와 알려진 한계
 - [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — 아이콘·증거 표시 패치
 - [`docs/releases/v0.0.1.md`](docs/releases/v0.0.1.md) — 첫 정식 릴리스 기록
@@ -489,8 +489,8 @@ python scripts/build_native.py --check --sdad-checkout .runtime/sdad-v3.2.4
 실행 파일을 다시 빌드하지 않으며, 모든 검증을 통과한 세 플랫폼 압축·체크섬·
 후보 출처 manifest를 GitHub attestation과 함께 게시합니다. 기존 태그와 릴리스는
 덮어쓰지 않습니다. 버전 원본·보관 기간·재시도 절차는
-[릴리스 유지보수 안내](docs/RELEASING.md)를 참고하세요. 3.2.4 후보를 발행하려면 해당
-후보의 승인된 호스팅 검증이 별도로 필요하며, 공개된 `v0.0.5` 자산과 결과는 바뀌지 않습니다.
+[릴리스 유지보수 안내](docs/RELEASING.md)를 참고하세요. 정확한 호스팅 결과는 공개된
+`v3.2.4` 릴리스와 후보 manifest에서 확인할 수 있습니다. `v0.0.5` 자산과 과거 결과는 바뀌지 않습니다.
 
 ## 현재 릴리스의 한계
 
@@ -517,5 +517,5 @@ SDAD Inspector는 [MIT License](LICENSE)로 제공됩니다. 프로젝트가 도
 첨부하지 마세요.
 
 [정정 이력·초안 복구 안내](docs/CORRECTION_HISTORY.md)(영문)는 0.0.5에 포함된
-앱 전용 보관·복원과 출처가 이동한 초안 복구를 설명합니다. 3.2.4 후보는 TODO 그룹,
+앱 전용 보관·복원과 출처가 이동한 초안 복구를 설명합니다. Inspector 3.2.4는 TODO 그룹,
 선택한 두 검증 기록의 명시적 비교, 재개 기준점이 없을 때의 안내를 개선합니다.

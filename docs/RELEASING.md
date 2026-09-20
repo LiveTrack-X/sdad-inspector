@@ -1,8 +1,8 @@
 # Maintaining a release candidate
 
-Current source candidate: Inspector **3.2.4**, with default bundled SDAD **3.2.4**.
-It is not published. The published Inspector **0.0.5** bundles SDAD **3.2.3**;
-its tag, archives and release notes remain unchanged. Read the
+Current published release: [Inspector **3.2.4**](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v3.2.4),
+with default bundled SDAD **3.2.4**. Historical Inspector **0.0.5** bundles SDAD
+**3.2.3**; its tag, archives and release notes remain unchanged. Read the
 [versioning policy](VERSIONING.md) before preparing a paired release.
 
 `sdad_inspector/version.py` is the current Inspector version authority. Setuptools,

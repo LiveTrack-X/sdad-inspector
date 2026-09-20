@@ -1,6 +1,6 @@
 # Product and protocol versioning
 
-Status: Active policy for the local 3.2.4 candidate and future authorized releases
+Status: Active policy from release 3.2.4 onward
 
 Inspector and its default bundled SDAD Protocol use the same release number
 starting with Inspector 3.2.4. This identifies a release family, not a shared
@@ -8,9 +8,10 @@ repository, artifact, schema or verification result.
 
 | Item | Current fact |
 | --- | --- |
-| Inspector source candidate | 3.2.4; not published |
-| Candidate default bundled engine | Released SDAD Protocol 3.2.4, authenticated by immutable identity |
-| Published Inspector | 0.0.5; bundles SDAD Protocol 3.2.3 |
+| Inspector product version | 3.2.4 |
+| Default bundled engine | Released SDAD Protocol 3.2.4, authenticated by immutable identity |
+| Published Inspector | [3.2.4](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v3.2.4); bundles SDAD Protocol 3.2.4 |
+| Previous Inspector release | 0.0.5; retains its original bundled SDAD Protocol 3.2.3 |
 | Historical releases | Original tags, assets, checksums, notes and results stay unchanged |
 | Explicit source-mode engine selection | Supported authenticated 3.2.1, 3.2.2, 3.2.3 or 3.2.4 |
 | State / Doctor report / Inspector snapshot schemas | State 1–2, report 1–2, snapshot 2; no migration introduced |
@@ -18,7 +19,7 @@ repository, artifact, schema or verification result.
 The jump from Inspector 0.0.5 to 3.2.4 aligns numbering with the existing Protocol
 release. It does not claim years of product maturity, signed distribution,
 broader platform support, user acceptance or a new state schema. Protocol 3.2.4
-is already released; this local work does not retag or republish that repository.
+was already released; this alignment did not retag or republish that repository.
 
 ## Authorities and generated text
 
@@ -66,8 +67,8 @@ otherwise defer the unfinished partner without inventing a completed pair.
 
 ## Update and compatibility limits
 
-The existing product updater compares product versions; an eventual published
-3.2.4 is newer than 0.0.5. It must still verify the exact platform asset and digest
+The product updater compares product versions; published 3.2.4 is newer than
+0.0.5. It must still verify the exact platform asset and digest
 before replacement. A candidate version or passing unit test is not proof of an
 end-to-end published update. The new executable carries its declared embedded
 engine; no separate automatic engine acquisition or project migration is added.

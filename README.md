@@ -6,7 +6,7 @@
 
 <!-- inspector-source-version -->Source version: `v3.2.4`<!-- /inspector-source-version -->
 
-**Local source candidate:** Inspector `3.2.4` now targets bundled SDAD Protocol `3.2.4`. This candidate is not published. The download instructions below describe published Inspector `0.0.5`, which bundles SDAD `3.2.3`. See the [versioning policy](docs/VERSIONING.md) and [3.2.4 candidate notes](docs/releases/v3.2.4.md).
+**Published release:** Inspector `3.2.4` bundles SDAD Protocol `3.2.4`. The download instructions below describe this release. Historical Inspector `0.0.5` and its bundled SDAD `3.2.3` remain unchanged. See the [versioning policy](docs/VERSIONING.md) and [3.2.4 release notes](docs/releases/v3.2.4.md).
 
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
@@ -25,13 +25,13 @@ files. Preferences, saved comparison metadata and correction drafts use
 Inspector-owned app data. The product updater also replaces the portable
 Inspector executable being updated.
 
-> **0.0.5 is a regular GitHub Release, but remains unsigned.** It is not an
+> **3.2.4 is a regular GitHub Release, but remains unsigned.** It is not an
 > installer and has no code signing or notarization. Your operating system may
 > warn or block it. Verify `SHA256SUMS` before running it. If your organization
 > does not allow unsigned software, do not bypass that policy; use the source
 > workflow instead.
 
-> **Release/source note:** `v0.0.5` is built from the matching immutable tag.
+> **Release/source note:** `v3.2.4` is built from the matching immutable tag.
 > The release archives, checksums, and attestations are produced only after the
 > tagged Windows, macOS, and Linux jobs pass.
 
@@ -39,9 +39,9 @@ Inspector executable being updated.
 
 You do not need to install Python or Node.js on the destination computer. Every
 archive contains exactly one **single portable executable** with the runtime,
-UI, and authenticated SDAD 3.2.3 engine embedded.
+UI, and authenticated SDAD 3.2.4 engine embedded.
 
-1. Open the [`v0.0.5` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.5).
+1. Open the [`v3.2.4` release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v3.2.4).
 2. Download the archive for your machine and `SHA256SUMS`.
 3. Verify the archive hash using the command below.
 4. Extract and run the only executable in the archive.
@@ -49,9 +49,9 @@ UI, and authenticated SDAD 3.2.3 engine embedded.
 
 | Computer | Download | Executable inside |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.5-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.5-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.5-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-3.2.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-3.2.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-3.2.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 Do not assume that an architecture missing from this table, such as Intel macOS,
 is covered by the published evidence. Source execution may work, but that is not
@@ -62,7 +62,7 @@ the same claim as a released and smoke-tested portable asset.
 Windows PowerShell, with the archive and `SHA256SUMS` in the same folder:
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.5-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-3.2.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -149,7 +149,7 @@ Inspector can attach to a product repository that follows
 has `sdad-state.yaml` at its root. It is not limited to inspecting the SDAD
 framework repository itself.
 
-| Contract | 3.2.4 source candidate |
+| Contract | 3.2.4 scope |
 | --- | --- |
 | Bundled runtime baseline | Official SDAD Protocol `v3.2.4` |
 | Built-in protocol adapter | `official-sdad-3` |
@@ -169,7 +169,7 @@ paths and evidence documents, and exposes optional Rule 5 behavior through
 Inspector snapshot schema 2. The UI reads only that normalized snapshot.
 
 The 0.0.5 portable app bundles only the tested `official-sdad-3` adapter and SDAD
-3.2.3 engine. The current 3.2.4 source candidate uses the same adapter with SDAD
+3.2.3 engine. Inspector 3.2.4 uses the same adapter with SDAD
 3.2.4 as its default build engine; explicitly selected supported older engines
 remain available for source inspection. An extensible boundary is not a claim that every SDAD variant is
 already supported. A different family needs its own adapter, immutable engine
@@ -272,7 +272,7 @@ The current CPython 3.12 one-file release does not need an adjacent `_internal`
 folder.
 
 1. Do not mix an old launcher or `_internal` folder with the current release.
-2. Download the official `v0.0.5` asset into a new folder.
+2. Download the official `v3.2.4` asset into a new folder.
 3. Verify `SHA256SUMS`.
 4. Extract and run the archive's only executable.
 
@@ -281,16 +281,16 @@ shortcut points to an old copy.
 
 ### Windows Explorer still shows the old Python icon
 
-The v0.0.5 EXE embeds the SDAD Inspector icon and product metadata. Explorer can
+The v3.2.4 EXE embeds the SDAD Inspector icon and product metadata. Explorer can
 cache icons by full path, so manually replacing a different
 `SDAD-Inspector.exe` at the same location may leave old artwork visible before
 the first launch.
 
-1. Run v0.0.5 once. Normal frozen Windows startup notifies the shell about the
+1. Run v3.2.4 once. Normal frozen Windows startup notifies the shell about the
    exact running EXE path and refreshes icon associations.
 2. Select the desktop and press <kbd>F5</kbd>.
 3. Open **Properties → Details** and confirm product name `SDAD Inspector` and
-   product version `0.0.5`.
+   product version `3.2.4`.
 4. For a pre-launch comparison, extract the release into a new folder whose path
    has no previous icon-cache history.
 
@@ -388,8 +388,8 @@ update is separate from engine acquisition and project migration.
   verbatim repository-evidence boundary
 - [`docs/VERSIONING.md`](docs/VERSIONING.md) — shared release numbers, distinct
   product/engine identities, and publication boundaries
-- [`docs/releases/v3.2.4.md`](docs/releases/v3.2.4.md) — unpublished source candidate
-- [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — published release scope,
+- [`docs/releases/v3.2.4.md`](docs/releases/v3.2.4.md) — current published release
+- [`docs/releases/v0.0.5.md`](docs/releases/v0.0.5.md) — previous published release scope,
   startup, localization, display preferences, update cleanup, and limitations
 - [`docs/releases/v0.0.2.md`](docs/releases/v0.0.2.md) — icon and evidence patch
 - [`docs/releases/v0.0.1.md`](docs/releases/v0.0.1.md) — first regular release
@@ -431,8 +431,8 @@ portable smokes without rebuilding. It publishes the three archives,
 `SHA256SUMS`, and a candidate provenance manifest with GitHub attestations only
 after all gates pass. Existing tags and Releases are never replaced. See
 [release maintenance](docs/RELEASING.md) for the version authority, retention and
-retry rules. The 3.2.4 candidate needs its own authorized hosted runs before
-publication; the already published `v0.0.5` artifacts and results remain unchanged.
+retry rules. Consult the published `v3.2.4` release and candidate manifest for
+its exact hosted results; `v0.0.5` artifacts and historical results remain unchanged.
 
 ## Current limitations
 
@@ -463,5 +463,5 @@ customer data, private repository content, or other secrets.
 
 See [correction history and draft recovery](docs/CORRECTION_HISTORY.md) for the
 app-owned archive/restore and moved-source recovery already included in 0.0.5.
-The 3.2.4 candidate adds clearer TODO groups, explicit comparison of two selected
+Inspector 3.2.4 adds clearer TODO groups, explicit comparison of two selected
 verification records, and guidance when no resume baseline has been saved.

@@ -9,8 +9,8 @@ loopback service, the native shell, and product-update verification. React/Vite
 produces one static frontend. pywebview opens that same authenticated loopback
 URL in a native window. PyInstaller produces an unsigned one-file executable
 with CPython 3.12, the web bundle, and an authenticated SDAD engine embedded.
-The current unpublished Inspector 3.2.4 source candidate defaults to SDAD 3.2.4.
-Published Inspector 0.0.5 embeds SDAD 3.2.3; its artifacts remain unchanged.
+Published Inspector 3.2.4 bundles authenticated SDAD 3.2.4.
+Historical Inspector 0.0.5 embeds SDAD 3.2.3; its artifacts remain unchanged.
 
 Both the isolated source reader and the packaged interpreter explicitly enable
 UTF-8 mode. Python environment variables alone are insufficient for these isolated
@@ -30,9 +30,9 @@ authenticated loopback routes; source/browser mode reports it as unsupported.
 
 | Platform | UI engine | GitHub runner | Release asset |
 | --- | --- | --- | --- |
-| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-0.0.5-windows-x64.zip` |
-| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-0.0.5-macos-arm64.tar.gz` |
-| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-0.0.5-linux-x64.tar.gz` |
+| Windows x64 | Edge Chromium / WebView2 | `windows-latest` | `SDAD-Inspector-3.2.4-windows-x64.zip` |
+| macOS arm64 | Cocoa / WKWebView | `macos-latest` | `SDAD-Inspector-3.2.4-macos-arm64.tar.gz` |
+| Linux x64 | Qt WebEngine; Xvfb in CI | `ubuntu-latest` | `SDAD-Inspector-3.2.4-linux-x64.tar.gz` |
 
 The table names exact build targets, not every machine supported by the
 operating-system family. pywebview's platform dependencies are documented in

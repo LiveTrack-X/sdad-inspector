@@ -27,7 +27,7 @@ Inspector presentation metadata, not additions to the SDAD state schema.
 
 ### Current-source presentation limits
 
-The working source candidate parses the complete bounded TODO preview, without
+Inspector parses the complete bounded TODO preview, without
 an additional item-count cutoff. Fenced examples are not executable work;
 explicit deferred headings also apply to their nested sections. Missing,
 truncated, failed or stale reads do not establish exact totals or zero work.
@@ -99,7 +99,7 @@ loop. The React renderer uses this metadata for visible engine and source labels
 it does not import adapter code or access the filesystem.
 
 The built-in adapter is `official-sdad-3`. It is the only adapter shipped in the
-published 0.0.5 portable executable and used by the 3.2.4 source candidate, with
+published 0.0.5 and 3.2.4 portable executables, with
 the exact compatibility lane documented below. A source-mode host may install another adapter by subclassing
 `sdad_inspector.protocols.ProtocolAdapter`, registering an already imported
 instance, and selecting it explicitly:
@@ -133,8 +133,8 @@ and bounded platform claims.
 | SDAD 3.2.3 | `v3.2.3` | `707cc8861df0340b2a2bb7c9761d3529ca387684` | `https://github.com/LiveTrack-X/spec-driven-ai-development/tree/v3.2.3` |
 | SDAD 3.2.4 | `v3.2.4` | `bd5dd30ca88fa4c2f234d0fcdd295ffaa1f15c2d` | `https://github.com/LiveTrack-X/spec-driven-ai-development/tree/v3.2.4` |
 
-The 3.2.4 source candidate defaults to the released v3.2.4 engine above; prior
-tags remain supported for explicit source inspection. Published Inspector 0.0.5
+Inspector 3.2.4 bundles the released v3.2.4 engine above; prior
+tags remain supported for explicit source inspection. Historical Inspector 0.0.5
 still bundles v3.2.3. The v3.2.4 annotated tag object is
 `c2e67973c0cda501b9e4081caf4b79c8f82a45a9`; its authenticated normalized tree digest
 is `f584014e894826038ad25ccc88ab95cb74034c1ebb17e7d2d0c53a506731931c`.

@@ -6,7 +6,7 @@
 
 <!-- inspector-source-version -->Source version: `v3.2.4`<!-- /inspector-source-version -->
 
-**ローカルソース候補:** Inspector `3.2.4` と既定の SDAD Protocol `3.2.4` の番号を揃えます。この候補は未公開です。以下のダウンロード手順は、SDAD `3.2.3` を含む公開済み Inspector `0.0.5` のものです。[バージョン運用規則](docs/VERSIONING.md)と [3.2.4 候補ノート](docs/releases/v3.2.4.md)を参照してください。
+**公開リリース:** Inspector `3.2.4` は SDAD Protocol `3.2.4` を含みます。以下はこのリリースのダウンロード手順です。過去の Inspector `0.0.5` と内蔵 SDAD `3.2.3` は変更しません。[バージョン運用規則](docs/VERSIONING.md)と [3.2.4 リリースノート](docs/releases/v3.2.4.md)を参照してください。
 
 [![Cross-platform checks](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/LiveTrack-X/sdad-inspector/actions/workflows/cross-platform.yml)
 [![Latest release](https://img.shields.io/github/v/release/LiveTrack-X/sdad-inspector?label=release)](https://github.com/LiveTrack-X/sdad-inspector/releases/latest)
@@ -22,22 +22,22 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 しません。設定、比較メタデータ、訂正下書きは Inspector 専用のアプリデータに保存
 され、製品更新時にはポータブル実行ファイルも置き換えられます。
 
-> **0.0.5 は通常の GitHub Release ですが、未署名です。** インストーラーでは
+> **3.2.4 は通常の GitHub Release ですが、未署名です。** インストーラーでは
 > なく、コード署名と notarization はありません。実行前に `SHA256SUMS` を確認
 > してください。組織のポリシーが未署名ソフトウェアを禁止する場合は、保護を
 > 回避せず、ソースから実行してください。
 
-> **リリースとソース:** `v0.0.5` の実行ファイルは同じ immutable タグから
+> **リリースとソース:** `v3.2.4` の実行ファイルは同じ immutable タグから
 > ビルドされます。Windows、macOS、Linux のタグ検証がすべて成功した後にのみ、
 > アーカイブ、チェックサム、attestation を公開します。
 
 ## 3 分で始める
 
 配布先のコンピューターに Python や Node.js をインストールする必要はありません。
-各アーカイブには、ランタイム、UI、認証済み SDAD 3.2.3 エンジンを含む
+各アーカイブには、ランタイム、UI、認証済み SDAD 3.2.4 エンジンを含む
 **single portable executable** が一つだけ入っています。
 
-1. [`v0.0.5` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.5) を開きます。
+1. [`v3.2.4` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v3.2.4) を開きます。
 2. 自分の環境用アーカイブと `SHA256SUMS` をダウンロードします。
 3. 下記のコマンドで SHA-256 を確認します。
 4. 展開して、唯一の実行ファイルを起動します。
@@ -45,9 +45,9 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 
 | 環境 | ダウンロード | アーカイブ内の実行ファイル |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.5-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.5-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.5-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-3.2.4-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-3.2.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-3.2.4-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 Intel Mac など表にないアーキテクチャは、公開アセットとして検証済みとは主張
 しません。ソース実行が可能でも、配布アセットのビルドとスモークテストの証拠とは
@@ -58,7 +58,7 @@ Intel Mac など表にないアーキテクチャは、公開アセットとし�
 Windows PowerShell:
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.5-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-3.2.4-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -122,10 +122,10 @@ fixture を使用しています。上部の言語メニューでは English、�
 ## 対応する SDAD
 
 標準の対象は [SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)
-`v3.2.4` です。これは現在のソース候補の既定値で、公開済み 0.0.5 の内蔵エンジンは
+`v3.2.4` です。現在の公開版の既定値で、過去の 0.0.5 の内蔵エンジンは
 3.2.3 のままです。ソース検査では、対応する旧エンジンを明示的に選択できます。
 
-| 契約 | 3.2.4 ソース候補の範囲 |
+| 契約 | 3.2.4 の範囲 |
 | --- | --- |
 | バンドル実行基準 | Official SDAD Protocol `v3.2.4` |
 | 既定アダプター | `official-sdad-3` |
@@ -203,7 +203,7 @@ manifest の計 5 資産を attestation とともに公開します。既存の�
 [リリース保守手順](docs/RELEASING.md)と[プラットフォーム契約](docs/CROSS_PLATFORM.md)
 を参照してください。
 
-3.2.4 候補の公開には、この候補自身の承認済みホスト検証が必要です。
+正確なホスト検証結果は、公開済み `v3.2.4` リリースと候補 manifest で確認できます。
 公開済み `v0.0.5` のアーカイブや過去の検証結果は変更しません。
 
 ## 制限
@@ -225,5 +225,5 @@ SDAD Inspector は [MIT License](LICENSE) で提供されます。継続的な�
 非公開リポジトリの内容、その他の秘密情報は添付しないでください。
 
 [訂正履歴と下書き復元](docs/CORRECTION_HISTORY.md)（英語）は、0.0.5 に含まれる
-アプリ専用の保管・復元と出典移動後の下書き復元を説明します。3.2.4 候補では TODO
+アプリ専用の保管・復元と出典移動後の下書き復元を説明します。Inspector 3.2.4 では TODO
 の区分、選択した 2 件の検証記録の明示的な比較、再開基準点がない場合の案内を改善します。
