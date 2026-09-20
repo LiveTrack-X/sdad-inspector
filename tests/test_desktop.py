@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 from unittest.mock import patch
 
 import sdad_inspector.engine as engine_module
 from sdad_inspector.desktop import DesktopApplication, desktop_icon_path, resolve_resources, resource_root
-from sdad_inspector.engine import _engine_argv
+from sdad_inspector.engine import _engine_argv, _run
 from sdad_inspector.errors import EngineError, InspectorError
 
 from test_core import WorkspaceCase
@@ -134,6 +136,20 @@ class DesktopResourceTests(WorkspaceCase):
                     actual.resolve(strict=True),  # type: ignore[union-attr]
                     expected.resolve(strict=True),
                 )
+
+    def test_source_engine_keeps_unicode_and_utf8_mode_under_isolation(self) -> None:
+        script = self.root / "encoding-probe.py"
+        script.write_text(
+            "import json,sys\nprint(json.dumps({'value':sys.argv[1],"
+            "'utf8':sys.flags.utf8_mode,'isolated':sys.flags.isolated},ensure_ascii=False))\n",
+            encoding="utf-8",
+        )
+        with patch.object(engine_module.sys, "frozen", False, create=True), patch.dict(
+            os.environ, {"PYTHONUTF8": "0", "PYTHONIOENCODING": "ascii"}
+        ):
+            result = _run(_engine_argv(script, "프로젝트 日本語 é"), timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), {"value": "프로젝트 日本語 é", "utf8": 1, "isolated": 1})
 
     def test_frozen_runtime_routes_only_the_bundled_engine_to_internal_runner(self) -> None:
         internal = self.root / "bundle" / "_internal"

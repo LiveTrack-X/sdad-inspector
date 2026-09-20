@@ -86,7 +86,7 @@ def check_api(origin: str, project: Path, token: str, *, opener=None) -> list[st
 def smoke_receipts(executable: Path, *, seconds: float = 2, timeout: float = 60) -> dict:
     with tempfile.TemporaryDirectory(prefix="sdad-portable-receipts-") as raw:
         temp = Path(raw).resolve()
-        project = temp / "project"
+        project = temp / "프로젝트 with spaces"
         fixture(project)
         before = fingerprint(project)
         with socket.socket() as reservation:

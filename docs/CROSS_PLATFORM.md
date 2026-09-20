@@ -42,7 +42,7 @@ its [installation guide](https://pywebview.flowrl.com/guide/installation) and
    generated platform icon with official CPython 3.12.
 4. Produce one executable on the current OS; never cross-compile an execution
    claim.
-5. Launch that executable against a disposable fixture with isolated app
+5. Launch that executable against a disposable Unicode-path fixture with isolated app
    preferences. Check receipt pagination through the eleventh record, malformed
    receipt rejection, selected source/log identity and unchanged project bytes
    through the actual authenticated loopback API, then close the native window

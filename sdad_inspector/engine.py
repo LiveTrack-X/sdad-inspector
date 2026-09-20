@@ -211,7 +211,9 @@ def authenticate_release_archive(checkout_value: str | Path) -> EngineInfo:
 
 def _engine_argv(script: Path, *arguments: str) -> list[str]:
     if not getattr(sys, "frozen", False):
-        return [sys.executable, "-I", "-B", str(script), *arguments]
+        # Isolated mode ignores PYTHONIOENCODING. Pin the child interpreter's
+        # UTF-8 mode so non-ASCII project paths survive non-UTF-8 Windows locales.
+        return [sys.executable, "-I", "-B", "-X", "utf8", str(script), *arguments]
     bundled = Path(__file__).resolve().parents[1] / "sdad-engine" / "scripts" / "sdad.py"
     try:
         is_bundled = script.resolve(strict=True) == bundled.resolve(strict=True)
