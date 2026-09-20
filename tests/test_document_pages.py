@@ -6,7 +6,9 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import threading
+import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -16,6 +18,7 @@ from sdad_inspector.document_pages import DocumentPageError, _context_argv, read
 from sdad_inspector.engine import authenticate_release_archive
 from sdad_inspector.errors import EngineError, InspectorError
 from sdad_inspector.native_entry import run_bundled_engine
+from sdad_inspector.packaging import stage_release_engine
 from sdad_inspector.preferences import RecentProjectsStore
 from sdad_inspector.protocols import OfficialSdad3Adapter
 from sdad_inspector.server import InspectorService, create_server
@@ -23,13 +26,71 @@ from sdad_inspector.state import load_control_state, load_live_documents
 from test_core import WorkspaceCase, tree_fingerprint
 
 
+def _document_runtime(root, add_cleanup):
+    runtime = root / ".runtime" / "sdad-v3.2.3"
+    if runtime.exists():
+        return runtime
+    checkout = root / ".ci" / "sdad-v3.2.3"
+    if checkout.exists():
+        temporary = tempfile.TemporaryDirectory(prefix="sdad-document-runtime-")
+        add_cleanup(temporary.cleanup)
+        runtime = Path(temporary.name).resolve() / "sdad-engine"
+        stage_release_engine(checkout, runtime)
+        return runtime
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        raise RuntimeError("CI requires the authenticated SDAD 3.2.3 checkout at .ci/sdad-v3.2.3 or a staged .runtime/sdad-v3.2.3.")
+    raise unittest.SkipTest("Authenticated SDAD 3.2.3 runtime or CI checkout is not present in this local checkout.")
+
+
+class DocumentRuntimePreparationTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+
+    def test_existing_local_runtime_is_used_without_staging(self):
+        runtime = self.root / ".runtime" / "sdad-v3.2.3"
+        runtime.mkdir(parents=True)
+        with patch(__name__ + ".stage_release_engine") as stage:
+            self.assertEqual(_document_runtime(self.root, self.addCleanup), runtime)
+        stage.assert_not_called()
+
+    def test_ci_checkout_stages_into_temporary_directory_and_registers_cleanup(self):
+        checkout = self.root / ".ci" / "sdad-v3.2.3"
+        checkout.mkdir(parents=True)
+        cleanups = []
+        def stage(source, destination):
+            self.assertEqual(source, checkout)
+            self.assertFalse(destination.is_relative_to(self.root))
+            destination.mkdir()
+        try:
+            with patch(__name__ + ".stage_release_engine", side_effect=stage) as staged:
+                runtime = _document_runtime(self.root, cleanups.append)
+            staged.assert_called_once_with(checkout, runtime)
+            self.assertTrue(runtime.is_dir())
+            self.assertEqual(len(cleanups), 1)
+        finally:
+            for cleanup in cleanups:
+                cleanup()
+        self.assertFalse(runtime.parent.exists())
+        self.assertTrue(checkout.is_dir())
+
+    def test_missing_ci_runtime_is_an_error_not_a_skip(self):
+        for variable in ("CI", "GITHUB_ACTIONS"):
+            with self.subTest(variable=variable), patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": "", variable: "true"}):
+                with self.assertRaisesRegex(RuntimeError, "CI requires"):
+                    _document_runtime(self.root, self.addCleanup)
+
+    def test_thin_local_checkout_has_an_explicit_skip(self):
+        with patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""}):
+            with self.assertRaisesRegex(unittest.SkipTest, "local checkout"):
+                _document_runtime(self.root, self.addCleanup)
+
+
 class DocumentPageTests(WorkspaceCase):
     @classmethod
     def setUpClass(cls):
-        cls.runtime = Path(__file__).resolve().parents[1] / ".runtime" / "sdad-v3.2.3"
-        if not cls.runtime.exists():
-            import unittest
-            raise unittest.SkipTest("Authenticated SDAD 3.2.3 runtime is not present.")
+        cls.runtime = _document_runtime(Path(__file__).resolve().parents[1], cls.addClassCleanup)
         cls.authenticated = authenticate_release_archive(cls.runtime)
 
     def page(self, path="SPEC/SPEC-COMPLETE.md", **options):

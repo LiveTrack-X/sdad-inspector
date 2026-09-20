@@ -5,10 +5,12 @@ import multiprocessing
 import os
 import sqlite3
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 from sdad_inspector.corrections import CorrectionError, CorrectionStore, MAX_STORAGE_BYTES
+from sdad_inspector.errors import InspectorError
 
 
 def draft(**values):
@@ -18,9 +20,20 @@ def draft(**values):
 def concurrent_save(path, start, prefix):
     start.wait(5)
     store = CorrectionStore(Path(path))
+    def retry_busy(operation):
+        # A bounded busy response is allowed under contention. Exercise the
+        # documented retry without hiding corruption, revision or other errors.
+        deadline = time.monotonic() + 10
+        while True:
+            try:
+                return operation()
+            except InspectorError as exc:
+                if exc.message != "Correction storage is busy; retry the save." or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.05)
     for index in range(8):
-        row = store.save("p1", draft(id=f"{prefix}{index}"))
-        store.set_archived("p1", row, True)
+        row = retry_busy(lambda: store.save("p1", draft(id=f"{prefix}{index}")))
+        retry_busy(lambda: store.set_archived("p1", row, True))
 
 
 class HistoryTests(unittest.TestCase):
