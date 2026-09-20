@@ -5,10 +5,12 @@ const en = {
   documents: 'Connected documents', noDocuments: 'No readable document is available in this inspection.',
   openSource: 'Open full source', taskDetails: 'Task details', source: 'Source',
   status: 'Declared task status', current: 'Current task', remaining: 'Open task', checked: 'Checked task',
+  recordedCurrent: 'Recorded [current] marker; active work unconfirmed', inactivePlan: 'These preserved Plan declarations do not establish current active work. Check the packet status and current source before resuming.',
   phase: 'Declared stage', unknown: 'Not declared', conflict: 'Conflicting stage markers',
   section: 'Source section', stale: 'Sources are stale or unavailable. Refresh before relying on these details.',
   planNote: 'These are repository declarations and source documents. Opening details does not execute or approve the plan.',
   openRemaining: 'Open remaining work in the full TODO',
+  incompleteTodo: 'Task totals are unavailable because the current TODO source is incomplete, stale or unreadable. Any items shown are only the available source excerpt; an empty excerpt does not mean zero remaining work.',
 };
 type Copy = typeof en;
 const ko: Copy = {
@@ -18,10 +20,12 @@ const ko: Copy = {
   documents: '연결 문서', noDocuments: '이번 검사에서 읽을 수 있는 문서가 없습니다.',
   openSource: '전체 원문 열기', taskDetails: '작업 세부 내역', source: '출처',
   status: '선언된 작업 상태', current: '현재 작업', remaining: '열린 작업', checked: '체크된 작업',
+  recordedCurrent: '기록된 [current] 표식 · 활성 작업 여부 미확인', inactivePlan: '보존된 Plan 선언만으로 현재 활성 작업을 판단할 수 없습니다. 재개 전에 패킷 상태와 현재 출처를 확인하세요.',
   phase: '선언된 단계', unknown: '선언되지 않음', conflict: '단계 표식 충돌',
   section: '원문 구역', stale: '출처가 오래되었거나 조회되지 않습니다. 다시 검사한 뒤 세부 내용을 확인하세요.',
   planNote: '저장소에 선언된 목표와 원문입니다. 세부 내용을 열어도 계획을 실행하거나 승인하지 않습니다.',
   openRemaining: '남은 작업 전체 TODO 열기',
+  incompleteTodo: '현재 TODO 출처가 불완전하거나 오래됐거나 읽을 수 없어 전체 개수를 알 수 없습니다. 보이는 항목은 읽힌 출처 일부이며, 빈 결과가 남은 작업 0개를 뜻하지 않습니다.',
 };
 const ja: Copy = {
   plan: 'Planの詳細', openPlan: 'Planの詳細を表示', closePlan: 'Planの詳細を閉じる',
@@ -30,10 +34,12 @@ const ja: Copy = {
   documents: '関連文書', noDocuments: '今回の検査で読める文書はありません。',
   openSource: '原文全体を開く', taskDetails: '作業の詳細', source: '出典',
   status: '宣言された作業状態', current: '現在の作業', remaining: '未完了の作業', checked: 'チェック済みの作業',
+  recordedCurrent: '記録された[current]マーカー・活動中か未確認', inactivePlan: '保持されたPlan宣言だけでは現在の活動を確認できません。再開前にパケット状態と現在の出典を確認してください。',
   phase: '宣言された段階', unknown: '未宣言', conflict: '段階マーカーの競合',
   section: '原文のセクション', stale: '出典が古いか取得できません。再検査してから詳細を確認してください。',
   planNote: 'リポジトリの宣言と原文です。詳細を開いても計画の実行や承認は行いません。',
   openRemaining: '残りの作業をTODO原文で開く',
+  incompleteTodo: '現在のTODOが不完全、古い、または読めないため、総数は不明です。表示項目は取得できた出典部分のみで、空の結果は残作業ゼロを意味しません。',
 };
 const zh: Copy = {
   plan: 'Plan详细内容', openPlan: '查看Plan详细内容', closePlan: '收起Plan详细内容',
@@ -42,9 +48,11 @@ const zh: Copy = {
   documents: '关联文档', noDocuments: '本次检查没有可读取的文档。',
   openSource: '打开完整原文', taskDetails: '任务详细内容', source: '来源',
   status: '声明的任务状态', current: '当前任务', remaining: '未完成任务', checked: '已勾选任务',
+  recordedCurrent: '已记录[current]标记 · 活动工作未确认', inactivePlan: '这些保留的Plan声明不能证明当前有活动工作。恢复前请检查工作包状态和当前来源。',
   phase: '声明的阶段', unknown: '未声明', conflict: '阶段标记冲突',
   section: '原文章节', stale: '来源已过期或无法读取。请重新检查后再查看详细内容。',
   planNote: '这些是仓库中的声明和原文。打开详细内容不会执行或批准计划。',
   openRemaining: '在完整TODO中打开剩余任务',
+  incompleteTodo: '当前TODO来源不完整、过时或无法读取，因此总数未知。显示条目仅为可读取的来源片段，空结果不代表剩余工作为零。',
 };
 export const workDetailCopy = {en,ko,ja,'zh-CN':zh};

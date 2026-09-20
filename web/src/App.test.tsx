@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { I18nProvider, LOCALE_STORAGE_KEY } from "./i18n";
-import { activityFixture, liveDocumentsFixture, rule5CandidatesFixture, snapshotFixture } from "./test/fixture";
+import { activityFixture, emptyResumeComparisonFixture, liveDocumentsFixture, rule5CandidatesFixture, snapshotFixture } from "./test/fixture";
 import { THEME_STORAGE_KEY } from "./theme";
 import type { Snapshot } from "./types";
 
@@ -32,6 +32,7 @@ describe("Split Inspector", () => {
     });
     vi.stubGlobal("fetch", vi.fn().mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -61,6 +62,7 @@ describe("Split Inspector", () => {
   it("opens the Inspector shell and in-app chooser on a true first launch", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/snapshot") return jsonResponse({ error: { code: "project_required", message: "Choose a project." } }, 422);
       if (path === "/api/recent-projects") return jsonResponse({ schema_version: 1, recent_projects: [] });
       if (path === "/api/update/check") return jsonResponse({ supported: false, automatic: true, current_version: "0.0.4", state: "unsupported", available_version: null, release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: null, message: "Source mode", error: null });
@@ -106,6 +108,7 @@ describe("Split Inspector", () => {
     const ready = { supported: true, automatic: true, current_version: "0.0.2", state: "ready", available_version: "0.0.4", release_url: "https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4", downloaded_bytes: 100, total_bytes: 100, checked_at: "2026-07-16T00:00:00Z", message: "ready", error: null };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -127,6 +130,7 @@ describe("Split Inspector", () => {
     const updated = { supported: true, automatic: true, current_version: "0.0.4", state: "updated", available_version: "0.0.4", release_url: null, downloaded_bytes: 0, total_bytes: 0, checked_at: "2026-07-16T00:00:00Z", message: "updated", error: null };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -187,6 +191,7 @@ describe("Split Inspector", () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/progress") {
         return Promise.resolve(jsonResponse({
           operation_id: "scan-1",
@@ -231,6 +236,7 @@ describe("Split Inspector", () => {
     expect(await screen.findByRole("heading", { name: "Current packet TODO" })).toBeVisible();
     expect(await screen.findByText("Build the live workspace.", {selector: "summary span"})).toBeVisible();
     expect(await screen.findByText("Select the Split Inspector.", {selector: "summary span"})).toBeVisible();
+    fireEvent.click(screen.getByText("Git and handoff history", { selector: "summary > strong" }));
     expect(await screen.findByText("web/src/App.tsx")).toBeVisible();
     expect(await screen.findByText("Build the browser MVP")).toBeVisible();
     expect(await screen.findByText("Progress handoff")).toBeVisible();
@@ -247,6 +253,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(documents);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -294,6 +301,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(documents);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -320,6 +328,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(documents);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -375,6 +384,7 @@ describe("Split Inspector", () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/clipboard/project-path") return jsonResponse({ project_root: "C:\\work\\pasted-project" });
@@ -398,6 +408,7 @@ describe("Split Inspector", () => {
     const pickedSnapshot = { ...snapshotFixture, project: { ...snapshotFixture.project, root: pickedRoot, name: "picked-project" } };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/project-picker") {
@@ -428,6 +439,7 @@ describe("Split Inspector", () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/clipboard/project-path") return jsonResponse({ error: { code: "clipboard_unavailable", message: "Clipboard is unavailable." } }, 422);
@@ -464,6 +476,7 @@ describe("Split Inspector", () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return Promise.resolve(jsonResponse(liveDocumentsFixture));
       if (path === "/api/activity") return Promise.resolve(jsonResponse(activityFixture));
       if (path === "/api/rule5-candidates") return Promise.resolve(jsonResponse(rule5CandidatesFixture));
@@ -510,7 +523,7 @@ describe("Split Inspector", () => {
     expect(within(officialFlow).getByText("Verify")).toBeVisible();
     expect(within(officialFlow).getByText("Report")).toBeVisible();
     expect(within(officialFlow).getByText("Unverified")).toBeVisible();
-    expect(within(center).getByRole("heading", { name: /does not explicitly declare a current phase/ })).toBeVisible();
+    expect(within(center).getByRole("heading", { name: /has open work, but no current TODO is selected/ })).toBeVisible();
     expect(within(center).getByText("No exact current TODO is declared.")).toBeVisible();
     expect(within(center).getAllByText("Still unknown").length).toBeGreaterThan(0);
     expect(within(center).getByText("New file")).toHaveAttribute("title", "Raw Git status: ??");
@@ -533,6 +546,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(documents);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -583,6 +597,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(documents);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -606,6 +621,7 @@ describe("Split Inspector", () => {
     const tree = await screen.findByRole("complementary", { name: "Repository controls" });
     await user.click(within(tree).getByText("Development Flow"));
     const center = screen.getByRole("main", { name: "Workspace view" });
+    await user.click(within(center).getByText("Git and handoff history", { selector: "summary > strong" }));
     const changedSection = within(center).getByRole("heading", { name: "Observed changed files" }).closest("section");
     expect(changedSection).not.toBeNull();
     expect(within(changedSection!).getByText("web/src/App.tsx")).toBeVisible();
@@ -628,6 +644,7 @@ describe("Split Inspector", () => {
     let cleared = false;
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -661,6 +678,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(liveDocumentsFixture);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);
@@ -833,7 +851,7 @@ describe("Split Inspector", () => {
     expect(within(flow).getByText("Plan")).toBeVisible();
     expect(within(flow).getAllByText("Failed").length).toBe(1);
     expect(within(flow).getAllByText("Unobserved").length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: /does not explicitly declare a current phase/ })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /Current-work evidence.*unavailable or incomplete/ })).toBeVisible();
   });
 
   it("selects Korean for a Korean browser while preserving repository evidence", async () => {
@@ -849,6 +867,7 @@ describe("Split Inspector", () => {
     };
     vi.mocked(fetch).mockImplementation(async (input) => {
       const path = String(input);
+      if (path === "/api/resume-comparison") return Promise.resolve(jsonResponse(emptyResumeComparisonFixture));
       if (path === "/api/documents") return jsonResponse(documents);
       if (path === "/api/activity") return jsonResponse(activityFixture);
       if (path === "/api/rule5-candidates") return jsonResponse(rule5CandidatesFixture);

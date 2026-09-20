@@ -1,116 +1,46 @@
-name: Release 0.0.4
+name: Release
 
 on:
   push:
     tags:
-      - v0.0.4
+      - 'v*'
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: ${{ matrix.platform }} unsigned release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-          - os: macos-latest
-            platform: macos
-          - os: ubuntu-latest
-            platform: linux
+  candidate:
+    name: Select same-commit verified candidate
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.candidate.outputs.run_id }}
+      attempt: ${{ steps.candidate.outputs.attempt }}
+      commit: ${{ steps.candidate.outputs.commit }}
     steps:
-      - name: Check out tagged Inspector
-        uses: actions/checkout@v6
-      - name: Check out released SDAD v3.2.3
-        uses: actions/checkout@v6
-        with:
-          repository: LiveTrack-X/spec-driven-ai-development
-          ref: v3.2.3
-          path: .ci/sdad-v3.2.3
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: pip
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Install Linux display dependencies
-        if: runner.os == 'Linux'
+      - name: Read release identity
+        run: python scripts/release_metadata.py --check
+      - name: Require successful main candidate and exact immutable tag
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            xvfb libegl1 libgl1 libfontconfig1 libfreetype6 \
-            libx11-6 libx11-xcb1 libxext6 libxfixes3 libxi6 libxrender1 \
-            libxcb1 libxcb-cursor0 libxcb-glx0 libxcb-icccm4 libxcb-image0 \
-            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
-            libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 \
-            libxcb-xinerama0 libxcb-xkb1 libxkbcommon0 libxkbcommon-x11-0
-      - name: Install Python dependencies
-        if: runner.os != 'Linux'
-        run: python -m pip install -e ".[desktop,build]"
-      - name: Install Python and Qt dependencies
-        if: runner.os == 'Linux'
-        run: |
-          python -m pip install -e ".[build]"
-          python -m pip install "pywebview[qt]>=5.4,<7"
-      - name: Install frontend dependencies
-        run: npm --prefix web ci
-      - name: Audit frontend dependency graph
-        run: npm --prefix web audit --audit-level=high
-      - name: Validate source and release contracts
-        run: |
-          python scripts/validate_public_repository.py
-          python scripts/validate_release.py
-      - name: Test Python core
-        run: python -m unittest discover -s tests -v
-      - name: Typecheck and test frontend
-        run: |
-          npm --prefix web run typecheck
-          npm --prefix web test -- --run
-      - name: Build frontend
-        run: npm --prefix web run build
-      - name: Validate browser, report, and native contracts
-        run: |
-          python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3
-          python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3
-          python scripts/validate_native_contract.py --sdad-checkout .ci/sdad-v3.2.3
-          python scripts/build_native.py --check --sdad-checkout .ci/sdad-v3.2.3
-      - name: Build unsigned one-file release
-        run: python scripts/build_native.py --skip-frontend --sdad-checkout .ci/sdad-v3.2.3
-      - name: Validate Windows executable branding
-        if: runner.os == 'Windows'
-        run: python scripts/validate_windows_branding.py
-      - name: Smoke native release
-        if: runner.os != 'Linux'
-        run: python scripts/smoke_native.py .
-      - name: Smoke native release under Xvfb
-        if: runner.os == 'Linux'
-        run: xvfb-run -a python scripts/smoke_native.py .
-      - name: Package platform archive
-        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.4"
-      - name: Upload platform archive
-        uses: actions/upload-artifact@v7
-        with:
-          name: sdad-inspector-${{ matrix.platform }}-${{ runner.arch }}
-          path: release-artifacts/*
-          if-no-files-found: error
-          retention-days: 7
+          SOURCE_COMMIT=$(git rev-parse HEAD)
+          python scripts/release_candidate.py select --commit "$SOURCE_COMMIT" --repository "$SOURCE_REPOSITORY" --tag "$RELEASE_TAG"
 
   portable-smoke:
     name: ${{ matrix.platform }} downloaded portable smoke
-    needs: build
+    needs: candidate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -140,49 +70,79 @@ jobs:
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
             libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 \
             libxcb-xinerama0 libxcb-xkb1 libxkbcommon0 libxkbcommon-x11-0
-      - name: Download the platform archive from the build job
+      - name: Download the exact verified candidate
         uses: actions/download-artifact@v8
         with:
-          name: sdad-inspector-${{ matrix.platform }}-${{ runner.arch }}
+          name: verified-release-candidate
+          run-id: ${{ needs.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
           path: release-candidate
+      - name: Verify candidate identity and archive hashes before execution
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ needs.candidate.outputs.commit }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_RUN: ${{ needs.candidate.outputs.run_id }}
+          SOURCE_ATTEMPT: ${{ needs.candidate.outputs.attempt }}
+        run: python scripts/release_candidate.py verify --directory release-candidate --commit "$SOURCE_COMMIT" --repository "$SOURCE_REPOSITORY" --run-id "$SOURCE_RUN" --attempt "$SOURCE_ATTEMPT"
       - name: Inspect, extract, and smoke the single executable
         if: runner.os != 'Linux'
-        run: python scripts/smoke_release_archive.py . --artifact-dir release-candidate
+        run: python scripts/smoke_release_archive.py . --artifact-dir release-candidate --verify-receipts
       - name: Inspect, extract, and smoke the single executable under Xvfb
         if: runner.os == 'Linux'
-        run: xvfb-run -a python scripts/smoke_release_archive.py . --artifact-dir release-candidate
+        run: xvfb-run -a python scripts/smoke_release_archive.py . --artifact-dir release-candidate --verify-receipts
 
   release:
     name: Attest and publish immutable GitHub release
-    needs: [build, portable-smoke]
+    needs: [candidate, portable-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
       attestations: write
+      actions: read
     steps:
       - name: Check out tagged Inspector
         uses: actions/checkout@v6
+      - name: Read release identity
+        id: metadata
+        run: python scripts/release_metadata.py --check --github-output
       - name: Download platform archives
         uses: actions/download-artifact@v8
         with:
+          name: verified-release-candidate
+          run-id: ${{ needs.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
           path: release-artifacts
-          merge-multiple: true
+      - name: Verify the candidate and unchanged tag immediately before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_NOTES: ${{ steps.metadata.outputs.notes }}
+          SOURCE_COMMIT: ${{ needs.candidate.outputs.commit }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_RUN: ${{ needs.candidate.outputs.run_id }}
+          SOURCE_ATTEMPT: ${{ needs.candidate.outputs.attempt }}
+        run: |
+          python scripts/release_candidate.py verify --commit "$SOURCE_COMMIT" --repository "$SOURCE_REPOSITORY" --run-id "$SOURCE_RUN" --attempt "$SOURCE_ATTEMPT"
+          python scripts/release_candidate.py remote-check --commit "$SOURCE_COMMIT" --repository "$SOURCE_REPOSITORY"
       - name: Write and verify SHA-256 manifest
         run: python scripts/write_checksums.py release-artifacts --expected 3
       - name: Verify the complete release asset set
         shell: bash
         run: |
           shopt -s nullglob
-          assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS)
-          if [[ ${#assets[@]} -ne 4 ]]; then
-            echo "Expected three platform archives and SHA256SUMS; found ${#assets[@]} assets." >&2
+          assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS release-artifacts/candidate-manifest.json)
+          if [[ ${#assets[@]} -ne 5 ]]; then
+            echo "Expected three platform archives, SHA256SUMS and candidate manifest; found ${#assets[@]} assets." >&2
             exit 1
           fi
       - name: Create unpublished draft release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_NOTES: ${{ steps.metadata.outputs.notes }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "Release $GITHUB_REF_NAME already exists; immutable releases are never refreshed in place." >&2
@@ -191,8 +151,8 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --draft \
             --verify-tag \
-            --title "SDAD Inspector 0.0.4" \
-            --notes-file docs/releases/v0.0.4.md
+            --title "SDAD Inspector $RELEASE_VERSION" \
+            --notes-file "$RELEASE_NOTES"
       - name: Attest portable archives and checksum manifest
         uses: actions/attest@v4
         with:
@@ -201,12 +161,16 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_NOTES: ${{ steps.metadata.outputs.notes }}
         run: |
           shopt -s nullglob
-          assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS)
+          assets=(release-artifacts/SDAD-Inspector-* release-artifacts/SHA256SUMS release-artifacts/candidate-manifest.json)
           gh release upload "$GITHUB_REF_NAME" "${assets[@]}"
       - name: Publish immutable release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_NOTES: ${{ steps.metadata.outputs.notes }}
         run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest

@@ -13,11 +13,14 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { type Translate, useI18n } from "../i18n";
+import { doctorResult } from "../doctorResult";
 import type { PacketWorkItem } from "../packetWork";
+import { packetStatusMeaning } from "../packetStatus";
 import { documentPathForSelection, documentSelectionId } from "../selection";
 import { formatAbsolute } from "../time";
 import type { DevelopmentActivity, FieldSelection, InspectionProgress as Progress, LiveDocuments, Rule5Candidates, Snapshot } from "../types";
-import { DevelopmentFlowView, PacketEvidencePanel } from "./DevelopmentFlow";
+import { DevelopmentFlowView, PacketHistoryPanel, PacketWorkPanel } from "./DevelopmentFlow";
+import { VerificationRecords } from "./VerificationRecords";
 import { InspectionProgress } from "./InspectionProgress";
 import { MarkdownViewer } from "./MarkdownViewer";
 import { Rule5View } from "./Rule5View";
@@ -35,6 +38,7 @@ interface Props {
   activity: DevelopmentActivity | null;
   packetWork: PacketWorkItem[];
   rule5: Rule5Candidates | null;
+  continuity?: ReactNode;
 }
 
 interface Fact {
@@ -119,6 +123,7 @@ function StateView({ snapshot }: { snapshot: Snapshot }) {
           { label: t("activePacket"), value: state.active_packet?.id ?? t("notDeclared"), mono: true },
           { label: t("observedValue"), value: state.active_packet?.status ?? t("unavailable"), mono: true },
         ]} />
+        {state.active_packet && <div className="info-note"><Info size={20} /><p>{packetStatusMeaning(state.active_packet.status, t)}</p></div>}
       </section>
       <section className="context-section" aria-labelledby="version-contract-heading">
         <h2 id="version-contract-heading">{t("versionContracts")}</h2>
@@ -183,6 +188,7 @@ function DocumentView({ snapshot, selectedId, liveDocuments, onSelect }: { snaps
 
 function FindingsView({ snapshot, selectedId, title }: { snapshot: Snapshot; selectedId: string; title: string }) {
   const { t } = useI18n();
+  const doctor = doctorResult(snapshot);
   const severity = selectedId === "findings-errors" ? "error" : selectedId === "findings-warnings" ? "warning" : selectedId === "findings-notes" ? "note" : null;
   const findings = severity ? snapshot.doctor.findings.filter((finding) => finding.severity === severity) : snapshot.doctor.findings;
   const errors = snapshot.doctor.findings.filter((finding) => finding.severity === "error").length;
@@ -192,10 +198,13 @@ function FindingsView({ snapshot, selectedId, title }: { snapshot: Snapshot; sel
     <div className="context-view">
       <ContextHeader icon={<Shield size={24} />} kicker={t("doctorFindingAuthority")} title={title} description={t("findingsViewDescription")} />
       <div className="finding-count-strip" aria-label={t("doctorFindings")}>
-        <span><strong>{errors}</strong>{t("errors")}</span>
-        <span><strong>{warnings}</strong>{t("warnings")}</span>
-        <span><strong>{notes}</strong>{t("notes")}</span>
+        <span><strong>{doctor.available ? errors : "—"}</strong>{t("errors")}</span>
+        <span><strong>{doctor.available ? warnings : "—"}</strong>{t("warnings")}</span>
+        <span><strong>{doctor.available ? notes : "—"}</strong>{t("notes")}</span>
       </div>
+      {!doctor.available && <div className="info-note"><WarningCircle size={20} /><p>{t("doctorResultUnavailable")}</p></div>}
+      {snapshot.doctor.diagnostic_error && <p className="empty-copy">{snapshot.doctor.diagnostic_error.message}</p>}
+      {doctor.available && !doctor.passed && <div className="info-note"><WarningCircle size={20} /><p>{t("doctorUnsuccessful")}</p></div>}
       <section className="context-section" aria-labelledby="selected-findings-heading">
         <h2 id="selected-findings-heading">{severity ? title : t("allSeverities")}</h2>
         {findings.length ? (
@@ -212,9 +221,9 @@ function FindingsView({ snapshot, selectedId, title }: { snapshot: Snapshot; sel
               </li>
             ))}
           </ul>
-        ) : (
+        ) : doctor.passed ? (
           <div className="context-empty"><CheckCircle size={23} /><p>{t("noFindingsForSelection")}</p></div>
-        )}
+        ) : null}
       </section>
     </div>
   );
@@ -343,15 +352,13 @@ function ContextView({ snapshot, selectedId, selection, liveDocuments, activity,
   return <PacketOverview snapshot={snapshot} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} />;
 }
 
-function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWork }: { snapshot: Snapshot; liveDocuments: LiveDocuments | null; activity: DevelopmentActivity | null; onSelect: (id: string) => void; packetWork: PacketWorkItem[] }) {
+interface PacketOverviewProps { snapshot: Snapshot; liveDocuments: LiveDocuments | null; activity: DevelopmentActivity | null; onSelect: (id: string) => void; packetWork: PacketWorkItem[] }
+
+function PacketCurrentWork({ snapshot, liveDocuments, onSelect, packetWork }: PacketOverviewProps) {
   const { t } = useI18n();
   const packet = snapshot.state.active_packet;
-  const errors = snapshot.doctor.summary.errors;
-  const warnings = snapshot.doctor.summary.warnings;
-  const positive = errors === 0 && warnings === 0;
   return (
     <>
-      <InteractionPanel snapshot={snapshot} documents={liveDocuments} onSelect={onSelect}/>
       <section className="packet-section" aria-labelledby="active-packet-heading">
         <p className="section-kicker">{t("activePacket")}</p>
         <div className="packet-heading-row">
@@ -361,21 +368,35 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
             {packet?.status ?? t("unavailable")}
           </span>
         </div>
+        {packet && <div className="info-note"><Info size={20} /><p>{packetStatusMeaning(packet.status, t)}</p></div>}
         <h2>{t("objective")}</h2>
         <p className="objective">{packet?.objective ?? t("noPacketObjective")}</p>
         {packet?.objective && <TargetCorrection source={`${snapshot.protocol.state_path}#active_packet.objective`} before={packet.objective}/>}
       </section>
 
-      <PacketEvidencePanel snapshot={snapshot} documents={liveDocuments} activity={activity} work={packetWork} onSelect={onSelect}/>
+      <InteractionPanel snapshot={snapshot} documents={liveDocuments} onSelect={onSelect}/>
+      <PacketWorkPanel snapshot={snapshot} documents={liveDocuments} work={packetWork} onSelect={onSelect}/>
+    </>
+  );
+}
 
+function PacketChecks({ snapshot, onSelect }: Pick<PacketOverviewProps, 'snapshot' | 'onSelect'>) {
+  const { t } = useI18n();
+  const errors = snapshot.doctor.summary.errors;
+  const warnings = snapshot.doctor.summary.warnings;
+  const doctor = doctorResult(snapshot);
+  return (
+    <>
+      <section className="overview-section overview-verification"><VerificationRecords snapshot={snapshot}/></section>
       <section className="overview-section doctor-summary" aria-labelledby="doctor-summary-heading">
         <h2 id="doctor-summary-heading">{t("doctorSummary")}</h2>
-        <p className={`doctor-counts ${positive ? "success" : "attention"}`}>
-          <strong>{t(errors === 1 ? "errorCountOne" : "errorCountMany", { count: errors })}</strong>
+        <p className={`doctor-counts ${doctor.passed ? "success" : "attention"}`}>
+          {doctor.available ? <><strong>{t(errors === 1 ? "errorCountOne" : "errorCountMany", { count: errors })}</strong>
           <span>·</span>
-          <strong>{t(warnings === 1 ? "warningCountOne" : "warningCountMany", { count: warnings })}</strong>
+          <strong>{t(warnings === 1 ? "warningCountOne" : "warningCountMany", { count: warnings })}</strong></> : <strong>{t("unavailable")}</strong>}
         </p>
-        <p>{snapshot.doctor.diagnostic_error?.message ?? (positive ? t("allValidationPresent") : t("reviewFindingsBeforeRelying"))}</p>
+        <p>{t(!doctor.available ? "doctorResultUnavailable" : doctor.passed ? "doctorNoFindings" : "doctorUnsuccessful")}</p>
+        {snapshot.doctor.diagnostic_error && <p>{snapshot.doctor.diagnostic_error.message}</p>}
         {snapshot.doctor.findings.length > 0 && (
           <ul className="finding-list" aria-label={t("doctorFindings")}>
             {snapshot.doctor.findings.map((finding) => (
@@ -426,7 +447,15 @@ function PacketOverview({ snapshot, liveDocuments, activity, onSelect, packetWor
   );
 }
 
-export function Overview({ snapshot, selectedId, selection, busy, progress, onSelect, liveDocuments, activity, packetWork, rule5 }: Props) {
+function PacketOverview(props: PacketOverviewProps) {
+  return <>
+    <PacketCurrentWork {...props}/>
+    <PacketChecks snapshot={props.snapshot} onSelect={props.onSelect}/>
+    <PacketHistoryPanel snapshot={props.snapshot} activity={props.activity}/>
+  </>;
+}
+
+export function Overview({ snapshot, selectedId, selection, busy, progress, onSelect, liveDocuments, activity, packetWork, rule5, continuity }: Props) {
   const { t } = useI18n();
   const overviewActive = selectedId === "overview" || selectedId === "packet";
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -443,7 +472,14 @@ export function Overview({ snapshot, selectedId, selection, busy, progress, onSe
       <InspectionProgress active={busy} progress={progress} />
       {snapshot.inspection_status === "stale" && <div className="stale-banner" role="status"><WarningCircle size={18} /> {t("staleInspection")}</div>}
       <div className="overview-scroll" id="workspace-panel" role="tabpanel" ref={scrollRef} onScroll={(event) => scrollPositions.current.set(selectedId, event.currentTarget.scrollTop)}>
-        {overviewActive ? <PacketOverview snapshot={snapshot} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} /> : <ContextView snapshot={snapshot} selectedId={selectedId} selection={selection} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} rule5={rule5} />}
+        <div hidden={!overviewActive}>{overviewActive && <PacketCurrentWork snapshot={snapshot} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork}/>}</div>
+        {/* This stable slot keeps the one continuity instance alive across view changes. */}
+        <div className="overview-continuity" hidden={!overviewActive}>{continuity}</div>
+        <div hidden={!overviewActive}>{overviewActive && <>
+          <PacketChecks snapshot={snapshot} onSelect={onSelect}/>
+          <PacketHistoryPanel snapshot={snapshot} activity={activity}/>
+        </>}</div>
+        {!overviewActive && <ContextView snapshot={snapshot} selectedId={selectedId} selection={selection} liveDocuments={liveDocuments} activity={activity} onSelect={onSelect} packetWork={packetWork} rule5={rule5} />}
       </div>
     </main></TargetCorrectionProvider>
   );

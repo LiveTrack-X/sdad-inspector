@@ -4,12 +4,14 @@ import http.client
 import json
 import shutil
 import threading
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
 from sdad_inspector.preferences import RecentProjectsStore
+from sdad_inspector.report import render_static_report
 from sdad_inspector.server import InspectorService, create_server
 
 from test_core import WorkspaceCase, tree_fingerprint
@@ -100,6 +102,136 @@ class LoopbackServerTests(WorkspaceCase):
                                    payload={"project_root": str(self.project)})
         self.assertEqual(status, 422)
         self.assertEqual(tree_fingerprint(self.project), before)
+
+    def test_history_reads_reject_storage_inside_project_before_creating_lock(self) -> None:
+        self.server.service._corrections.path = self.project / "new-app-data" / "corrections.json"
+        before = tree_fingerprint(self.project)
+        status, _, body = self.request("/api/corrections", token=self.token)
+        self.assertEqual(status, 422, body)
+        status, _, body = self.request("/api/corrections/history", method="POST", token=self.token, origin=True, payload={"project_root": str(self.server.service.project_root)})
+        self.assertEqual(status, 422, body)
+        self.assertEqual(tree_fingerprint(self.project), before)
+        self.assertFalse(self.server.service._corrections.path.parent.exists())
+
+    def test_history_routes_confirm_actions_preserve_project_and_roundtrip_export(self) -> None:
+        root = str(self.server.service.project_root)
+        draft = {"id":"C-history", "request_id":"R1", "packet":"P1", "base_revision":"r1", "project_root":root, "before":"before", "correction":"full recovery text", "supersedes":"older", "copy_state":"copied"}
+        before = tree_fingerprint(self.project)
+        status, _, body = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload=draft)
+        self.assertEqual(status, 200, body)
+        saved = json.loads(body)
+        payload = {"project_root":root, "draft":saved}
+        status, _, _ = self.request("/api/corrections/archive", method="POST", token=self.token, origin=True, payload=payload)
+        self.assertEqual(status, 422)
+        status, _, _ = self.request("/api/corrections/archive", method="POST", token=self.token, payload={**payload, "confirmed":True})
+        self.assertEqual(status, 403)
+        status, _, body = self.request("/api/corrections/archive", method="POST", token=self.token, origin=True, payload={**payload, "confirmed":True})
+        self.assertEqual(status, 200, body)
+        status, _, body = self.request("/api/corrections/history", method="POST", token=self.token, origin=True, payload={"project_root":root, "archived":True})
+        self.assertEqual(json.loads(body)["drafts"], [saved])
+        self.assertEqual(json.loads(body)["usage"]["active_count"], 0)
+        bundle = {"schema_version":1,"kind":"sdad-correction-export","draft":saved}
+        status, _, body = self.request("/api/corrections/import", method="POST", token=self.token, origin=True, payload={"project_root":root,"bundle":bundle})
+        self.assertEqual(status, 200, body)
+        self.assertEqual(json.loads(body), saved)
+        self.assertEqual(tree_fingerprint(self.project), before)
+
+    def test_large_recovery_json_roundtrips_without_expanding_other_request_limits(self) -> None:
+        root = str(self.server.service.project_root)
+        draft = {"id":"C-large", "request_id":"R1", "packet":"P1", "base_revision":"r1", "project_root":root, "before":"한" * 4000, "correction":"글" * 4000, "supersedes":"x" * 4000, "copy_state":"copied", "revision":2}
+        bundle = {"schema_version":1,"kind":"sdad-correction-export","draft":draft}
+        # Escaped JSON transport is larger than ordinary 64 KiB requests.
+        payload = {"project_root":root,"bundle":bundle,"padding":" " * 16000}
+        self.assertGreater(len(json.dumps(payload).encode()), 65536)
+        status, _, body = self.request("/api/corrections/import", method="POST", token=self.token, origin=True, payload=payload)
+        self.assertEqual(status, 200, body)
+        self.assertEqual(json.loads(body), draft)
+        status, _, _ = self.request("/api/corrections", method="POST", token=self.token, origin=True, payload=payload)
+        self.assertEqual(status, 413)
+        status, _, _ = self.request("/api/corrections/import", method="POST", token=self.token, origin=True, payload={"project_root":root,"bundle":bundle,"padding":" " * (513 * 1024)})
+        self.assertEqual(status, 413)
+
+    def test_rejected_delayed_body_returns_denial_without_parsing_or_action(self) -> None:
+        connection = http.client.HTTPConnection(*self.server.server_address, timeout=2)
+        before = tree_fingerprint(self.project)
+        with patch.object(self.server.service, "rule5_preview") as action, patch("sdad_inspector.server.InspectorRequestHandler._read_json", side_effect=AssertionError("Denied input must not be parsed")):
+            try:
+                connection.putrequest("POST", "/api/rule5/preview")
+                connection.putheader("X-SDAD-Session", self.token)
+                connection.putheader("Content-Type", "application/json")
+                connection.putheader("Content-Length", "2")
+                connection.endheaders()
+                time.sleep(0.03)
+                connection.send(b"{}")
+                response = connection.getresponse()
+                self.assertEqual(response.status, 403)
+                self.assertEqual(json.loads(response.read())["error"]["code"], "invalid_origin")
+            finally:
+                connection.close()
+            action.assert_not_called()
+        self.assertEqual(tree_fingerprint(self.project), before)
+
+    def test_authenticated_oversized_delayed_body_returns_413_without_parsing_or_action(self) -> None:
+        before = tree_fingerprint(self.project)
+        with patch.object(self.server.service, "save_correction") as save, patch.object(self.server.service, "manage_correction") as manage, patch("sdad_inspector.server.json.loads", side_effect=AssertionError("Rejected data must not be parsed")):
+            for path, length in (("/api/corrections", 65537), ("/api/corrections/import", 525313)):
+                with self.subTest(path=path):
+                    connection = http.client.HTTPConnection(*self.server.server_address, timeout=2)
+                    try:
+                        connection.putrequest("POST", path)
+                        connection.putheader("Origin", self.server.origin)
+                        connection.putheader("X-SDAD-Session", self.token)
+                        connection.putheader("Content-Type", "application/json")
+                        connection.putheader("Content-Length", str(length))
+                        connection.endheaders()
+                        time.sleep(0.03)
+                        connection.send(b" " * length)
+                        response = connection.getresponse()
+                        self.assertEqual(response.status, 413)
+                        self.assertIn(b"request_too_large", response.read())
+                    finally:
+                        connection.close()
+            save.assert_not_called()
+            manage.assert_not_called()
+        self.assertEqual(tree_fingerprint(self.project), before)
+
+    def test_authenticated_oversized_missing_body_cannot_hold_connection_open(self) -> None:
+        for length in (65537, 131073, 1_000_000_000):
+            with self.subTest(length=length):
+                connection = http.client.HTTPConnection(*self.server.server_address, timeout=2)
+                try:
+                    connection.putrequest("POST", "/api/corrections")
+                    connection.putheader("Origin", self.server.origin)
+                    connection.putheader("X-SDAD-Session", self.token)
+                    connection.putheader("Content-Type", "application/json")
+                    connection.putheader("Content-Length", str(length))
+                    started = time.monotonic()
+                    connection.endheaders()
+                    response = connection.getresponse()
+                    self.assertEqual(response.status, 413)
+                    response.read()
+                    self.assertLess(time.monotonic() - started, 1.5)
+                finally:
+                    connection.close()
+
+    def test_rejected_incomplete_or_invalid_body_is_time_and_size_bounded(self) -> None:
+        for length in ("2", "65537", "invalid", "-1", None):
+            with self.subTest(length=length):
+                connection = http.client.HTTPConnection(*self.server.server_address, timeout=2)
+                try:
+                    connection.putrequest("POST", "/api/rule5/preview")
+                    connection.putheader("X-SDAD-Session", self.token)
+                    connection.putheader("Content-Type", "application/json")
+                    if length is not None:
+                        connection.putheader("Content-Length", length)
+                    started = time.monotonic()
+                    connection.endheaders()
+                    response = connection.getresponse()
+                    self.assertEqual(response.status, 403)
+                    self.assertEqual(json.loads(response.read())["error"]["code"], "invalid_origin")
+                    self.assertLess(time.monotonic() - started, 1.5)
+                finally:
+                    connection.close()
 
     def test_index_injects_session_and_sets_browser_security_headers(self) -> None:
         status, headers, body = self.request("/")
@@ -352,6 +484,41 @@ class LoopbackServerTests(WorkspaceCase):
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["doctor"]["exit_code"], 0)
         self.assertEqual(before, tree_fingerprint(self.project))
+
+    def test_failed_rescan_preserves_old_evidence_as_stale_until_successful_recovery(self) -> None:
+        previous = self.server.service.snapshot()
+        # Large ledgers now expose bounded incomplete previews. A malformed or
+        # oversized state contract still fails inspection and must stale the cache.
+        todo_path = self.project / "sdad-state.yaml"
+        original = todo_path.read_bytes()
+        todo_path.write_text(original.decode("utf-8") + "# Additional line\n" * 501, encoding="utf-8")
+        changed = tree_fingerprint(self.project)
+        status, _, body = self.request("/api/rescan", method="POST", token=self.token, origin=True, payload={})
+        self.assertEqual(status, 422)
+        self.assertEqual(json.loads(body)["error"]["code"], "bounded_read_failed")
+        self.assertIn("500-line", json.loads(body)["error"]["message"])
+        self.assertEqual(self.server.service.progress()["status"], "failed")
+        self.assertEqual(tree_fingerprint(self.project), changed)
+
+        status, _, body = self.request("/api/snapshot", token=self.token)
+        self.assertEqual(status, 200)
+        retained = json.loads(body)
+        self.assertEqual(retained, {**previous, "inspection_status": "stale"})
+        self.assertEqual(previous["inspection_status"], "completed")
+        exported = render_static_report(retained).split("<details>")[0]
+        self.assertIn("Doctor Summary — Unavailable", exported)
+        self.assertNotIn("0 errors", exported)
+
+        todo_path.write_bytes(original)
+        restored = tree_fingerprint(self.project)
+        status, _, body = self.request("/api/rescan", method="POST", token=self.token, origin=True, payload={})
+        self.assertEqual(status, 200)
+        recovered = json.loads(body)
+        self.assertEqual(recovered["inspection_status"], "completed")
+        self.assertNotEqual(recovered["inspection_id"], previous["inspection_id"])
+        self.assertEqual(recovered["doctor"]["exit_code"], 0)
+        self.assertEqual(self.server.service.snapshot(), recovered)
+        self.assertEqual(tree_fingerprint(self.project), restored)
 
     def test_project_switch_replaces_the_snapshot_only_after_success(self) -> None:
         other = self.root / "another project"

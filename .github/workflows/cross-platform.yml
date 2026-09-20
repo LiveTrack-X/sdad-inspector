@@ -2,6 +2,8 @@ name: Cross-platform checks
 
 on:
   push:
+    branches:
+      - '**'
   pull_request:
   workflow_dispatch:
 
@@ -31,11 +33,20 @@ jobs:
           repository: LiveTrack-X/spec-driven-ai-development
           ref: v3.2.3
           path: .ci/sdad-v3.2.3
+      - name: Check out SDAD receipt conformance producer
+        uses: actions/checkout@v6
+        with:
+          repository: LiveTrack-X/spec-driven-ai-development
+          ref: bd5dd30ca88fa4c2f234d0fcdd295ffaa1f15c2d
+          path: .ci/sdad-receipts
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
+      - name: Read release identity
+        id: metadata
+        run: python scripts/release_metadata.py --check --github-output
       - name: Validate public repository boundary
         run: |
           python scripts/validate_public_repository.py
@@ -71,10 +82,12 @@ jobs:
         run: npm --prefix web audit --audit-level=high
       - name: Test Python core
         run: python -m unittest discover -s tests -v
+      - name: Check actual Protocol preview and Inspector receipt compatibility
+        run: python scripts/validate_receipt_compatibility.py --protocol-checkout .ci/sdad-receipts
       - name: Typecheck frontend
         run: npm --prefix web run typecheck
       - name: Test frontend
-        run: npm --prefix web test -- --run
+        run: npm --prefix web test -- --run --maxWorkers=2
       - name: Build frontend
         run: npm --prefix web run build
       - name: Validate browser, report, and native contracts
@@ -91,12 +104,12 @@ jobs:
         run: python scripts/validate_windows_branding.py
       - name: Smoke native preview
         if: runner.os != 'Linux'
-        run: python scripts/smoke_native.py .
+        run: python scripts/smoke_native.py . --verify-receipts
       - name: Smoke native preview under Xvfb
         if: runner.os == 'Linux'
-        run: xvfb-run -a python scripts/smoke_native.py .
+        run: xvfb-run -a python scripts/smoke_native.py . --verify-receipts
       - name: Package the single portable executable
-        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "0.0.4"
+        run: python scripts/package_release.py --platform "${{ matrix.platform }}" --arch "${{ runner.arch }}" --version "${{ steps.metadata.outputs.version }}"
       - name: Upload the ephemeral portable archive
         uses: actions/upload-artifact@v7
         with:
@@ -144,7 +157,36 @@ jobs:
           path: release-candidate
       - name: Inspect, extract, and smoke the single executable
         if: runner.os != 'Linux'
-        run: python scripts/smoke_release_archive.py . --artifact-dir release-candidate
+        run: python scripts/smoke_release_archive.py . --artifact-dir release-candidate --verify-receipts
       - name: Inspect, extract, and smoke the single executable under Xvfb
         if: runner.os == 'Linux'
-        run: xvfb-run -a python scripts/smoke_release_archive.py . --artifact-dir release-candidate
+        run: xvfb-run -a python scripts/smoke_release_archive.py . --artifact-dir release-candidate --verify-receipts
+
+  candidate:
+    name: Freeze verified candidate identity
+    needs: [preview, portable-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: sdad-inspector-*
+          path: release-artifacts
+          merge-multiple: true
+      - name: Bind the exact tested archives to this source and run
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_RUN: ${{ github.run_id }}
+          SOURCE_ATTEMPT: ${{ github.run_attempt }}
+        run: python scripts/release_candidate.py create --commit "$SOURCE_COMMIT" --repository "$SOURCE_REPOSITORY" --run-id "$SOURCE_RUN" --attempt "$SOURCE_ATTEMPT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: verified-release-candidate
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 3

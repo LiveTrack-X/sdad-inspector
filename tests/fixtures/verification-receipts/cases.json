@@ -1,0 +1,519 @@
+{
+  "version": 1,
+  "authority": "SDAD Protocol synthetic verification receipt conformance",
+  "base_receipt": {
+    "schema": "sdad.verification-receipt",
+    "version": 1,
+    "id": "shared-v1",
+    "packet": "P1",
+    "requirement": "R1",
+    "scope": "Synthetic conformance observation",
+    "cwd": ".",
+    "command": {
+      "argv": [
+        "python",
+        "check.py"
+      ],
+      "platform": "fixture",
+      "python_version": "3.10"
+    },
+    "started_at": "2026-09-20T01:00:00Z",
+    "ended_at": "2026-09-20T01:00:01Z",
+    "outcome": "passed",
+    "exit_code": 0,
+    "source_stability": "stable",
+    "sources": [
+      {
+        "path": "source.txt",
+        "before": {
+          "sha256": "41cf6794ba4200b839c53531555f0f3998df4cbb01a4d5cb0b94e3ca5e23947d",
+          "size": 6
+        },
+        "after": {
+          "sha256": "41cf6794ba4200b839c53531555f0f3998df4cbb01a4d5cb0b94e3ca5e23947d",
+          "size": 6
+        },
+        "error": null
+      }
+    ],
+    "log": {
+      "path": "receipt.json.log",
+      "sha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+      "bytes": 2,
+      "total_bytes": 2,
+      "truncated": false,
+      "complete": true
+    },
+    "limits": [
+      "Synthetic unsigned receipt; not semantic verification or acceptance."
+    ]
+  },
+  "cases": [
+    {
+      "id": "current",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched"
+    },
+    {
+      "id": "historical",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "set": {
+        "packet": "OLD"
+      }
+    },
+    {
+      "id": "already-registered",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "registered": true
+    },
+    {
+      "id": "quoted-path-crlf",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "receipt_path": "review #1's [check].json",
+      "crlf": true
+    },
+    {
+      "id": "source-changed-since",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "changed",
+      "source_content": "edited"
+    },
+    {
+      "id": "source-changed-during",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "changed",
+      "set": {
+        "sources/0/before": {
+          "size": 3,
+          "sha256": "cba06b5736faf67e54b07b561eae94395e774c517a7d910a54369e1263ccfbd4"
+        },
+        "source_stability": "changed"
+      }
+    },
+    {
+      "id": "source-missing",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "unknown",
+      "missing_source": true
+    },
+    {
+      "id": "source-observation-unknown",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "unknown",
+      "set": {
+        "sources/0/before": null,
+        "sources/0/after": null,
+        "sources/0/error": "source_unreadable_or_unsafe",
+        "source_stability": "unknown"
+      }
+    },
+    {
+      "id": "log-missing",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "missing_log": true,
+      "log_match": "unknown"
+    },
+    {
+      "id": "capture-incomplete-log",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "set": {
+        "log/complete": false,
+        "log/truncated": true,
+        "log/total_bytes": 27
+      }
+    },
+    {
+      "id": "outcome-failed",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "set": {
+        "outcome": "failed",
+        "exit_code": 7
+      }
+    },
+    {
+      "id": "outcome-timeout",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "set": {
+        "outcome": "timeout",
+        "exit_code": null
+      }
+    },
+    {
+      "id": "outcome-start_failed",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "set": {
+        "outcome": "start_failed",
+        "exit_code": null
+      }
+    },
+    {
+      "id": "outcome-interrupted",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "set": {
+        "outcome": "interrupted",
+        "exit_code": null
+      }
+    },
+    {
+      "id": "schema-version",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "set": {
+        "version": 2
+      }
+    },
+    {
+      "id": "schema-bool",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "set": {
+        "version": true
+      }
+    },
+    {
+      "id": "schema-extra",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "set": {
+        "extra": true
+      }
+    },
+    {
+      "id": "outcome-contradiction",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "set": {
+        "exit_code": 7
+      }
+    },
+    {
+      "id": "source-null-without-limit",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "set": {
+        "sources/0/before": null
+      }
+    },
+    {
+      "id": "capture-stability-contradiction",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "set": {
+        "source_stability": "changed"
+      }
+    },
+    {
+      "id": "invalid-json",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "raw_receipt": "{"
+    },
+    {
+      "id": "duplicate-field",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "raw_receipt": "{\"version\":1,\"version\":2}"
+    },
+    {
+      "id": "incomplete-placeholder",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "raw_receipt": "{\"schema\":\"sdad.verification-receipt\",\"version\":1,\"capture_incomplete\":true}"
+    },
+    {
+      "id": "env.local-cwd",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": ".env.local",
+        "directory": true
+      },
+      "set": {
+        "cwd": ".env.local"
+      },
+      "synthetic_dirs": [
+        ".env.local"
+      ]
+    },
+    {
+      "id": "env.local-source",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": "nested/.env.local/source.txt",
+        "directory": false
+      },
+      "set": {
+        "sources/0/path": "nested/.env.local/source.txt"
+      },
+      "synthetic_files": [
+        "nested/.env.local/source.txt"
+      ]
+    },
+    {
+      "id": "env.local-log",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": ".env.local.log",
+        "directory": false
+      },
+      "set": {
+        "log/path": ".env.local.log"
+      },
+      "synthetic_files": [
+        ".env.local.log"
+      ]
+    },
+    {
+      "id": "env.local-receipt",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "unlisted",
+      "collector_reject": {
+        "path": ".env.local.json",
+        "directory": false
+      },
+      "receipt_path": ".env.local.json"
+    },
+    {
+      "id": "envrc-cwd",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": ".envrc",
+        "directory": true
+      },
+      "set": {
+        "cwd": ".envrc"
+      },
+      "synthetic_dirs": [
+        ".envrc"
+      ]
+    },
+    {
+      "id": "envrc-source",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": "nested/.envrc/source.txt",
+        "directory": false
+      },
+      "set": {
+        "sources/0/path": "nested/.envrc/source.txt"
+      },
+      "synthetic_files": [
+        "nested/.envrc/source.txt"
+      ]
+    },
+    {
+      "id": "envrc-log",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": ".envrc.log",
+        "directory": false
+      },
+      "set": {
+        "log/path": ".envrc.log"
+      },
+      "synthetic_files": [
+        ".envrc.log"
+      ]
+    },
+    {
+      "id": "envrc-receipt",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "unlisted",
+      "collector_reject": {
+        "path": ".envrc.json",
+        "directory": false
+      },
+      "receipt_path": ".envrc.json"
+    },
+    {
+      "id": "environment-cwd",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": ".environment",
+        "directory": true
+      },
+      "set": {
+        "cwd": ".environment"
+      },
+      "synthetic_dirs": [
+        ".environment"
+      ]
+    },
+    {
+      "id": "environment-source",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": "nested/.environment/source.txt",
+        "directory": false
+      },
+      "set": {
+        "sources/0/path": "nested/.environment/source.txt"
+      },
+      "synthetic_files": [
+        "nested/.environment/source.txt"
+      ]
+    },
+    {
+      "id": "environment-log",
+      "schema_valid": false,
+      "preview": "reject",
+      "reader": "malformed",
+      "collector_reject": {
+        "path": ".environment.log",
+        "directory": false
+      },
+      "set": {
+        "log/path": ".environment.log"
+      },
+      "synthetic_files": [
+        ".environment.log"
+      ]
+    },
+    {
+      "id": "environment-receipt",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "unlisted",
+      "collector_reject": {
+        "path": ".environment.json",
+        "directory": false
+      },
+      "receipt_path": ".environment.json"
+    },
+    {
+      "id": "receipt-64k",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "receipt_bytes": 65536
+    },
+    {
+      "id": "receipt-over-64k",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "malformed",
+      "receipt_bytes": 65537
+    },
+    {
+      "id": "state-499-lines-proposal-500",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "state_lines": 499
+    },
+    {
+      "id": "state-500-lines-registered",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "state_lines": 500,
+      "registered": true
+    },
+    {
+      "id": "state-500-lines-proposal-overflow",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "unregistered",
+      "state_lines": 500
+    },
+    {
+      "id": "state-over-500-lines",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "state_unavailable",
+      "state_lines": 501
+    },
+    {
+      "id": "state-64k-registered",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "state_bytes": 65536,
+      "registered": true
+    },
+    {
+      "id": "state-64k-proposal-overflow",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "unregistered",
+      "state_bytes": 65536
+    },
+    {
+      "id": "state-proposal-exact-64k",
+      "schema_valid": true,
+      "preview": "accept",
+      "reader": "matched",
+      "proposed_state_bytes": 65536
+    },
+    {
+      "id": "state-proposal-over-64k",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "unregistered",
+      "proposed_state_bytes": 65537
+    },
+    {
+      "id": "state-over-64k",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "state_unavailable",
+      "state_bytes": 65537
+    },
+    {
+      "id": "unsupported-state",
+      "schema_valid": true,
+      "preview": "reject",
+      "reader": "state_unavailable",
+      "state_version": 3
+    }
+  ]
+}

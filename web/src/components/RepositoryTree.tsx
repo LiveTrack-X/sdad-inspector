@@ -18,6 +18,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useI18n } from "../i18n";
+import { doctorResult } from "../doctorResult";
 import type { PacketWorkItem } from "../packetWork";
 import type { DevelopmentActivity, Rule5Candidates, Snapshot } from "../types";
 
@@ -38,14 +39,16 @@ interface Props {
   onCloseMobile: () => void;
   activity: DevelopmentActivity | null;
   packetWork: PacketWorkItem[];
+  packetWorkComplete: boolean;
   rule5: Rule5Candidates | null;
 }
 
-export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onCloseMobile, activity, packetWork, rule5 }: Props) {
+export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onCloseMobile, activity, packetWork, packetWorkComplete, rule5 }: Props) {
   const { t } = useI18n();
   const [filter, setFilter] = useState("");
   const [expanded, setExpanded] = useState(() => new Set(["documents", "findings", "evidence"]));
   const treeRef = useRef<HTMLDivElement>(null);
+  const doctor = doctorResult(snapshot);
   const errorCount = snapshot.doctor.findings.filter((item) => item.severity === "error").length;
   const warningCount = snapshot.doctor.findings.filter((item) => item.severity === "warning").length;
   const handoff = snapshot.state.current_handoff;
@@ -58,11 +61,11 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
       label: t("state"),
       icon: <Info size={19} weight="duotone" />,
       value: snapshot.state.active_packet?.status ?? t("unavailable"),
-      tone: snapshot.doctor.summary.errors ? "error" : "muted",
+      tone: doctor.available && snapshot.doctor.summary.errors ? "error" : "muted",
     },
     { id: "spec", label: t("activeSpec"), icon: <FileText size={19} />, value: snapshot.state.active_spec?.path ?? t("none"), tone: "accent" },
     { id: "packet", label: t("activePacketThisRepo"), icon: <Cube size={19} />, value: snapshot.state.active_packet?.id ?? t("none"), tone: "accent" },
-    { id: "todo", label: t("todo"), icon: <Circle size={18} />, value: packetWork.filter((item) => !item.completed).length, tone: "muted" },
+    { id: "todo", label: t("todo"), icon: <Circle size={18} />, value: packetWorkComplete ? packetWork.filter((item) => !item.completed).length : t("unavailable"), tone: "muted" },
     {
       id: "development",
       label: t("developmentFlow"),
@@ -88,12 +91,12 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
       id: "findings",
       label: t("reviewFindings"),
       icon: <Shield size={19} />,
-      value: snapshot.doctor.findings.length,
-      tone: snapshot.doctor.findings.length ? "warning" : "success",
+      value: doctor.available ? snapshot.doctor.findings.length : t("unavailable"),
+      tone: doctor.passed ? "success" : doctor.available ? "warning" : "muted",
       children: [
-        { id: "findings-errors", label: t("errors"), icon: <span className="branch-line" />, value: errorCount, tone: "error" },
-        { id: "findings-warnings", label: t("warnings"), icon: <span className="branch-line" />, value: warningCount, tone: "warning" },
-        { id: "findings-notes", label: t("notes"), icon: <span className="branch-line" />, value: Math.max(0, snapshot.doctor.findings.length - errorCount - warningCount), tone: "accent" },
+        { id: "findings-errors", label: t("errors"), icon: <span className="branch-line" />, value: doctor.available ? errorCount : "—", tone: doctor.available ? "error" : "muted" },
+        { id: "findings-warnings", label: t("warnings"), icon: <span className="branch-line" />, value: doctor.available ? warningCount : "—", tone: doctor.available ? "warning" : "muted" },
+        { id: "findings-notes", label: t("notes"), icon: <span className="branch-line" />, value: doctor.available ? Math.max(0, snapshot.doctor.findings.length - errorCount - warningCount) : "—", tone: doctor.available ? "accent" : "muted" },
       ],
     },
     {
@@ -117,7 +120,7 @@ export function RepositoryTree({ snapshot, selectedId, onSelect, mobileOpen, onC
         { id: "evidence-snapshot", label: t("snapshotJson"), icon: <FileCode size={18} />, value: 1, tone: "muted" },
       ],
     },
-  ], [snapshot, handoff, errorCount, warningCount, routedDocuments, activity, packetWork, rule5, supportsRule5, t]);
+  ], [snapshot, handoff, errorCount, warningCount, doctor.available, doctor.passed, routedDocuments, activity, packetWork, packetWorkComplete, rule5, supportsRule5, t]);
 
   const visibleNodes = useMemo(() => {
     const query = filter.trim().toLocaleLowerCase();

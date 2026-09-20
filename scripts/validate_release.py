@@ -8,9 +8,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_VERSION = "0.0.4"
-RELEASE_VERSION = "0.0.4"
-RELEASE_TAG = f"v{RELEASE_VERSION}"
+try:
+    from scripts.release_metadata import VERSION, TAG, WINDOWS_VERSION, WINDOWS_VERSION_STRING, windows_resource
+except ModuleNotFoundError:
+    from release_metadata import VERSION, TAG, WINDOWS_VERSION, WINDOWS_VERSION_STRING, windows_resource
+
+PACKAGE_VERSION = RELEASE_VERSION = VERSION
+RELEASE_TAG = TAG
 
 
 def _read(relative: str) -> str:
@@ -48,7 +52,7 @@ def validate_release_contract() -> list[str]:
     funding = _read(".github/FUNDING.yml")
     workflow = _read(".github/workflows/release.yml")
     cross_platform_workflow = _read(".github/workflows/cross-platform.yml")
-    notes = _read("docs/releases/v0.0.4.md")
+    notes = _read(f"docs/releases/{RELEASE_TAG}.md")
     ignore = _read(".gitignore")
     packager = _read("scripts/package_release.py")
     native_builder = _read("scripts/build_native.py")
@@ -60,16 +64,18 @@ def validate_release_contract() -> list[str]:
     overview = _read("web/src/components/Overview.tsx")
     web_package = json.loads(_read("web/package.json"))
 
-    if not re.search(rf'^version = "{re.escape(PACKAGE_VERSION)}"$', pyproject, re.MULTILINE):
-        issues.append(f"pyproject.toml: project version is not {PACKAGE_VERSION}")
-    if f'__version__ = "{PACKAGE_VERSION}"' not in package:
-        issues.append(f"sdad_inspector/__init__.py: package version is not {PACKAGE_VERSION}")
+    if 'dynamic = ["version"]' not in pyproject or 'version = {attr = "sdad_inspector.version.__version__"}' not in pyproject:
+        issues.append("pyproject.toml must derive version from sdad_inspector/version.py")
+    if 'from .version import __version__' not in package:
+        issues.append("runtime must import the authoritative version")
+    if version_info != windows_resource():
+        issues.append("generated Windows resource is stale; run release_metadata.py --sync")
     for needle in ('license = "MIT"', 'license-files = ["LICENSE"]'):
         _require(issues, pyproject, needle, source="pyproject.toml")
 
     for needle in (
         RELEASE_TAG,
-        "0.0.4 is a regular GitHub Release, but remains unsigned",
+        f"{VERSION} is a regular GitHub Release, but remains unsigned",
         "web/public/sdad-inspector-banner.png",
         "Which SDAD projects can it inspect?",
         "Official SDAD Protocol `v3.2.3`",
@@ -85,6 +91,7 @@ def validate_release_contract() -> list[str]:
         "[简体中文](README.zh-CN.md)",
         "MIT License",
         "GitHub Sponsors",
+        "docs/RELEASING.md",
     ):
         _require(issues, readme, needle, source="README.md")
     localized_readmes = {
@@ -102,6 +109,7 @@ def validate_release_contract() -> list[str]:
             "SHA256SUMS",
             "MIT License",
             "GitHub Sponsors",
+            "docs/RELEASING.md",
         ):
             _require(issues, localized_readme, needle, source=source)
 
@@ -110,19 +118,15 @@ def validate_release_contract() -> list[str]:
     _require(issues, funding, "github: [LiveTrack-X]", source=".github/FUNDING.yml")
 
     for needle in (
-        RELEASE_TAG,
+        "release_candidate.py select",
         "windows-latest",
         "macos-latest",
         "ubuntu-latest",
-        "actions/upload-artifact@v7",
         "actions/download-artifact@v8",
-        "scripts/package_release.py",
         "portable-smoke",
         "scripts/smoke_release_archive.py",
-        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3",
-        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3",
         'python-version: "3.12"',
-        "needs: [build, portable-smoke]",
+        "needs: [candidate, portable-smoke]",
         "scripts/write_checksums.py",
         "--draft",
         "--draft=false",
@@ -131,15 +135,22 @@ def validate_release_contract() -> list[str]:
         "id-token: write",
         "attestations: write",
         "contents: write",
-        "npm --prefix web audit --audit-level=high",
     ):
         _require(issues, workflow, needle, source=".github/workflows/release.yml")
     if "--clobber" in workflow:
         issues.append(".github/workflows/release.yml: immutable release assets may not be refreshed with --clobber")
     if "--prerelease" in workflow:
-        issues.append(".github/workflows/release.yml: v0.0.4 must publish as a regular release")
+        issues.append(f".github/workflows/release.yml: {TAG} must publish as a regular release")
     for needle in (
-        f'--version "{RELEASE_VERSION}"',
+        '--version "${{ steps.metadata.outputs.version }}"',
+        "release_candidate.py create",
+        "validate_receipt_compatibility.py --protocol-checkout .ci/sdad-receipts",
+        "--verify-receipts",
+        "needs: [preview, portable-smoke]",
+        "npm --prefix web audit --audit-level=high",
+        "actions/upload-artifact@v7",
+        "python scripts/validate_browser_contract.py --sdad-checkout .ci/sdad-v3.2.3",
+        "python scripts/validate_static_report.py --sdad-checkout .ci/sdad-v3.2.3",
         "windows-latest",
         "macos-latest",
         "ubuntu-latest",
@@ -153,9 +164,9 @@ def validate_release_contract() -> list[str]:
         )
 
     for needle in (
-        "# SDAD Inspector 0.0.4",
+        f"# SDAD Inspector {VERSION}",
         "Unsigned portable release",
-        "exact `v0.0.4` tag",
+        f"exact `{TAG}` tag",
         "SHA256SUMS",
         "SDAD Protocol `v3.2.3`",
         "single portable executable",
@@ -170,7 +181,7 @@ def validate_release_contract() -> list[str]:
         "Snapshot schema 2",
         "exact executable path",
     ):
-        _require(issues, notes, needle, source="docs/releases/v0.0.4.md")
+        _require(issues, notes, needle, source=f"docs/releases/{TAG}.md")
 
     for needle in ("design/qa/", "design-qa.md", "web/.npmrc", "release-artifacts/"):
         _require(issues, ignore, needle, source=".gitignore")
@@ -207,19 +218,19 @@ def validate_release_contract() -> list[str]:
         _require(issues, updater, needle, source="sdad_inspector/updater.py")
 
     for needle in (
-        "filevers=(0, 0, 4, 0)",
-        "prodvers=(0, 0, 4, 0)",
+        f"filevers={WINDOWS_VERSION}",
+        f"prodvers={WINDOWS_VERSION}",
         "FileDescription', 'SDAD Inspector'",
         "ProductName', 'SDAD Inspector'",
-        "FileVersion', '0.0.4.0'",
-        "ProductVersion', '0.0.4'",
+        f"FileVersion', '{WINDOWS_VERSION_STRING}'",
+        f"ProductVersion', '{VERSION}'",
         "OriginalFilename', 'SDAD-Inspector.exe'",
     ):
         _require(issues, version_info, needle, source="packaging/sdad-inspector-version.txt")
     for needle in (
         'pefile.RESOURCE_TYPE["RT_ICON"]',
         "packaging/sdad-inspector.ico",
-        'b"ProductVersion": b"0.0.4"',
+        'b"ProductVersion": VERSION.encode("ascii")',
         '"icon": "matches-source"',
     ):
         _require(issues, windows_branding, needle, source="scripts/validate_windows_branding.py")
@@ -254,6 +265,10 @@ def validate_release_contract() -> list[str]:
         "packaging/sdad-inspector-version.txt",
         "web/public/sdad-inspector-banner.png",
         "scripts/validate_windows_branding.py",
+        "sdad_inspector/version.py",
+        "packaging/sdad-inspector-version.txt.in",
+        "scripts/release_metadata.py",
+        "scripts/release_candidate.py",
     ):
         if required_asset not in tracked:
             issues.append(f"missing tracked brand asset: {required_asset}")

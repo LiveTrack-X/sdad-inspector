@@ -91,6 +91,8 @@ export interface Snapshot {
       todo_open: number;
       review_findings_open: number;
       review_findings_by_severity: Record<string, number>;
+      todo_complete?: boolean;
+      review_findings_complete?: boolean;
     };
   };
   relationships: Array<{
@@ -150,6 +152,7 @@ export interface InspectionProgress {
 
 export interface LiveDocument {
   path: string;
+  project_root?: string;
   exists: boolean;
   roles: string[];
   content: string | null;
@@ -158,6 +161,23 @@ export interface LiveDocument {
   sha256?: string;
   truncated?: boolean;
   error: { code: string; message: string } | null;
+}
+
+export interface DocumentPage {
+  schema_version: 1;
+  project_root: string;
+  path: string;
+  sha256: string;
+  file_bytes: number;
+  file_lines: number;
+  start: number;
+  end: number;
+  page_bytes: number;
+  lines: string[];
+  truncated: boolean;
+  next_start: number | null;
+  heading: string | null;
+  continuation: string;
 }
 
 export interface LiveDocuments {

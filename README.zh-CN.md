@@ -17,11 +17,11 @@ SDAD Inspector 是一个本地桌面查看器，用来在一个界面中了解 S
 SPEC、state、TODO 或 findings。写入仅限 Inspector 自己的用户设置、更新暂存数据
 以及正在更新的便携式可执行文件。
 
-> **0.0.4 是正式 GitHub Release，但仍未签名。** 它不是安装程序，也没有代码
+> **0.0.5 是正式 GitHub Release，但仍未签名。** 它不是安装程序，也没有代码
 > 签名或公证。运行前请核对 `SHA256SUMS`。如果组织策略不允许未签名软件，请不要
 > 绕过系统保护，应改用源码运行方式。
 
-> **发布版与源码：** `v0.0.4` 可执行文件由同一个 immutable 标签构建。只有
+> **发布版与源码：** `v0.0.5` 可执行文件由同一个 immutable 标签构建。只有
 > Windows、macOS 和 Linux 的标签验证全部通过后，才会发布压缩包、校验和与
 > attestation。
 
@@ -30,7 +30,7 @@ SPEC、state、TODO 或 findings。写入仅限 Inspector 自己的用户设置�
 目标电脑无需安装 Python 或 Node.js。每个压缩包只包含一个 **single portable
 executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.3 引擎。
 
-1. 打开 [`v0.0.4` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4)。
+1. 打开 [`v0.0.5` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.5)。
 2. 下载适合当前电脑的压缩包和 `SHA256SUMS`。
 3. 使用下面的命令验证 SHA-256。
 4. 解压并运行其中唯一的可执行文件。
@@ -38,9 +38,9 @@ executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.3 �
 
 | 电脑 | 下载文件 | 压缩包内的可执行文件 |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.4-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.5-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.5-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.5-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 不要把表格以外的架构（例如 Intel Mac）视为已经通过公开发布验证。源码可能可以
 运行，但这不等同于便携式发布资产已经完成构建和冒烟测试。
@@ -50,7 +50,7 @@ executable**，其中已经嵌入运行时、UI 和经过认证的 SDAD 3.2.3 �
 Windows PowerShell：
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.4-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.5-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -113,7 +113,7 @@ TODO 同时带有 `[current]` 和有效 `[phase:…]` 时，界面才突出当�
 默认目标是 [SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)
 `v3.2.3`。
 
-| 契约 | 0.0.4 范围 |
+| 契约 | 0.0.5 范围 |
 | --- | --- |
 | 内置运行基准 | Official SDAD Protocol `v3.2.3` |
 | 默认适配器 | `official-sdad-3` |
@@ -169,6 +169,21 @@ python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
 python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
+## 后续发布维护
+
+当前源码以 `sdad_inspector/version.py` 为唯一版本来源。以后获准修改版本时，运行
+`python scripts/release_metadata.py --sync` 更新 Windows 资源和当前 README，
+使用 `--check` 检查一致性。历史发布说明不会被改写。
+
+下一次获准发布时，标签工作流会选择与标签提交完全一致的 `main` 验证候选，检查
+版本和压缩包哈希，并再次执行三个平台的下载后启动检查。程序不会重新构建；
+发布内容为三个平台压缩包、`SHA256SUMS` 和记录候选来源的 manifest，共五个资产，
+并附有 attestation。已有标签和 Release 不会被替换。候选保存三天，详细流程见
+[发布维护说明](docs/RELEASING.md)及[跨平台契约](docs/CROSS_PLATFORM.md)。
+
+修改后的托管发布流程仍需在以后获准的 CI 运行中验证。已发布的 `v0.0.5` 压缩包
+及其历史验证结果保持不变。
+
 ## 当前限制
 
 - 没有安装程序、代码签名、公证或稳定版支持保证。
@@ -185,3 +200,7 @@ SDAD Inspector 采用 [MIT License](LICENSE)。如果项目对你有帮助，可
 
 报告问题时，请提供 Inspector 版本、OS/架构、SDAD 版本、Doctor exit code 和复现
 步骤。请勿附加 `.env`、客户数据、私有仓库内容或其他秘密信息。
+
+当前源码候选版的用法见[纠正历史与草稿恢复](docs/CORRECTION_HISTORY.md)（英文）。
+归档、恢复及来源位置变化后的草稿恢复属于本地候选功能，尚未包含在已发布的
+现有可执行文件中。

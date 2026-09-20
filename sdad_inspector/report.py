@@ -91,6 +91,36 @@ def render_static_report(
     project = data["project"]
     protocol = data.get("protocol") or {}
     contracts = data["contracts"]
+    doctor_available = (
+        data.get("inspection_status") == "completed"
+        and doctor.get("completed") is True
+        and doctor.get("diagnostic_error") is None
+        and doctor.get("exit_code") in (0, 1)
+        and data.get("integrity", {}).get("control_files_unchanged_during_inspection") is True
+    )
+    doctor_passed = (
+        doctor_available
+        and doctor["exit_code"] == 0
+        and doctor["summary"]["errors"] == 0
+        and doctor["summary"]["warnings"] == 0
+        and not any(item.get("severity") in ("error", "warning") for item in doctor.get("findings", []))
+    )
+    doctor_summary = (
+        f'{doctor["summary"]["errors"]} errors · {doctor["summary"]["warnings"]} warnings'
+        if doctor_available else "Unavailable"
+    )
+    doctor_message = (
+        "A current, complete Doctor result is unavailable. Empty counts do not establish that no problems exist."
+        if not doctor_available else
+        "Doctor found no errors or warnings in structural checks. Declared validation commands were not executed."
+        if doctor_passed else
+        "Doctor did not pass. Review its result and exit code before relying on this control state."
+    )
+    diagnostic = doctor.get("diagnostic_error")
+    diagnostic_message = (
+        '<p class="doctor-note">' + _escape(diagnostic.get("message", "")) + "</p>"
+        if diagnostic else ""
+    )
     validations = "".join(
         "<li><code>"
         + _escape(item["command"])
@@ -113,7 +143,8 @@ def render_static_report(
         + _escape(item.get("remediation", ""))
         + "</p></li>"
         for item in doctor.get("findings", [])
-    ) or '<li class="empty">No Doctor findings were reported.</li>'
+    ) or ('<li class="empty">No Doctor findings were reported by these structural checks.</li>'
+          if doctor_passed else "")
     gates = "".join(
         '<li><span class="gate-square"></span><span>'
         + _escape(gate)
@@ -143,7 +174,8 @@ def render_static_report(
     header b {{ font-size:18px }} header code {{ overflow-wrap:anywhere; color:#344258 }} .readonly {{ margin-left:auto; font-weight:700 }}
     main {{ max-width:1320px; margin:0 auto; padding:28px 24px 56px }} .summary {{ display:grid; grid-template-columns:1.25fr .75fr; gap:22px; }}
     section {{ margin-bottom:22px; border:1px solid var(--line); background:#fff }} section>h2 {{ margin:0; padding:13px 16px; border-bottom:1px solid var(--line); font-size:15px }}
-    .packet {{ padding:20px }} .kicker {{ margin:0 0 6px; color:#526176; font-weight:700 }} h1 {{ margin:0 0 16px; font-size:24px }} .status {{ color:var(--green); font-family:Consolas,monospace }}
+    .packet {{ padding:20px }} .kicker {{ margin:0 0 6px; color:#526176; font-weight:700 }} h1 {{ margin:0 0 16px; font-size:24px }} .status {{ color:#344258; font-family:Consolas,monospace }}
+    .doctor-note {{ margin:0; padding:12px 14px }} .doctor-summary.passed>h2 {{ color:var(--green) }} .doctor-summary.attention>h2 {{ color:var(--amber) }}
     dl {{ display:grid; grid-template-columns:145px 1fr; margin:0 }} dt,dd {{ margin:0; padding:11px 14px; border-bottom:1px solid #e7ebf1 }} dt {{ color:#526176 }} dd {{ overflow-wrap:anywhere }}
     ul,ol {{ margin:0; padding:0; list-style:none }} .gates li,.validations li {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 16px; padding:11px 14px; border-bottom:1px solid #e7ebf1 }}
     .gates li {{ grid-template-columns:14px minmax(0,1fr) }} .gate-square {{ grid-row:1/3; width:9px; height:9px; margin-top:6px; background:var(--amber) }} .gates strong {{ grid-column:2; color:var(--amber); overflow-wrap:anywhere }}
@@ -159,9 +191,10 @@ def render_static_report(
   <header><b>SDAD Inspector</b><code>{_escape(project.get('root', ''))}</code><span class="readonly">Read-only static report</span></header>
   <main>
     <div class="summary">
-      <section><div class="packet"><p class="kicker">Active Packet</p><h1>{_escape(packet.get('id', 'Not declared'))}</h1><p class="status">{_escape(status)}</p><h2>Objective</h2><p>{_escape(packet.get('objective', 'No objective is declared.'))}</p></div></section>
+      <section><div class="packet"><p class="kicker">Active Packet</p><h1>{_escape(packet.get('id', 'Not declared'))}</h1><p class="status">{_escape(status)}</p><p>Declared checkpoint, not a progress percentage. Verification, external conditions and owner acceptance require separate evidence.</p><h2>Objective</h2><p>{_escape(packet.get('objective', 'No objective is declared.'))}</p></div></section>
       <section><h2>Provenance</h2><dl>
         <dt>Inspected at</dt><dd>{_escape(data.get('inspected_at'))}</dd>
+        <dt>Inspection status</dt><dd>{_escape(data.get('inspection_status'))}</dd>
         <dt>Protocol adapter</dt><dd><code>{_escape(protocol.get('adapter_id'))}</code></dd>
         <dt>Engine</dt><dd>{_escape(protocol.get('engine_display_name'))}</dd>
         <dt>Doctor</dt><dd>{_escape(contracts.get('doctor_version'))}</dd>
@@ -172,7 +205,7 @@ def render_static_report(
         <dt>Engine revision</dt><dd><code>{_escape(data['engine'].get('revision'))}</code></dd>
       </dl></section>
     </div>
-    <section><h2>Doctor Summary — {_escape(doctor['summary']['errors'])} errors · {_escape(doctor['summary']['warnings'])} warnings</h2><ul class="findings">{findings}</ul></section>
+    <section class="doctor-summary {'passed' if doctor_passed else 'attention'}"><h2>Doctor Summary — {_escape(doctor_summary)}</h2><p class="doctor-note">{_escape(doctor_message)}</p>{diagnostic_message}<ul class="findings">{findings}</ul></section>
     <section><h2>Stopped Owner Gates</h2><ul class="gates">{gates}</ul></section>
     <section><h2>Declared Validation Commands — presented, not executed</h2><ol class="validations">{validations}</ol></section>
     <section><h2>Limitations</h2><ul class="limits">{limitations}</ul></section>

@@ -16,11 +16,17 @@ beforeEach(() => {
   vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({project_root:snapshot.project.root,drafts:[]}))));
 });
 const source = `${snapshot.protocol.todo_path}:5`;
-function fixture(s:Snapshot=snapshot,d:LiveDocuments=docs,visible=true,before='Build the live workspace.') {
-  return <I18nProvider><TargetCorrectionProvider snapshot={s} documents={d}>{visible && <TargetCorrection source={source} before={before}/>}</TargetCorrectionProvider></I18nProvider>;
+function fixture(s:Snapshot=snapshot,d:LiveDocuments=docs,visible=true,before='Build the live workspace.',targetSource=source) {
+  return <I18nProvider><TargetCorrectionProvider snapshot={s} documents={d}>{visible && <TargetCorrection source={targetSource} before={before}/>}</TargetCorrectionProvider></I18nProvider>;
 }
 function open() {fireEvent.click(screen.getByText('Correct this item',{selector:'summary'}));}
 function type(text='Keep the saved value after restart.') {fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});}
+const changedDocs=(before='Build the live workspace.') => ({...docs,read_at:'2026-09-20T00:00:00Z',documents:docs.documents.map(d=>d.path===snapshot.protocol.todo_path?{...d,content:d.content?.replace('Build the live workspace.',before) + '\nUnrelated note.',sha256:'new-revision'}:d)});
+function previous() {
+  const region=screen.getByRole('region',{name:'Previous draft'});
+  fireEvent.click(within(region).getByText(/Previous draft 1/,{selector:'summary'}));
+  return within(region);
+}
 
 describe('source-targeted correction copy', () => {
   it('copies the selected item and source with project context and no fabricated request linkage',async () => {
@@ -40,8 +46,99 @@ describe('source-targeted correction copy', () => {
     view.rerender(fixture(other,{...docs,project_root:other.project.root}));open();
     expect(screen.getByRole('textbox')).toHaveValue('');
     view.rerender(fixture());open();expect(screen.getByRole('textbox')).toHaveValue('Keep the saved value after restart.');
-    const changed={...docs,documents:docs.documents.map(d=>d.path===snapshot.protocol.todo_path?{...d,sha256:'new-revision'}:d)};
+    const changed=changedDocs();
     view.rerender(fixture(snapshot,changed));open();expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(screen.getByRole('region',{name:'Previous draft'})).toBeVisible();
+  });
+  it('offers an unchanged item draft after unrelated document edits and copies only after explicit carry-forward',async () => {
+    const view=render(fixture());open();type();
+    view.rerender(fixture(snapshot,changedDocs()));open();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(screen.getByRole('button',{name:'Copy correction request'})).toBeDisabled();
+    const recovery=previous();
+    expect(recovery.getByText('The selected item text is unchanged; other source content or its revision may have changed.')).toBeVisible();
+    expect(recovery.getByText('Keep the saved value after restart.')).toBeVisible();
+    expect(recovery.getAllByText('Build the live workspace.')).toHaveLength(2);
+    fireEvent.click(recovery.getByRole('button',{name:'Use this draft with the current source'}));
+    expect(screen.getByRole('textbox')).toHaveValue('Keep the saved value after restart.');
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'Copy correction request'}));
+    await waitFor(()=>expect(navigator.clipboard.writeText).toHaveBeenCalledOnce());
+    const copied=vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
+    expect(copied).toContain('SHA-256: new-revision');
+    expect(copied).toContain('2026-09-20T00:00:00Z');
+    expect(copied).not.toContain('Correction ID:');
+    view.rerender(fixture());open();
+    expect(screen.getByRole('textbox')).toHaveValue('Keep the saved value after restart.');
+  });
+  it('compares changed item text and preserves a newly typed draft until explicitly cleared', async () => {
+    const view=render(fixture());open();type('Original correction.');
+    view.rerender(fixture(snapshot,changedDocs('Use a remote store.'),true,'Use a remote store.'));open();
+    const recovery=previous();
+    expect(recovery.getByText('Build the live workspace.')).toBeVisible();
+    expect(recovery.getByText('Use a remote store.')).toBeVisible();
+    expect(recovery.getByText(/same source location does not guarantee/)).toBeVisible();
+    type('New correction.');
+    expect(recovery.getByRole('button',{name:'Use this draft with the current source'})).toBeDisabled();
+    expect(screen.getByRole('textbox')).toHaveValue('New correction.');
+    type('');
+    fireEvent.click(recovery.getByRole('button',{name:'Use this draft with the current source'}));
+    expect(screen.getByRole('textbox')).toHaveValue('Original correction.');
+    fireEvent.click(screen.getByRole('button',{name:'Copy correction request'}));
+    await waitFor(()=>expect(navigator.clipboard.writeText).toHaveBeenCalledOnce());
+    const copied=vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
+    expect(copied).toContain('Use a remote store.');
+    expect(copied).not.toContain('Build the live workspace.');
+  });
+  it('never offers drafts from another project, packet, or item locator', () => {
+    const view=render(fixture());open();type();
+    const variants:[Snapshot,LiveDocuments,string][]=[
+      [{...snapshot,project:{...snapshot.project,root:'C:/other'}},{...docs,project_root:'C:/other'},source],
+      [{...snapshot,state:{...snapshot.state,active_packet:{...snapshot.state.active_packet!,id:'another-packet'}}},docs,source],
+      [snapshot,docs,`${snapshot.protocol.todo_path}:6`],
+      [snapshot,docs,`${snapshot.protocol.state_path}#active_packet.objective`],
+    ];
+    for(const [s,d,locator] of variants) {
+      view.rerender(fixture(s,d,true,'Build the live workspace.',locator));open();
+      expect(screen.getByRole('textbox')).toHaveValue('');
+      expect(screen.queryByRole('region',{name:'Previous draft'})).not.toBeInTheDocument();
+    }
+    view.rerender(fixture());open();
+    expect(screen.getByRole('textbox')).toHaveValue('Keep the saved value after restart.');
+  });
+  it('recovers a line-shifted TODO only through explicit document-level comparison',async () => {
+    const view=render(fixture());open();type('Keep this correction after a line is inserted.');
+    const changed=changedDocs();
+    const shifted={...changed,documents:changed.documents.map(d=>d.path===snapshot.protocol.todo_path?{...d,content:`\n${d.content}`} : d)};
+    const movedSource=`${snapshot.protocol.todo_path}:6`;
+    view.rerender(fixture(snapshot,shifted,true,'Build the live workspace.',movedSource));open();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(screen.queryByRole('region',{name:'Previous draft'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Copy correction request'})).toBeDisabled();
+    fireEvent.click(screen.getByText('Other saved drafts in this document',{selector:'summary'}));
+    const recovery=within(screen.getByRole('region',{name:'Other saved drafts in this document'}));
+    fireEvent.click(recovery.getByText(/Previous draft 1/,{selector:'summary'}));
+    expect(recovery.getByText(source)).toBeVisible();
+    expect(recovery.getByText(movedSource)).toBeVisible();
+    expect(recovery.getByText(/no correspondence is assumed/)).toBeVisible();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    fireEvent.click(recovery.getByRole('button',{name:'Use this draft with the current source'}));
+    fireEvent.click(screen.getByRole('button',{name:'Copy correction request'}));
+    await waitFor(()=>expect(navigator.clipboard.writeText).toHaveBeenCalledOnce());
+    const copied=vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
+    expect(copied).toContain(`Source: ${movedSource}`);
+    expect(copied).not.toContain(`Source: ${source}`);
+    expect(copied).toContain('Keep this correction after a line is inserted.');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('retains previous drafts when a current source becomes stale but blocks recovery and copy', () => {
+    const view=render(fixture());open();type();
+    view.rerender(fixture({...snapshot,inspection_status:'stale'},changedDocs()));open();
+    const recovery=previous();
+    expect(recovery.getByText('Keep the saved value after restart.')).toBeVisible();
+    expect(recovery.getByRole('button',{name:'Use this draft with the current source'})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'Copy correction request'})).toBeDisabled();
+    expect(fetch).not.toHaveBeenCalled();
   });
   it.each(['stale','other-project','missing','truncated'] as const)('blocks copy for %s evidence',kind => {
     const s=kind==='stale'?{...snapshot,inspection_status:'stale' as const}:snapshot;

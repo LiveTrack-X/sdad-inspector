@@ -1,5 +1,7 @@
 import type { Translate } from "./i18n";
+import { doctorResult } from "./doctorResult";
 import type { PacketWorkItem } from "./packetWork";
+import { packetStatusMeaning } from "./packetStatus";
 import type { FieldSelection, Snapshot } from "./types";
 
 function inspected(snapshot: Snapshot): string {
@@ -21,13 +23,14 @@ export function documentSelectionId(snapshot: Snapshot, path: string): string {
   return `doc:${encodeURIComponent(path)}`;
 }
 
-export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packetWork: PacketWorkItem[] = []): FieldSelection {
+export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packetWork: PacketWorkItem[] = [], packetWorkComplete = false): FieldSelection {
   const packet = snapshot.state.active_packet;
   const spec = snapshot.state.active_spec;
   const handoff = snapshot.state.current_handoff;
   const statePath = snapshot.protocol.state_path;
   const todoPath = snapshot.protocol.todo_path;
   const findingsPath = snapshot.protocol.findings_path;
+  const doctor = doctorResult(snapshot);
   const base = {
     id,
     freshness: inspected(snapshot),
@@ -54,7 +57,7 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         authority: `${statePath}#active_packet`,
         observed: packet?.status ?? t("notDeclared"),
         sourcePath: statePath,
-        remediation: packet ? t("statusDeclared") : t("declareActivePacket"),
+        remediation: packet ? packetStatusMeaning(packet.status, t) : t("declareActivePacket"),
         revealPath: statePath,
       };
     case "development":
@@ -84,7 +87,7 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         authority: statePath,
         observed: packet?.status ?? t("unavailable"),
         sourcePath: `${statePath}#active_packet.status`,
-        remediation: packet ? t("stateReadSuccess") : t("createReadableState"),
+        remediation: packet ? packetStatusMeaning(packet.status, t) : t("createReadableState"),
         revealPath: statePath,
       };
     case "spec":
@@ -103,9 +106,9 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         ...base,
         label: t("activeTodo"),
         authority: `${todoPath}#Active Work`,
-        observed: t(packetOpen === 1 ? "openItemOne" : "openItemMany", { count: packetOpen }),
+        observed: packetWorkComplete ? t(packetOpen === 1 ? "openItemOne" : "openItemMany", { count: packetOpen }) : t("unavailable"),
         sourcePath: todoPath,
-        remediation: t("reviewOpenWork"),
+        remediation: packetWorkComplete ? t("reviewOpenWork") : t("situationNextUnavailable"),
         revealPath: todoPath,
       };
     case "findings-errors":
@@ -119,10 +122,10 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         ...base,
         label: severity === "error" ? t("doctorErrors") : severity === "warning" ? t("doctorWarnings") : t("notes"),
         authority: t("doctorFindingAuthority"),
-        observed: t(count === 1 ? "severityCountOne" : "severityCountMany", { count, severity: severityLabel }),
+        observed: doctor.available ? t(count === 1 ? "severityCountOne" : "severityCountMany", { count, severity: severityLabel }) : t("unavailable"),
         sourcePath: first?.path ?? t("doctorReportJson"),
         relatedFinding: first?.id ?? t("none"),
-        remediation: first?.remediation ?? t("noSeverityRemediation", { severity: severityLabel }),
+        remediation: !doctor.available ? t("doctorResultUnavailable") : first?.remediation ?? t(doctor.passed ? "noSeverityRemediation" : "doctorUnsuccessful", { severity: severityLabel }),
         revealPath: first?.path ?? ".",
       };
     }
@@ -131,10 +134,10 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         ...base,
         label: t("reviewFindings"),
         authority: t("doctorFindingAuthority"),
-        observed: t("findingTotal", { count: snapshot.doctor.findings.length }),
+        observed: doctor.available ? t("findingTotal", { count: snapshot.doctor.findings.length }) : t("unavailable"),
         sourcePath: t("inMemoryDoctorJson"),
         relatedFinding: snapshot.doctor.findings[0]?.id ?? t("none"),
-        remediation: snapshot.doctor.findings[0]?.remediation ?? t("noFindingsForSelection"),
+        remediation: !doctor.available ? t("doctorResultUnavailable") : snapshot.doctor.findings[0]?.remediation ?? t(doctor.passed ? "noFindingsForSelection" : "doctorUnsuccessful"),
         revealPath: snapshot.doctor.findings[0]?.path ?? ".",
       };
     case "handoff":
@@ -180,13 +183,13 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
     case "evidence-spec":
       return { ...selectionFor(snapshot, "spec", t, packetWork), id };
     case "evidence-todo":
-      return { ...selectionFor(snapshot, "todo", t, packetWork), id };
+      return { ...selectionFor(snapshot, "todo", t, packetWork,packetWorkComplete), id };
     case "evidence-findings":
       return {
         ...base,
         label: t("reviewFindingsEvidence"),
         authority: `${findingsPath}#Active Findings`,
-        observed: t("openCount", { count: snapshot.state.ledger.review_findings_open }),
+        observed: snapshot.state.ledger.review_findings_complete === false ? t("unavailable") : t("openCount", { count: snapshot.state.ledger.review_findings_open }),
         sourcePath: findingsPath,
         remediation: t("reviewPacketFindings"),
         revealPath: findingsPath,
@@ -212,7 +215,7 @@ export function selectionFor(snapshot: Snapshot, id: string, t: Translate, packe
         authority: `${statePath}#active_packet`,
         observed: packet?.status ?? t("notDeclared"),
         sourcePath: `${statePath}#active_packet.status`,
-        remediation: packet ? t("statusDeclared") : t("declareActivePacket"),
+        remediation: packet ? packetStatusMeaning(packet.status, t) : t("declareActivePacket"),
         revealPath: statePath,
       };
   }

@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.release_metadata import windows_resource
 from sdad_inspector.engine import RELEASE_TREE_SHA256, probe_engine
 from sdad_inspector.errors import InspectorError, PackageError
 from sdad_inspector.packaging import stage_release_engine
@@ -74,6 +75,8 @@ def resolve_npm_executable(
 
 
 def check_prerequisites(checkout: str | Path) -> dict[str, object]:
+    if (ROOT / "packaging/sdad-inspector-version.txt").read_text(encoding="utf-8") != windows_resource():
+        raise PackageError("Stale Windows resource; run python scripts/release_metadata.py --sync")
     engine = probe_engine(checkout)
     missing = [name for name, path in _required_paths().items() if not path.is_file()]
     if missing:

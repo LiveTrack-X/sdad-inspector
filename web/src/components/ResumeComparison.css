@@ -1,0 +1,29 @@
+.resume-comparison { margin: 0 0 24px; padding: 18px 20px; border: 1px solid var(--divider); border-radius: 10px; background: var(--surface); color: var(--text-body); min-width: 0; }
+.resume-comparison h2 { margin: 0 0 8px; font-size: 17px; color: var(--ink); }
+.resume-comparison h3 { margin: 20px 0 10px; font-size: 14px; }
+.resume-comparison p { margin: 8px 0; line-height: 1.6; font-size: 13px; }
+.resume-comparison .resume-storage-note { color: var(--secondary); }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.resume-comparison button { padding: 8px 10px; border: 1px solid var(--divider-strong); border-radius: 6px; background: var(--surface-input); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; min-height: 36px; }
+.resume-comparison button:hover:not(:disabled) { background: var(--surface-hover); }
+.resume-comparison button:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+.resume-comparison button:disabled { opacity: .5; cursor: default; }
+.resume-observation-times { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 12px 0; font-size: 12px; }
+.resume-observation-times dt, .resume-values small { color: var(--secondary); }
+.resume-observation-times dd { margin: 4px 0 0; }
+.resume-comparison-results > ul { padding: 0; margin: 0; list-style: none; }
+.resume-change { border-top: 1px solid var(--divider); padding: 12px 0; min-width: 0; }
+.resume-change-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; font-size: 13px; }
+.resume-change-heading strong { overflow-wrap: anywhere; }
+.resume-change-heading > span { flex-shrink: 0; font-size: 12px; color: var(--secondary); }
+.resume-change[data-comparison="changed"] .resume-change-heading > span { color: var(--cobalt); }
+.resume-change[data-comparison="unknown"] .resume-change-heading > span { color: var(--stopped); }
+.resume-values { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin: 8px 0; }
+.resume-values pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 5px 0; font-family: inherit; font-size: 12px; line-height: 1.6; }
+.resume-comparison .resume-source { display: block; max-width: 100%; text-align: left; color: var(--cobalt); border: 0; background: none; padding: 4px 0; overflow-wrap: anywhere; }
+.resume-source code { font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .resume-comparison { padding: 14px; }
+  .resume-values { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .resume-actions button { min-height: 40px; }
+}

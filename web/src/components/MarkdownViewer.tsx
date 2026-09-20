@@ -1,7 +1,10 @@
-import { Fragment, createElement, type ReactNode, useId, useMemo } from "react";
+import { Fragment, createElement, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowSquareOut, CheckSquare, Image, Info, ListBullets, Square } from "@phosphor-icons/react";
 import { type Translate, useI18n } from "../i18n";
-import type { LiveDocument } from "../types";
+import { ApiError, getDocumentPage } from "../api";
+import { documentPageCopy } from "../documentPageCopy";
+import type { DocumentPage, LiveDocument } from "../types";
+import "./documentPages.css";
 
 interface MarkdownHeading {
   id: string;
@@ -152,9 +155,19 @@ function renderMarkdown(markdown: string, headingIds: ReadonlyMap<number, string
 }
 
 export function MarkdownViewer({ document: liveDocument, navigation = false }: { document: LiveDocument; navigation?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const copy = documentPageCopy(locale);
+  const sourceKey = JSON.stringify([liveDocument.project_root, liveDocument.path, liveDocument.sha256 ?? liveDocument.content]);
+  const latestKey = useRef(sourceKey);
+  latestKey.current = sourceKey;
+  const serial = useRef(0);
+  const [paging, setPaging] = useState<{ key: string; page: DocumentPage; previous: number[] } | null>(null);
+  const [requestState, setRequestState] = useState<{ key: string; busy: boolean; error: string | null; changed: boolean } | null>(null);
+  const current = paging?.key === sourceKey ? paging : null;
+  const request = requestState?.key === sourceKey ? requestState : null;
+  useEffect(() => () => { serial.current += 1; }, []);
   const headingPrefix = useId().replaceAll(":", "");
-  const content = liveDocument.content ?? "";
+  const content = current ? current.page.lines.join("\n") : liveDocument.content ?? "";
   const headings = useMemo(
     () => navigation ? extractHeadings(content, headingPrefix) : [],
     [content, headingPrefix, navigation],
@@ -164,6 +177,25 @@ export function MarkdownViewer({ document: liveDocument, navigation = false }: {
     [headings],
   );
   const rendered = useMemo(() => renderMarkdown(content, headingIds, t), [content, headingIds, t]);
+
+  async function readPage(start: number, digest: string | undefined, previous: number[]) {
+    if (!liveDocument.project_root || request?.busy) return;
+    const key = sourceKey;
+    const call = ++serial.current;
+    setRequestState({ key, busy: true, error: null, changed: false });
+    try {
+      const page = await getDocumentPage(liveDocument.project_root, liveDocument.path, start, 100, digest);
+      if (call !== serial.current || latestKey.current !== key) return;
+      if (page.project_root !== liveDocument.project_root || page.path !== liveDocument.path.replaceAll("\\", "/") || (digest && page.sha256 !== digest)) {
+        throw new ApiError("The returned page does not match the selected source.", "document_changed");
+      }
+      setPaging({ key, page, previous });
+      setRequestState({ key, busy: false, error: null, changed: false });
+    } catch (error) {
+      if (call !== serial.current || latestKey.current !== key) return;
+      setRequestState({ key, busy: false, error: error instanceof Error ? error.message : copy.unavailable, changed: error instanceof ApiError && error.code === "document_changed" });
+    }
+  }
 
   function jumpToHeading(id: string) {
     if (!id) return;
@@ -180,11 +212,26 @@ export function MarkdownViewer({ document: liveDocument, navigation = false }: {
   if (!liveDocument.exists || liveDocument.content === null) return <div className="document-empty">{t("documentUnavailable")}</div>;
   return (
     <>
-      {liveDocument.truncated && (
+      {liveDocument.truncated && !current && (
         <div className="document-preview-note" role="note">
           <Info size={18} />
-          <p>{t("documentPreviewTruncated")}</p>
+          <p>{liveDocument.project_root ? copy.preview : t("documentPreviewTruncated")}</p>
         </div>
+      )}
+      {liveDocument.project_root && (liveDocument.truncated || current) && (
+        <nav className="document-page-controls" aria-label={copy.title}>
+          <div className="document-page-actions">
+            {!current && <button disabled={request?.busy || request?.changed} onClick={() => void readPage(1, liveDocument.sha256, [])}>{copy.read}</button>}
+            {current && <>
+              <button disabled={request?.busy || request?.changed || !current.previous.length} onClick={() => void readPage(current.previous[current.previous.length - 1], current.page.sha256, current.previous.slice(0, -1))}>{copy.previous}</button>
+              <button disabled={request?.busy || request?.changed || current.page.next_start === null} onClick={() => void readPage(current.page.next_start!, current.page.sha256, [...current.previous, current.page.start])}>{copy.next}</button>
+            </>}
+            {(current || request?.error) && <button disabled={request?.busy} onClick={() => void readPage(1, undefined, [])}>{copy.restart}</button>}
+          </div>
+          {request?.busy && <p role="status">{copy.loading}</p>}
+          {request?.error && <div className="document-page-error" role="alert"><p>{request.changed ? copy.changed : copy.unavailable}</p>{!request.changed && <p>{request.error}</p>}</div>}
+          {current && <><p>{copy.range.replace("{start}", String(current.page.file_lines ? current.page.start : 0)).replace("{end}", String(current.page.end)).replace("{total}", String(current.page.file_lines))}</p><code>SHA-256 {current.page.sha256}</code><p>{copy.fragment}</p></>}
+        </nav>
       )}
       {navigation && headings.length > 0 && (
         <div className="markdown-navigation">

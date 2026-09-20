@@ -25,6 +25,29 @@ remain undeclared/ambiguous. Packet status, Git, timestamps, TODO order, and TOD
 counts are never mapped to a current phase. These optional markers are
 Inspector presentation metadata, not additions to the SDAD state schema.
 
+### Current-source presentation limits
+
+The working source candidate parses the complete bounded TODO preview, without
+an additional item-count cutoff. Fenced examples are not executable work;
+explicit deferred headings also apply to their nested sections. Missing,
+truncated, failed or stale reads do not establish exact totals or zero work.
+Available prefix items may still be inspected with the incomplete-read limit.
+
+Packet status remains the original declared value. The accompanying explanation
+does not execute validations, verify an external condition or confirm owner
+acceptance. Doctor checks repository structure; a clean Doctor report never
+stands in for the declared software checks. Incomplete, diagnostic or stale
+Doctor observations must remain distinguishable from a current zero-finding
+result in the UI and exported report. These are presentation fixes, not a new
+snapshot, state schema or retroactive claim about released binaries.
+
+If a rescan fails, its previous snapshot remains available as stale evidence,
+with the original inspection identity, timestamp and findings. A successful
+subsequent scan replaces it. The failure never creates a new successful result.
+
+External design examples and their evidence limits are recorded in
+[the dated workflow research note](WORKFLOW_RESEARCH.ko.md).
+
 ## SDAD 3.2.2 Coordination Profile
 
 The optional **SDAD 3.x Coordination and Decision Trace Profile** remains a
@@ -232,3 +255,32 @@ claims response linkage, receipt, application, validation or project mutation.
 Current readable same-project source evidence is required for copy. Drafts are
 isolated by project, packet, item and source revision and retained only within
 the page session. No endpoint, polling loop, state schema or write authority is added.
+
+## Optional bounded evidence workflow
+
+Document paging is an explicit read through the selected authenticated engine's
+existing context helper. `POST /api/documents/page` binds the selected project,
+current route and source SHA-256. Continuations require that digest; a changed
+source preserves the displayed page and requires an explicit restart. Older
+engines without the helper report unsupported capability. Files remain limited
+to 1,000,000 bytes, pages to 500 lines/50,000 serialized bytes; the UI requests
+100 lines. Page-local Markdown does not establish whole-document task counts.
+Optional ledger completeness flags distinguish bounded counts from full totals.
+
+`POST /api/verification-receipts` reads explicitly routed optional receipts.
+The [receipt contract](VERIFICATION_RECEIPTS.md) owns recording, bounds and claim
+limits. Inspector does not execute the recorded command. Recorded outcomes,
+current source identity and retained log identity are separate observations;
+none changes State v2, Doctor output, completion or acceptance.
+
+`POST /api/resume-comparison` binds project and (for saving) inspection ID.
+It stores only bounded metadata from completed coherent Inspector snapshots in
+an app-owned SQLite database beside preferences, outside the inspected project.
+Enable and baseline replacement are explicit; later successful observations
+retain the baseline. The response contains the current project only. Failed,
+diagnostic or stale inspections do not replace the saved observation. Metadata
+includes objective/status/gates/pointers and source hashes, never document
+bodies. Up to eight projects and 192 KiB of serialized observation data are
+retained; SQLite allocation can exceed that logical payload limit. Clear-current
+and clear-all controls are explicit. A new browser origin or port does not lose
+the stored baseline. Comparisons do not reactivate work or grant permission.

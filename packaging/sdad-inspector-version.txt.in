@@ -1,0 +1,30 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=@NUMERIC_VERSION@,
+    prodvers=@NUMERIC_VERSION@,
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '040904B0',
+        [
+          StringStruct('CompanyName', 'LiveTrack-X'),
+          StringStruct('FileDescription', 'SDAD Inspector'),
+          StringStruct('FileVersion', '@FILE_VERSION@'),
+          StringStruct('InternalName', 'SDAD-Inspector'),
+          StringStruct('LegalCopyright', 'Copyright 2026 LiveTrack-X'),
+          StringStruct('OriginalFilename', 'SDAD-Inspector.exe'),
+          StringStruct('ProductName', 'SDAD Inspector'),
+          StringStruct('ProductVersion', '@PRODUCT_VERSION@')
+        ]
+      )
+    ]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)

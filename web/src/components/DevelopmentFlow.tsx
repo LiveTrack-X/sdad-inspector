@@ -1,7 +1,10 @@
 import { InteractionPanel } from "./InteractionPanel";
+import { VerificationRecords } from "./VerificationRecords";
 import { type ReactNode, useId, useState } from "react";
 import { PlanDetails, WorkItemDetails } from "./WorkDetails";
 import { workDetailCopy } from "../workDetailCopy";
+import { overviewPriorityCopy } from "../overviewPriorityCopy";
+import "./OverviewPriority.css";
 import {
   ArrowRight,
   BookOpenText,
@@ -27,8 +30,10 @@ import {
   CONTROL_LOOP,
   controlLoopSignals,
   currentControlStage,
+  isDeferredWorkItem,
   worktreeLensSignals,
   type ControlLoopStageId,
+  type CurrentControlStageSignal,
   type EvidenceStatus,
   type WorktreeLensId,
 } from "../developmentStages";
@@ -44,30 +49,43 @@ function TimeLabel({ value }: { value: string | null }) {
   return <time className="time-label" dateTime={value} title={formatAbsolute(value, locale)}>{formatRelative(value, locale)}</time>;
 }
 
-function WorkChecklist({ work, todoPath, onOpenSource, showCurrent = true }: { work: PacketWorkItem[]; todoPath: string; onOpenSource: () => void; showCurrent?: boolean }) {
+function currentWorkItems(work: PacketWorkItem[], stage: CurrentControlStageSignal): PacketWorkItem[] {
+  return ["idle", "deferred", "unavailable"].includes(stage.status) ? [] : work.filter(item => item.current && !item.completed && !isDeferredWorkItem(item));
+}
+
+function noCurrentWorkCopy(stage: CurrentControlStageSignal, t: ReturnType<typeof useI18n>["t"]): string {
+  if (stage.status === "idle") return t("situationNowIdle");
+  if (stage.status === "deferred") return t("situationNowDeferred");
+  if (stage.status === "unavailable") return t("situationNowUnavailable");
+  return t("currentTodoUndeclared");
+}
+
+function WorkChecklist({ work, todoPath, stage, onOpenSource, showCurrent = true }: { work: PacketWorkItem[]; todoPath: string; stage: CurrentControlStageSignal; onOpenSource: () => void; showCurrent?: boolean }) {
   const { locale, t } = useI18n();
-  const currentItems = work.filter((item) => item.current && !item.completed);
-  const open = work.filter((item) => !item.completed && !item.current);
+  const currentItems = currentWorkItems(work,stage);
+  const open = work.filter((item) => !item.completed && !currentItems.includes(item));
   const completed = work.filter((item) => item.completed);
+  const complete = stage.status !== "unavailable";
   const showSections = new Set(work.map((item) => item.section)).size > 1;
-  const itemText = (item: PacketWorkItem) => <div><WorkItemDetails item={item} todoPath={todoPath} onOpenSource={onOpenSource}/>{showSections && <small className="todo-source-section">{t("todoSourceSection", { section: item.section })}</small>}</div>;
+  const itemText = (item: PacketWorkItem) => <div><WorkItemDetails item={item} todoPath={todoPath} allowCurrentLabel={currentItems.includes(item)} onOpenSource={onOpenSource}/>{showSections && <small className="todo-source-section">{t("todoSourceSection", { section: item.section })}</small>}</div>;
   return (
     <section className="packet-work" aria-labelledby="packet-work-heading">
       <div className="section-heading-row">
         <h2 id="packet-work-heading">{t("packetTodo")}</h2>
         <span className="source-chip" title={todoPath}>{todoPath}</span>
       </div>
-      {!work.length ? <p className="empty-copy">{t("noPacketTaggedWork")}</p> : (
+      {!complete && <p className="info-note" role="status">{workDetailCopy[locale].incompleteTodo}</p>}
+      {!work.length ? <p className="empty-copy">{noCurrentWorkCopy(stage,t)}</p> : (
         <>
           {showCurrent && (
             <div className={`current-todo-callout ${currentItems.length ? "declared" : "undeclared"}`}>
-              <div className="current-todo-heading"><FlagBanner size={19} /><strong>{t("currentTodo")}</strong><span>{currentItems.length}</span></div>
-              {currentItems.length ? <ul>{currentItems.map((item, index) => <li key={index}>{item.phase && !item.phaseConflict && <em>{controlStageLabel(item.phase, t)}</em>}{itemText(item)}</li>)}</ul> : <p>{t("currentTodoUndeclared")}</p>}
+              <div className="current-todo-heading"><FlagBanner size={19} /><strong>{t("currentTodo")}</strong><span>{stage.status === "unavailable" ? "—" : currentItems.length}</span></div>
+              {currentItems.length ? <ul>{currentItems.map((item, index) => <li key={index}>{item.phase && !item.phaseConflict && <em>{controlStageLabel(item.phase, t)}</em>}{itemText(item)}</li>)}</ul> : <p>{noCurrentWorkCopy(stage,t)}</p>}
             </div>
           )}
           <div className="work-columns">
-            <div><h3><button type="button" className="remaining-work-trigger" aria-label={workDetailCopy[locale].openRemaining} onClick={onOpenSource}><WarningCircle size={17} />{t(currentItems.length ? "otherRemainingWork" : "remainingWork")} <span>{open.length}</span><ArrowRight size={16}/></button></h3><ul>{open.map((item, index) => <li key={index}><span className="check-indicator" />{itemText(item)}</li>)}</ul></div>
-            <div><h3><CheckCircle size={17} />{t("completedWork")} <span>{completed.length}</span></h3><ul>{completed.map((item, index) => <li className="completed" key={index}><CheckCircle size={18} weight="fill" />{itemText(item)}</li>)}</ul></div>
+            <div><h3><button type="button" className="remaining-work-trigger" aria-label={workDetailCopy[locale].openRemaining} onClick={onOpenSource}><WarningCircle size={17} />{t(currentItems.length ? "otherRemainingWork" : "remainingWork")} <span>{complete ? open.length : t("unavailable")}</span><ArrowRight size={16}/></button></h3><ul>{open.map((item, index) => <li key={index}><span className="check-indicator" />{itemText(item)}</li>)}</ul></div>
+            <div><h3><CheckCircle size={17} />{t("completedWork")} <span>{complete ? completed.length : t("unavailable")}</span></h3><ul>{completed.map((item, index) => <li className="completed" key={index}><CheckCircle size={18} weight="fill" />{itemText(item)}</li>)}</ul></div>
           </div>
         </>
       )}
@@ -144,11 +162,10 @@ function SituationRow({
   );
 }
 
-function SituationPanel({ snapshot, work, onSelect }: { snapshot: Snapshot; work: PacketWorkItem[]; onSelect: (id: string) => void }) {
+function SituationPanel({ snapshot, work, currentStage, onSelect }: { snapshot: Snapshot; work: PacketWorkItem[]; currentStage: CurrentControlStageSignal; onSelect: (id: string) => void }) {
   const { t } = useI18n();
   const packet = snapshot.state.active_packet;
-  const currentItems = work.filter((item) => item.current && !item.completed);
-  const currentStage = currentControlStage(work, snapshot.protocol.todo_path);
+  const currentItems = currentWorkItems(work,currentStage);
   const packetId = packet?.id ?? t("noActivePacket");
   const phaseLabel = currentStage.status === "declared" && currentStage.id
     ? controlStageLabel(currentStage.id, t)
@@ -161,24 +178,32 @@ function SituationPanel({ snapshot, work, onSelect }: { snapshot: Snapshot; work
     : null;
   const nextPhaseLabel = nextStage ? controlStageLabel(nextStage, t) : t("flowVerify");
   const currentTask = currentItems.map((item) => item.text).join(" · ");
-  const statusCopy = currentStage.status === "declared"
+  const extraCopy = {
+    idle: ["situationStatusIdle", "situationNowIdle", "situationReasonIdle", "situationNextIdle"],
+    deferred: ["situationStatusDeferred", "situationNowDeferred", "situationReasonDeferred", "situationNextDeferred"],
+    unavailable: ["situationStatusUnavailable", "situationNowUnavailable", "situationReasonUnavailable", "situationNextUnavailable"],
+  } as const;
+  const extra = currentStage.status in extraCopy ? extraCopy[currentStage.status as keyof typeof extraCopy] : null;
+  const statusCopy = extra ? t(extra[0], { packet: packetId }) : currentStage.status === "declared"
     ? t("situationStatusDeclared", { packet: packetId, phase: phaseLabel })
     : currentStage.status === "ambiguous"
       ? t("situationStatusAmbiguous", { packet: packetId })
       : t("situationStatusUndeclared", { packet: packetId });
-  const nowCopy = currentStage.status === "declared"
+  const nowCopy = extra ? t(extra[1]) : currentStage.status === "declared"
     ? t("situationNowDeclared", { phase: phaseLabel, task: currentTask })
-    : t("situationNowUndeclared");
-  const reasonCopy = currentStage.status === "declared"
+    : currentStage.status === "ambiguous" ? t("situationNowAmbiguous") : t("situationNowUndeclared");
+  const reasonCopy = extra ? t(extra[2]) : currentStage.status === "declared"
     ? t("situationReasonDeclared", { phase: phaseLabel })
     : currentStage.status === "ambiguous"
       ? t("situationReasonAmbiguous")
       : t("situationReasonUndeclared");
-  const nextCopy = currentStage.status === "declared"
+  const nextCopy = extra ? t(extra[3]) : currentStage.status === "declared"
     ? t("situationNextDeclared", { phase: nextPhaseLabel })
-    : t("situationNextUndeclared");
-  const declarationTone: SituationTone = currentStage.status === "declared" ? "declared" : "unknown";
-  const declarationFact = currentStage.status === "declared" ? t("factDeclared") : t("factUnknown");
+    : currentStage.status === "ambiguous" ? t("situationNextAmbiguous") : t("situationNextUndeclared");
+  const declarationTone: SituationTone = currentStage.status === "declared" || currentStage.status === "deferred" ? "declared" : currentStage.status === "idle" ? "observed" : "unknown";
+  const declarationFact = declarationTone === "declared" ? t("factDeclared") : declarationTone === "observed" ? t("factObserved") : t("factUnknown");
+  const declarationSource = currentStage.status === "deferred" ? snapshot.protocol.state_path : snapshot.protocol.todo_path;
+  const openDeclaration = () => onSelect(currentStage.status === "deferred" ? "evidence-state" : "evidence-todo");
   return (
     <section className={`situation-section phase-${currentStage.status}`} aria-labelledby="situation-heading">
       <div className="situation-heading">
@@ -186,8 +211,8 @@ function SituationPanel({ snapshot, work, onSelect }: { snapshot: Snapshot; work
         <h2 id="situation-heading">{statusCopy}</h2>
       </div>
       <ol className="situation-stack">
-        <SituationRow index={1} icon={<Clock size={20} />} title={t("situationNow")} copy={nowCopy} tone={declarationTone} fact={declarationFact} source={snapshot.protocol.todo_path} onOpen={() => onSelect("evidence-todo")} />
-        <SituationRow index={2} icon={<FlagBanner size={20} />} title={t("situationReason")} copy={reasonCopy} tone={declarationTone} fact={declarationFact} source={snapshot.protocol.todo_path} onOpen={() => onSelect("evidence-todo")} />
+        <SituationRow index={1} icon={<Clock size={20} />} title={t("situationNow")} copy={nowCopy} tone={declarationTone} fact={declarationFact} source={declarationSource} onOpen={openDeclaration} />
+        <SituationRow index={2} icon={<FlagBanner size={20} />} title={t("situationReason")} copy={reasonCopy} tone={declarationTone} fact={declarationFact} source={declarationSource} onOpen={openDeclaration} />
         <SituationRow index={3} icon={<WarningCircle size={20} />} title={t("situationCaution")} copy={t("situationCautionCopy")} tone="unknown" fact={t("factUnknown")} source={t("doctorReportJson")} onOpen={() => onSelect("evidence-doctor")} />
         <SituationRow index={4} icon={<ArrowRight size={20} />} title={t("situationNextCheck")} copy={nextCopy} tone="unknown" fact={t("factUnknown")} source={snapshot.state.active_spec?.path ?? snapshot.protocol.state_path} onOpen={() => onSelect(snapshot.state.active_spec ? "evidence-spec" : "evidence-state")} />
       </ol>
@@ -202,10 +227,10 @@ function SituationPanel({ snapshot, work, onSelect }: { snapshot: Snapshot; work
   );
 }
 
-function PacketContext({ snapshot, work, onSelect }: { snapshot: Snapshot; work: PacketWorkItem[]; onSelect: (id: string) => void }) {
+function PacketContext({ snapshot, work, stage, onSelect }: { snapshot: Snapshot; work: PacketWorkItem[]; stage: CurrentControlStageSignal; onSelect: (id: string) => void }) {
   const { t } = useI18n();
   const packet = snapshot.state.active_packet;
-  const currentItems = work.filter((item) => item.current && !item.completed);
+  const currentItems = currentWorkItems(work,stage);
   return (
     <section className="packet-context-section" aria-labelledby="packet-context-heading">
       <div className="section-heading-row flow-heading-row">
@@ -228,10 +253,10 @@ function PacketContext({ snapshot, work, onSelect }: { snapshot: Snapshot; work:
           <div>
             <span>{t("currentTodo")}</span>
             {currentItems.length ? (
-              <ul>{currentItems.map((item, index) => <li key={index}><strong>{item.phase && !item.phaseConflict ? controlStageLabel(item.phase, t) : t("currentPhaseNeedsCorrection")}</strong><WorkItemDetails item={item} todoPath={snapshot.protocol.todo_path} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></li>)}</ul>
-            ) : <p>{t("currentTodoUndeclared")}</p>}
+              <ul>{currentItems.map((item, index) => <li key={index}><strong>{item.phase && !item.phaseConflict ? controlStageLabel(item.phase, t) : t("currentPhaseNeedsCorrection")}</strong><WorkItemDetails item={item} todoPath={snapshot.protocol.todo_path} allowCurrentLabel onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></li>)}</ul>
+            ) : <p>{noCurrentWorkCopy(stage,t)}</p>}
           </div>
-          <em>{t("currentTodoCount", { count: currentItems.length })}</em>
+          <em>{stage.status === "unavailable" ? t("flowUnobserved") : t("currentTodoCount", { count: currentItems.length })}</em>
           <button type="button" onClick={() => onSelect("evidence-todo")} aria-label={t("openSituationSource", { path: snapshot.protocol.todo_path })}><code>{snapshot.protocol.todo_path}</code><ArrowRight size={15} /></button>
         </article>
       </div>
@@ -307,6 +332,8 @@ function GitScope({ activity }: { activity: DevelopmentActivity | null }) {
 
 function ActivityLists({ activity, limit = 12, lensFilter = null, onClearLensFilter }: { activity: DevelopmentActivity | null; limit?: number; lensFilter?: WorktreeLensId | null; onClearLensFilter?: () => void }) {
   const { locale, t } = useI18n();
+  const gitAvailable = Boolean(activity?.available && !activity.error);
+  const filesComplete = gitAvailable && !activity?.truncated;
   const allFiles = activity?.files ?? [];
   const visibleFiles = lensFilter
     ? allFiles.filter((file) => classifyWorktreePath(file.path) === lensFilter)
@@ -319,40 +346,70 @@ function ActivityLists({ activity, limit = 12, lensFilter = null, onClearLensFil
           <div className="activity-panel-heading">
             <h3 id="changed-files-heading"><GitDiff size={19} />{t("observedChanges")}{lensFilter && <small>{lensLabel(lensFilter, t)}</small>}</h3>
             <div className="activity-panel-summary">
-              <span aria-label={lensFilter ? t("filteredChangesCount", { filtered: visibleFiles.length, total: allFiles.length }) : undefined}>{lensFilter ? `${visibleFiles.length}/${allFiles.length}` : allFiles.length}</span>
+              <span aria-label={lensFilter && filesComplete ? t("filteredChangesCount", { filtered: visibleFiles.length, total: allFiles.length }) : undefined}>{filesComplete ? lensFilter ? `${visibleFiles.length}/${allFiles.length}` : allFiles.length : t("unavailable")}</span>
               {lensFilter && onClearLensFilter && <button type="button" onClick={onClearLensFilter} aria-label={t("clearLensFilter")}><X size={14} /><span>{t("allChanges")}</span></button>}
             </div>
           </div>
-          {visibleFiles.length ? <ul className="activity-list file-activity-list">{visibleFiles.slice(0, limit).map((file) => <li key={`${file.status}-${file.path}`}><span className={`change-kind kind-${file.kind}`} title={`${t("rawGitStatus")}: ${file.status}`}>{changeKindLabel(file.kind, t)}</span><div><code>{file.path}</code>{file.previous_path && <small>{t("previousPath", { path: file.previous_path })}</small>}</div><TimeLabel value={file.modified_at} /></li>)}</ul> : <p className="activity-empty">{t("noObservedChanges")}</p>}
+          {visibleFiles.length ? <ul className="activity-list file-activity-list">{visibleFiles.slice(0, limit).map((file) => <li key={`${file.status}-${file.path}`}><span className={`change-kind kind-${file.kind}`} title={`${t("rawGitStatus")}: ${file.status}`}>{changeKindLabel(file.kind, t)}</span><div><code>{file.path}</code>{file.previous_path && <small>{t("previousPath", { path: file.previous_path })}</small>}</div><TimeLabel value={file.modified_at} /></li>)}</ul> : <p className="activity-empty">{t(filesComplete ? "noObservedChanges" : "unavailable")}</p>}
         </section>
         <section className="activity-panel" aria-labelledby="commit-history-heading">
-          <div className="activity-panel-heading"><h3 id="commit-history-heading"><GitCommit size={19} />{t("recentCommits")}</h3><span>{activity?.commits.length ?? 0}</span></div>
+          <div className="activity-panel-heading"><h3 id="commit-history-heading"><GitCommit size={19} />{t("recentCommits")}</h3><span>{gitAvailable ? activity!.commits.length : t("unavailable")}</span></div>
           <p className="activity-scope-note">{t("commitsScopedToProject")}</p>
-          {activity?.commits.length ? <ol className="activity-list commit-list">{activity.commits.slice(0, limit).map((commit) => <li key={commit.revision}><span className="timeline-dot" /><div><strong>{commit.subject}</strong><code>{commit.short_revision}</code></div><time dateTime={commit.committed_at} title={formatAbsolute(commit.committed_at, locale)}>{formatRelative(commit.committed_at, locale)}</time></li>)}</ol> : <p className="activity-empty">{t("noRecentCommits")}</p>}
+          {activity?.commits.length ? <ol className="activity-list commit-list">{activity.commits.slice(0, limit).map((commit) => <li key={commit.revision}><span className="timeline-dot" /><div><strong>{commit.subject}</strong><code>{commit.short_revision}</code></div><time dateTime={commit.committed_at} title={formatAbsolute(commit.committed_at, locale)}>{formatRelative(commit.committed_at, locale)}</time></li>)}</ol> : <p className="activity-empty">{t(gitAvailable ? "noRecentCommits" : "unavailable")}</p>}
         </section>
         <section className="activity-panel" aria-labelledby="handoff-history-heading">
-          <div className="activity-panel-heading"><h3 id="handoff-history-heading"><Stack size={19} />{t("handoffHistory")}</h3><span>{activity?.handoffs.length ?? 0}</span></div>
-          {activity?.handoffs.length ? <ol className="activity-list handoff-list">{activity.handoffs.slice(0, limit).map((handoff) => <li key={handoff.path}><FileText size={18} /><div><strong>{handoff.title}</strong><code>{handoff.path}</code>{handoff.summary && <small>{handoff.summary}</small>}</div><span className="handoff-time">{handoff.current && <em>{t("currentRecord")}</em>}<TimeLabel value={handoff.modified_at} /></span></li>)}</ol> : <p className="activity-empty">{t("noHandoffHistory")}</p>}
+          <div className="activity-panel-heading"><h3 id="handoff-history-heading"><Stack size={19} />{t("handoffHistory")}</h3><span>{activity ? activity.handoffs.length : t("unavailable")}</span></div>
+          {activity?.handoffs.length ? <ol className="activity-list handoff-list">{activity.handoffs.slice(0, limit).map((handoff) => <li key={handoff.path}><FileText size={18} /><div><strong>{handoff.title}</strong><code>{handoff.path}</code>{handoff.summary && <small>{handoff.summary}</small>}</div><span className="handoff-time">{handoff.current && <em>{t("currentRecord")}</em>}<TimeLabel value={handoff.modified_at} /></span></li>)}</ol> : <p className="activity-empty">{t(activity ? "noHandoffHistory" : "unavailable")}</p>}
         </section>
       </div>
     </>
   );
 }
 
-export function PacketEvidencePanel({ snapshot, activity, work, onSelect }: { snapshot: Snapshot; documents: LiveDocuments | null; activity: DevelopmentActivity | null; work: PacketWorkItem[]; onSelect: (id:string) => void }) {
+function ActivityHistory({ snapshot, activity: candidate, children, limit = 12, lensFilter, onClearLensFilter }: { snapshot: Snapshot; activity: DevelopmentActivity | null; children?: ReactNode; limit?: number; lensFilter?: WorktreeLensId | null; onClearLensFilter?: () => void }) {
   const { locale, t } = useI18n();
-  return (
-    <section className="overview-section packet-evidence-section" aria-label={t("packetTodo")}>
-      <WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/>
+  const c = overviewPriorityCopy[locale];
+  const activity = candidate?.project_root === snapshot.project.root ? candidate : null;
+  const gitAvailable = Boolean(activity?.available && !activity.error);
+  return <details className="repository-history">
+    <summary><strong>{c.history}</strong><span className="history-observation-counts">
+      <span>{c.files}: <b>{gitAvailable && !activity?.truncated ? activity!.files.length : t("unavailable")}</b></span>
+      <span>{c.commits}: <b>{gitAvailable ? activity!.commits.length : t("unavailable")}</b></span>
+      <span>{c.handoffs}: <b>{activity ? activity.handoffs.length : t("unavailable")}</b></span>
+    </span></summary>
+    <div className="repository-history-content">
+      <p>{c.historyNote}</p>
+      {!gitAvailable && <p>{c.unavailable}</p>}
+      {activity?.truncated && <p>{c.partial}</p>}
       <div className="observed-signal-row">
         <div><span className={`signal-dot ${activity?.worktree_status ?? "unavailable"}`} /><span>{activity?.worktree_status === "changed" ? t("worktreeChanged") : activity?.worktree_status === "clean" ? t("worktreeClean") : t("gitUnavailable")}</span></div>
         {activity && <small>{t("activityFreshness", { time: formatRelative(activity.scanned_at, locale), duration: activity.duration_ms })}</small>}
       </div>
       <p className="evidence-caveat">{t("observedWhileActive")}</p>
-      <ActivityLists activity={activity} limit={7} />
+      {children}
+      <ActivityLists activity={activity} limit={limit} lensFilter={lensFilter} onClearLensFilter={onClearLensFilter} />
       <p className="timestamp-note"><Clock size={16} />{t("timestampBasis")}</p>
-    </section>
-  );
+    </div>
+  </details>;
+}
+
+export function PacketWorkPanel({ snapshot, documents, work, onSelect }: { snapshot: Snapshot; documents: LiveDocuments | null; work: PacketWorkItem[]; onSelect: (id:string) => void }) {
+  const { t } = useI18n();
+  return <section className="overview-section packet-evidence-section" aria-label={t("packetTodo")}>
+    <WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} stage={currentControlStage(work,snapshot.protocol.todo_path,{snapshot,documents})} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/>
+  </section>;
+}
+
+export function PacketHistoryPanel({ snapshot, activity }: { snapshot: Snapshot; activity: DevelopmentActivity | null }) {
+  return <section className="overview-section overview-history"><ActivityHistory snapshot={snapshot} activity={activity} limit={7}/></section>;
+}
+
+export function PacketEvidencePanel(props: { snapshot: Snapshot; documents: LiveDocuments | null; activity: DevelopmentActivity | null; work: PacketWorkItem[]; onSelect: (id:string) => void }) {
+  return <>
+    <PacketWorkPanel {...props}/>
+    <section className="overview-section overview-verification"><VerificationRecords snapshot={props.snapshot}/></section>
+    <PacketHistoryPanel snapshot={props.snapshot} activity={props.activity}/>
+  </>;
 }
 
 export function DevelopmentFlowView({ snapshot, documents, activity, work, onSelect }: { snapshot: Snapshot; documents: LiveDocuments | null; activity: DevelopmentActivity | null; work: PacketWorkItem[]; onSelect: (id: string) => void }) {
@@ -364,9 +421,11 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
   const planOpen = planTarget === planKey;
   const detailCopy = workDetailCopy[locale];
   const stages = controlLoopSignals(snapshot, documents, activity);
-  const currentStage = currentControlStage(work, snapshot.protocol.todo_path);
+  const currentStage = currentControlStage(work, snapshot.protocol.todo_path, {snapshot,documents});
   const branches = conditionalBranchSignals(snapshot, documents, activity);
-  const lenses = worktreeLensSignals(activity);
+  const activityMatches = activity?.project_root === snapshot.project.root;
+  const activityComplete = Boolean(activityMatches && activity?.available && !activity.error && !activity.truncated);
+  const lenses = worktreeLensSignals(activityMatches ? activity : null);
   const ownerGate = branches.find((branch) => branch.id === "owner_gate")!;
   const handoff = branches.find((branch) => branch.id === "handoff")!;
   return (
@@ -396,8 +455,10 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
       </section>
 
       <InteractionPanel key={snapshot.project.identity} snapshot={snapshot} documents={documents} onSelect={onSelect} />
-      <SituationPanel snapshot={snapshot} work={work} onSelect={onSelect} />
-      <PacketContext snapshot={snapshot} work={work} onSelect={onSelect} />
+      <SituationPanel snapshot={snapshot} work={work} currentStage={currentStage} onSelect={onSelect} />
+      <PacketContext snapshot={snapshot} work={work} stage={currentStage} onSelect={onSelect} />
+      <section className="development-work-section"><WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} stage={currentStage} showCurrent={false} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></section>
+      <VerificationRecords snapshot={snapshot} />
       <EvidenceDocuments snapshot={snapshot} documents={documents} onSelect={onSelect} />
 
       <section className="conditional-flow" aria-labelledby="conditional-flow-heading">
@@ -414,17 +475,15 @@ export function DevelopmentFlowView({ snapshot, documents, activity, work, onSel
         </div>
       </section>
 
+      <ActivityHistory snapshot={snapshot} activity={activity} limit={20} lensFilter={selectedLens} onClearLensFilter={() => setSelectedLens(null)}>
       <section className="worktree-lens-section" aria-labelledby="worktree-lens-heading">
         <div className="section-heading-row flow-heading-row"><div><h2 id="worktree-lens-heading">{t("worktreeEvidenceLens")}</h2><p>{t("worktreeEvidenceLensNote")}</p></div></div>
         <div className="worktree-lens-controls">
-          {lenses.map((lens) => <button type="button" key={lens.id} className={selectedLens === lens.id ? "active" : ""} aria-pressed={selectedLens === lens.id} aria-label={t("filterLensChanges", { lens: lensLabel(lens.id, t), count: lens.changedCount })} onClick={() => setSelectedLens((value) => value === lens.id ? null : lens.id)}><span>{lensLabel(lens.id, t)}</span><strong>{lens.changedCount}</strong></button>)}
+          {lenses.map((lens) => <button type="button" key={lens.id} className={selectedLens === lens.id ? "active" : ""} disabled={!activityComplete} aria-pressed={selectedLens === lens.id} aria-label={activityComplete ? t("filterLensChanges", { lens: lensLabel(lens.id, t), count: lens.changedCount }) : `${lensLabel(lens.id, t)} · ${t("unavailable")}`} onClick={() => setSelectedLens((value) => value === lens.id ? null : lens.id)}><span>{lensLabel(lens.id, t)}</span><strong>{activityComplete ? lens.changedCount : t("unavailable")}</strong></button>)}
         </div>
         <div className={`flow-filter-status ${selectedLens ? "active" : ""}`}><FunnelSimple size={16} /><span>{selectedLens ? t("lensFilterActive", { lens: lensLabel(selectedLens, t) }) : t("lensFilterHint")}</span></div>
       </section>
-
-      <section className="development-work-section"><WorkChecklist work={work} todoPath={snapshot.protocol.todo_path} showCurrent={false} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></section>
-      <ActivityLists activity={activity} limit={20} lensFilter={selectedLens} onClearLensFilter={() => setSelectedLens(null)} />
-      <div className="info-note development-note"><Info size={20} /><p>{t("observedWhileActive")} {t("timestampBasis")}</p></div>
+      </ActivityHistory>
     </div>
   );
 }

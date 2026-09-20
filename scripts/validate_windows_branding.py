@@ -10,11 +10,16 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+try:
+    from scripts.release_metadata import VERSION, WINDOWS_VERSION, WINDOWS_VERSION_STRING
+except ModuleNotFoundError:
+    from release_metadata import VERSION, WINDOWS_VERSION, WINDOWS_VERSION_STRING
+
 EXPECTED_VERSION_INFO = {
     b"FileDescription": b"SDAD Inspector",
     b"ProductName": b"SDAD Inspector",
-    b"FileVersion": b"0.0.4.0",
-    b"ProductVersion": b"0.0.4",
+    b"FileVersion": WINDOWS_VERSION_STRING.encode("ascii"),
+    b"ProductVersion": VERSION.encode("ascii"),
     b"OriginalFilename": b"SDAD-Inspector.exe",
 }
 
@@ -89,7 +94,7 @@ def validate(executable: Path, source_icon: Path) -> dict[str, object]:
         if mismatches:
             raise ValueError(f"Unexpected Windows version metadata: {mismatches}")
         fixed = pe.VS_FIXEDFILEINFO[0]
-        expected_numeric = (0, 0, 4, 0)
+        expected_numeric = WINDOWS_VERSION
         for kind in ("File", "Product"):
             high = getattr(fixed, kind + "VersionMS")
             low = getattr(fixed, kind + "VersionLS")

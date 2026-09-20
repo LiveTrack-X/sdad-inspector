@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -107,6 +108,55 @@ class StaticReportTests(WorkspaceCase):
         self.assertEqual(before, after)
         self.assertIn(original_objective, document)
         self.assertNotIn("CHANGED AFTER SNAPSHOT", document)
+
+    def test_unavailable_doctor_results_do_not_render_zero_or_clean_claims(self) -> None:
+        baseline = self.snapshot()
+        for kind in ("stale", "diagnostic", "incomplete", "changed", "error", "unexpected-exit"):
+            with self.subTest(kind=kind):
+                snapshot = copy.deepcopy(baseline)
+                if kind in ("stale", "diagnostic"):
+                    snapshot["inspection_status"] = kind
+                elif kind == "incomplete":
+                    snapshot["doctor"]["completed"] = False
+                elif kind == "changed":
+                    snapshot["integrity"]["control_files_unchanged_during_inspection"] = False
+                elif kind == "error":
+                    snapshot["doctor"]["diagnostic_error"] = {"kind": "failed", "message": "<failed Doctor>"}
+                else:
+                    snapshot["doctor"]["exit_code"] = 2
+                rendered = render_static_report(snapshot).split("<details>")[0]
+                self.assertIn("Doctor Summary — Unavailable", rendered)
+                self.assertIn("current, complete Doctor result is unavailable", rendered)
+                self.assertNotIn("0 errors", rendered)
+                self.assertNotIn("No Doctor findings", rendered)
+                self.assertNotIn('class="doctor-summary passed"', rendered)
+                self.assertIn("Declared checkpoint, not a progress percentage", rendered)
+                self.assertNotIn(".status { color:var(--green)", rendered)
+                if kind == "error":
+                    self.assertIn("&lt;failed Doctor&gt;", rendered)
+
+    def test_nonzero_exit_does_not_pass_even_when_summary_is_zero(self) -> None:
+        snapshot = self.snapshot()
+        snapshot["doctor"]["exit_code"] = 1
+        rendered = render_static_report(snapshot).split("<details>")[0]
+        self.assertIn("Doctor Summary — 0 errors", rendered)
+        self.assertIn("Doctor did not pass", rendered)
+        self.assertNotIn("No Doctor findings", rendered)
+        self.assertNotIn('class="doctor-summary passed"', rendered)
+
+    def test_clean_doctor_result_only_claims_structural_checks(self) -> None:
+        rendered = render_static_report(self.snapshot()).split("<details>")[0]
+        self.assertIn('class="doctor-summary passed"', rendered)
+        self.assertIn("structural checks. Declared validation commands were not executed", rendered)
+        self.assertIn("Declared Validation Commands — presented, not executed", rendered)
+
+    def test_stale_findings_are_preserved_under_unavailable_result(self) -> None:
+        snapshot = self.snapshot()
+        snapshot["inspection_status"] = "stale"
+        snapshot["doctor"]["findings"] = [{"id": "old.finding", "severity": "error", "message": "Previously observed error"}]
+        rendered = render_static_report(snapshot).split("<details>")[0]
+        self.assertIn("Doctor Summary — Unavailable", rendered)
+        self.assertIn("Previously observed error", rendered)
 
 
 if __name__ == "__main__":

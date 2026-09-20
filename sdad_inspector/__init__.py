@@ -1,6 +1,6 @@
 """SDAD Inspector public package."""
 
-__version__ = "0.0.4"
+from .version import __version__
 
 from .snapshot import inspect_project
 from .protocols import (

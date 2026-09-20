@@ -1,0 +1,23 @@
+.verification-records { padding: 18px 20px; border: 1px solid var(--divider); border-radius: 12px; background: var(--surface); min-width: 0; }
+.verification-records h2 { margin: 0; font-size: 16px; }
+.verification-records p { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.verification-records button { font-size: 12px; padding: 7px 10px; }
+.verification-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 12px; }
+.verification-list > li { border-top: 1px solid var(--divider); padding-top: 12px; min-width: 0; }
+.verification-path { text-align: left; overflow-wrap: anywhere; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.verification-path code { min-width: 0; overflow-wrap: anywhere; }
+.verification-path span { flex-shrink: 0; }
+.verification-path[aria-pressed="true"] { border-color: var(--cobalt); background: var(--surface-soft); }
+.verification-source-path { text-align: left; overflow-wrap: anywhere; max-width: 100%; }
+.verification-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.verification-selected { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.verification-selected h3 { margin: 0; font-size: 14px; }
+.verification-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; font-size: 12px; }
+.verification-badges > * { background: var(--surface-soft); border: 1px solid var(--divider); border-radius: 5px; padding: 4px 7px; }
+.verification-command { display: block; overflow-wrap: anywhere; white-space: pre-wrap; margin: 10px 0; font-size: 12px; }
+.verification-records details { font-size: 12px; }
+.verification-records summary { cursor: pointer; padding: 8px 0; }
+.verification-records details li { overflow-wrap: anywhere; margin-block: 6px; }
+.verification-records small { display: block; }
+.verification-limit, .verification-observed { color: var(--secondary); }
+@media (max-width: 600px) { .verification-records { padding: 14px; } .verification-records .section-heading-row { align-items: flex-start; flex-direction: column; gap: 10px; } }

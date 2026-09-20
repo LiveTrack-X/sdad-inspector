@@ -6,12 +6,14 @@ import { InspectorPane } from "./components/InspectorPane";
 import { Overview } from "./components/Overview";
 import { ProjectDialog } from "./components/ProjectDialog";
 import { RepositoryTree } from "./components/RepositoryTree";
+import { ResumeComparison } from "./components/ResumeComparison";
 import { StatusBar } from "./components/StatusBar";
 import { StartupShell } from "./components/StartupShell";
 import { UpdateNotice } from "./components/UpdateNotice";
 import { useI18n } from "./i18n";
-import { packetWorkItems } from "./packetWork";
-import { selectionFor } from "./selection";
+import { doctorResult } from "./doctorResult";
+import { packetWorkItems, packetWorkSource } from "./packetWork";
+import { documentSelectionId, selectionFor } from "./selection";
 import { useTheme } from "./theme";
 import { useUiScale } from "./uiScale";
 import type { DevelopmentActivity, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, RescanMode, Rule5Candidates, Snapshot } from "./types";
@@ -216,9 +218,14 @@ export function App() {
       if (signals.activity) setActivity(signals.activity);
       if (signals.rule5) setRule5(signals.rule5);
       setLoadState("ready");
-      setAnnouncement(t("rescanComplete", { errors: next.doctor.summary.errors, warnings: next.doctor.summary.warnings }));
+      const doctor = doctorResult(next);
+      setAnnouncement(!doctor.available ? t("doctorResultUnavailable") : next.doctor.exit_code !== 0
+        ? t("doctorUnsuccessful")
+        : t("rescanComplete", { errors: next.doctor.summary.errors, warnings: next.doctor.summary.warnings }));
     } catch (reason) {
-      const message = reason instanceof ApiError ? `${reason.code}: ${reason.message}` : t("rescanFailed");
+      setSnapshot((current) => current ? { ...current, inspection_status: "stale" } : current);
+      const message = reason instanceof ApiError ? `${reason.code}: ${reason.message}`
+        : reason instanceof Error ? `${t("rescanFailed")} ${reason.message}` : t("rescanFailed");
       setError(message); setAnnouncement(message);
     } finally { setBusy(false); resetAutoCountdown(); }
   }
@@ -326,12 +333,9 @@ export function App() {
       : { ...paneWidths, inspector: Math.min(480, Math.max(280, paneWidths.inspector + delta)) });
   }
 
-  const packetWork = useMemo(() => {
-    if (!snapshot) return [];
-    const todo = liveDocuments?.documents.find((document) => document.roles.includes("todo"));
-    return packetWorkItems(todo?.content, snapshot.state.active_packet?.id);
-  }, [snapshot, liveDocuments]);
-  const selection = useMemo(() => snapshot ? selectionFor(snapshot, selectedId, t, packetWork) : null, [snapshot, selectedId, t, packetWork]);
+  const workSource = useMemo(() => packetWorkSource(snapshot,liveDocuments),[snapshot,liveDocuments]);
+  const packetWork = useMemo(() => packetWorkItems(workSource.document?.content,snapshot?.state.active_packet?.id),[snapshot,workSource]);
+  const selection = useMemo(() => snapshot ? selectionFor(snapshot, selectedId, t, packetWork,workSource.complete) : null, [snapshot, selectedId, t, packetWork,workSource.complete]);
 
   if (loadState === "loading" && !snapshot) return <div className="loading-shell" aria-busy="true"><div className="loading-brand"><img src="/sdad-inspector-logo.png" alt="" /><strong>SDAD Inspector</strong></div><div className="loading-grid"><div /><div /><div /></div><p><ArrowsClockwise className="spin" size={19} /> {t("inspectingRepository")}</p></div>;
 
@@ -352,9 +356,9 @@ export function App() {
       {error && <div className="inline-error" role="alert"><WarningCircle size={17} />{error}<button onClick={() => setError(null)} aria-label={t("dismissError")}><X size={18} /></button></div>}
       <div className="workspace" ref={workspaceRef} style={workspaceStyle}>
         {(repositoryOpen || inspectorOpen) && <button className="mobile-scrim" aria-label={t("closeOpenPane")} onClick={() => { setRepositoryOpen(false); setInspectorOpen(false); }} />}
-        <RepositoryTree snapshot={snapshot} selectedId={selectedId} onSelect={(id) => { setSelectedId(id); setRepositoryOpen(false); setInspectorOpen(false); }} mobileOpen={repositoryOpen} onCloseMobile={() => setRepositoryOpen(false)} activity={activity} packetWork={packetWork} rule5={rule5} />
+        <RepositoryTree snapshot={snapshot} selectedId={selectedId} onSelect={(id) => { setSelectedId(id); setRepositoryOpen(false); setInspectorOpen(false); }} mobileOpen={repositoryOpen} onCloseMobile={() => setRepositoryOpen(false)} activity={activity} packetWork={packetWork} packetWorkComplete={workSource.complete} rule5={rule5} />
         <div className="pane-resizer repository-resizer" role="separator" aria-orientation="vertical" aria-label={t("resizeRepository")} aria-valuemin={240} aria-valuemax={430} aria-valuenow={Math.round(paneWidths.repository)} tabIndex={0} title={t("resetPaneWidth")} onPointerDown={(event) => startResize("repository", event)} onKeyDown={(event) => resizeWithKeyboard("repository", event)} onDoubleClick={() => persistPaneWidths({ ...paneWidths, repository: 280 })}><span /></div>
-        <Overview snapshot={snapshot} selectedId={selectedId} selection={selection} busy={busy} progress={inspectionProgress} onSelect={setSelectedId} liveDocuments={liveDocuments} activity={activity} packetWork={packetWork} rule5={rule5} />
+        <Overview snapshot={snapshot} selectedId={selectedId} selection={selection} busy={busy} progress={inspectionProgress} onSelect={setSelectedId} liveDocuments={liveDocuments} activity={activity} packetWork={packetWork} rule5={rule5} continuity={<ResumeComparison key={`${snapshot.project.identity}:${snapshot.project.root}`} snapshot={snapshot} busy={busy} onOpenSource={(path) => setSelectedId(documentSelectionId(snapshot, path))} />} />
         <div className="pane-resizer inspector-resizer" role="separator" aria-orientation="vertical" aria-label={t("resizeInspector")} aria-valuemin={280} aria-valuemax={480} aria-valuenow={Math.round(paneWidths.inspector)} tabIndex={0} title={t("resetPaneWidth")} onPointerDown={(event) => startResize("inspector", event)} onKeyDown={(event) => resizeWithKeyboard("inspector", event)} onDoubleClick={() => persistPaneWidths({ ...paneWidths, inspector: 320 })}><span /></div>
         <InspectorPane snapshot={snapshot} selection={selection} onReveal={(path) => void reveal(path)} onCopy={(value, label) => void copy(value, label)} mobileOpen={inspectorOpen} onCloseMobile={() => setInspectorOpen(false)} />
       </div>

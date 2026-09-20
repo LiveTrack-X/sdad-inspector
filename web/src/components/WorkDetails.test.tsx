@@ -70,7 +70,25 @@ describe('plan and task drill-down', () => {
     render(<I18nProvider><PlanDetails snapshot={snapshotFixture} documents={broken} work={[]} onSelect={vi.fn()}/></I18nProvider>);
     await userEvent.click(screen.getByText(snapshotFixture.protocol.todo_path));
     expect(screen.getByRole('alert')).toHaveTextContent('Source unavailable');
-    expect(screen.getByText(/No open task is explicitly marked Plan/)).toBeVisible();
+    expect(screen.getByText(/Task totals are unavailable/)).toBeVisible();
+    expect(screen.queryByText(/No open task is explicitly marked Plan/)).not.toBeInTheDocument();
+  });
+
+  it('does not infer missing Plan work from a truncated completed-only prefix',()=>{
+    const documents={...docs,documents:docs.documents.map(d=>d.path===snapshotFixture.protocol.todo_path?{...d,content:`- [x] [packet:${packet}] Checked prefix.`,truncated:true}:d)};
+    render(<I18nProvider><PlanDetails snapshot={snapshotFixture} documents={documents} work={packetWorkItems(documents.documents.find(d=>d.path===snapshotFixture.protocol.todo_path)!.content,packet)} onSelect={vi.fn()}/></I18nProvider>);
+    expect(screen.getByText(/Task totals are unavailable/)).toBeVisible();
+    expect(screen.queryByText(/No open task is explicitly marked Plan/)).not.toBeInTheDocument();
+  });
+
+  it.each(['deferred','stale','truncated'] as const)('keeps %s Plan records visible without labeling them current work',async kind => {
+    const snapshot=kind==='deferred'?{...snapshotFixture,state:{...snapshotFixture.state,active_packet:{...snapshotFixture.state.active_packet!,status:'deferred'}}}:kind==='stale'?{...snapshotFixture,inspection_status:'stale' as const}:snapshotFixture;
+    const documents=kind==='truncated'?{...docs,documents:docs.documents.map(d=>({...d,truncated:true}))}:docs;
+    render(<I18nProvider><PlanDetails snapshot={snapshot} documents={documents} work={work} onSelect={vi.fn()}/></I18nProvider>);
+    expect(screen.getByText(/These preserved Plan declarations do not establish current active work/)).toBeVisible();
+    await userEvent.click(screen.getByText('Review the saving plan.',{selector:'summary span'}));
+    expect(screen.getByText('Recorded [current] marker; active work unconfirmed')).toBeVisible();
+    expect(screen.queryByText('Current task')).not.toBeInTheDocument();
   });
 
   it.each(['ko','ja','zh-CN'] as const)('localizes the new detail controls in %s', async locale => {

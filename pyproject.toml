@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdad-inspector"
-version = "0.0.4"
+dynamic = ["version"]
 description = "Local, read-only inspection for SDAD repositories"
 readme = "README.md"
 license = "MIT"
@@ -22,3 +22,6 @@ sdad-inspector = "sdad_inspector.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["sdad_inspector*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sdad_inspector.version.__version__"}

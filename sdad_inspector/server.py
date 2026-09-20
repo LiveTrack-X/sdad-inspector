@@ -8,6 +8,7 @@ import secrets
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,7 +16,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import unquote, urlsplit
 
-from .corrections import CorrectionStore
+from .corrections import MAX_ACTIVE_RECORDS, MAX_STORAGE_BYTES, CorrectionError, CorrectionStore
 from .dialogs import normalize_clipboard_path, read_clipboard_text, select_markdown_export_path, select_project_directory
 from .engine import EngineInfo
 from .errors import InspectorError, ProjectRequiredError
@@ -28,6 +29,7 @@ from .snapshot import SNAPSHOT_SCHEMA_VERSION, inspect_project
 from .updater import ProductUpdateManager
 
 MAX_REQUEST_BYTES = 64 * 1024
+REJECTED_BODY_DRAIN_SECONDS = 0.2
 REPOSITORY_URL = "https://github.com/LiveTrack-X/sdad-inspector"
 
 
@@ -61,6 +63,8 @@ class InspectorService:
         self._clipboard_reader = clipboard_reader
         self._recent_projects = preferences_store or RecentProjectsStore()
         self._corrections = CorrectionStore(self._recent_projects.path.with_name("corrections-v1.json"))
+        from .resume_store import ResumeStore
+        self._resume_store = ResumeStore(self._recent_projects.path.with_name("resume-comparison-v1.sqlite3"))
         self._rule_export_picker = rule_export_picker
         self._updates = update_manager or ProductUpdateManager()
         self._update_exit_callback: Callable[[], None] | None = None
@@ -155,19 +159,87 @@ class InspectorService:
         root = self.project_root
         return self.protocol_adapter.load_live_documents(root)
 
+    def verification_receipts(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from .receipts import load_verification_receipts
+
+        with self._operation_lock:
+            root = self.project_root
+            if payload.get("project_root") != str(root):
+                raise InspectorError("The selected project changed; read verification records again.")
+            return load_verification_receipts(root)
+
+    def verification_receipt_list(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from .receipts import ReceiptNavigationError, list_verification_receipts
+
+        with self._operation_lock:
+            root = self.project_root
+            if payload.get("project_root") != str(root):
+                raise ReceiptNavigationError("The selected project changed; reload receipt routes.", "receipt_navigation_project")
+            return list_verification_receipts(root, offset=payload.get("offset", 0), revision=payload.get("revision"))
+
+    def verification_receipt_inspect(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from .receipts import ReceiptNavigationError, inspect_verification_receipt
+
+        with self._operation_lock:
+            root = self.project_root
+            if payload.get("project_root") != str(root):
+                raise ReceiptNavigationError("The selected project changed; reload receipt routes.", "receipt_navigation_project")
+            return inspect_verification_receipt(root, path=payload.get("path"), revision=payload.get("revision"))
+
+    def resume_comparison(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._operation_lock:
+            snapshot = self.snapshot()
+            if payload.get("project_root") != snapshot["project"]["root"]:
+                raise InspectorError("The selected project changed; reopen resume comparison.")
+            action = payload.get("action")
+            if not isinstance(action, str):
+                raise InspectorError("A resume comparison action is required.")
+            if action in {"enable", "observe", "replace"} and payload.get("inspection_id") != snapshot["inspection_id"]:
+                raise InspectorError("The inspection changed; refresh before saving an observation.")
+            return self._resume_store.apply(snapshot, action)
+
+    def document_page(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from .document_pages import DocumentPageError, read_document_page
+
+        # Serialize with project switches so a delayed request cannot read from
+        # whichever project happened to become selected in the meantime.
+        with self._operation_lock:
+            root = self.project_root
+            if payload.get("project_root") != str(root):
+                raise DocumentPageError("The selected project changed; reopen this document.", "document_page_project")
+            return read_document_page(root, self.engine, self.protocol_adapter, payload, timeout=min(self.timeout, 10))
+
     def corrections(self) -> dict[str, Any]:
-        root = str(self.project_root)
-        return {"schema_version": 1, "project_root": root, "drafts": self._corrections.load(root)}
+        with self._lock:
+            root = self._correction_root({"project_root": str(self.project_root)})
+            return self._corrections.history(root, page_size=MAX_ACTIVE_RECORDS)
+
+    def _correction_root(self, payload):
+        root = self.project_root
+        paths = (self._corrections.path, self._corrections.database_path, self._corrections.backup_path, self._corrections.path.with_name(self._corrections.path.name + ".lock"))
+        if any(path.resolve().is_relative_to(root.resolve()) for path in paths):
+            raise CorrectionError("Correction storage must be outside the inspected project.", "correction_storage")
+        if payload.get("project_root") != str(root):
+            raise CorrectionError("Project changed; correction operation was cancelled.", "correction_project")
+        return str(root)
 
     def save_correction(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
-            root = self.project_root
-            if self._corrections.path.resolve().is_relative_to(root.resolve()):
-                raise InspectorError("Correction storage must be outside the inspected project.")
-            try:
-                return self._corrections.save(str(root), payload)
-            except OSError as exc:
-                raise InspectorError("Correction storage is unavailable; no delivery was attempted.") from exc
+            return self._corrections.save(self._correction_root(payload), payload)
+
+    def correction_history(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            root = self._correction_root(payload)
+            return self._corrections.history(root, offset=payload.get("offset", 0), archived=payload.get("archived", False), packet=payload.get("packet"), request_id=payload.get("request_id"))
+
+    def manage_correction(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            root = self._correction_root(payload)
+            if operation == "import":
+                return self._corrections.import_record(root, payload.get("bundle"))
+            if payload.get("confirmed") is not True:
+                raise CorrectionError("Confirm the selected history action first.", "correction_invalid")
+            return self._corrections.set_archived(root, payload.get("draft"), operation == "archive")
 
     def activity(self) -> dict[str, Any]:
         root = self.project_root
@@ -298,7 +370,15 @@ class InspectorService:
     def rescan(self) -> dict[str, Any]:
         with self._operation_lock:
             root = self.project_root
-            snapshot = self._inspect(root, kind="rescan")
+            try:
+                snapshot = self._inspect(root, kind="rescan")
+            except Exception:
+                # Retain the original observation, but do not serve it as current
+                # after an attempted refresh failed. The original error propagates.
+                with self._lock:
+                    if self._snapshot is not None:
+                        self._snapshot = {**self._snapshot, "inspection_status": "stale"}
+                raise
             with self._lock:
                 self._snapshot = snapshot
             return snapshot
@@ -421,19 +501,57 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
         supplied = self.headers.get("X-SDAD-Session", "")
         return bool(supplied) and hmac.compare_digest(supplied, self.server.session_token)
 
+    def _discard_rejected_body(self, max_bytes: int = MAX_REQUEST_BYTES) -> None:
+        """Bound socket cleanup after rejection, without parsing request data.
+
+        Closing with a small unread POST body can reset Windows loopback TCP
+        before the client receives the denial. Never trust an unbounded length
+        or wait indefinitely for a sender that has not finished its body.
+        """
+        if self.command != "POST" or self.headers.get("Transfer-Encoding"):
+            return
+        lengths = self.headers.get_all("Content-Length", [])
+        if len(lengths) != 1:
+            return
+        try:
+            remaining = int(lengths[0])
+        except ValueError:
+            return
+        if not 0 < remaining <= max_bytes:
+            return
+        previous_timeout = self.connection.gettimeout()
+        deadline = time.monotonic() + REJECTED_BODY_DRAIN_SECONDS
+        try:
+            while remaining:
+                available = deadline - time.monotonic()
+                if available <= 0:
+                    break
+                self.connection.settimeout(available)
+                chunk = self.rfile.read1(min(remaining, 8192))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+        except OSError:
+            pass  # The fixed rejection still stands; this connection closes.
+        finally:
+            self.connection.settimeout(previous_timeout)
+
+    def _reject_api(self, status: HTTPStatus, code: str, *, drain_limit: int = MAX_REQUEST_BYTES) -> bool:
+        self.close_connection = True
+        self._discard_rejected_body(drain_limit)
+        self._send_json(status, {"error": {"code": code}})
+        return False
+
     def _authorize_api(self, *, mutation: bool) -> bool:
         if not self._valid_host():
-            self._send_json(HTTPStatus.BAD_REQUEST, {"error": {"code": "invalid_host"}})
-            return False
+            return self._reject_api(HTTPStatus.BAD_REQUEST, "invalid_host")
         if not self._valid_origin(required=mutation):
-            self._send_json(HTTPStatus.FORBIDDEN, {"error": {"code": "invalid_origin"}})
-            return False
+            return self._reject_api(HTTPStatus.FORBIDDEN, "invalid_origin")
         if not self._valid_token():
-            self._send_json(HTTPStatus.FORBIDDEN, {"error": {"code": "invalid_session"}})
-            return False
+            return self._reject_api(HTTPStatus.FORBIDDEN, "invalid_session")
         return True
 
-    def _read_json(self) -> dict[str, Any] | None:
+    def _read_json(self, limit: int = MAX_REQUEST_BYTES) -> dict[str, Any] | None:
         if self.headers.get_content_type() != "application/json":
             self._send_json(
                 HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
@@ -444,10 +562,14 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = -1
-        if length < 0 or length > MAX_REQUEST_BYTES:
-            self._send_json(
+        if length < 0 or length > limit:
+            # This is already an authenticated rejection. Drain a small bounded
+            # excess without parsing it so Windows can deliver the 413 response.
+            # This cleanup allowance never changes the accepted request limit.
+            self._reject_api(
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
-                {"error": {"code": "request_too_large"}},
+                "request_too_large",
+                drain_limit=limit + MAX_REQUEST_BYTES,
             )
             return None
         try:
@@ -519,10 +641,31 @@ class InspectorRequestHandler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if not self._authorize_api(mutation=True):
             return
-        payload = self._read_json()
+        payload = self._read_json(MAX_STORAGE_BYTES + 1024 if path == "/api/corrections/import" else MAX_REQUEST_BYTES)
         if payload is None:
             return
         try:
+            if path == "/api/documents/page":
+                self._send_json(HTTPStatus.OK, self.server.service.document_page(payload))
+                return
+            if path == "/api/verification-receipts":
+                self._send_json(HTTPStatus.OK, self.server.service.verification_receipts(payload))
+                return
+            if path == "/api/verification-receipt-list":
+                self._send_json(HTTPStatus.OK, self.server.service.verification_receipt_list(payload))
+                return
+            if path == "/api/verification-receipt-inspect":
+                self._send_json(HTTPStatus.OK, self.server.service.verification_receipt_inspect(payload))
+                return
+            if path == "/api/resume-comparison":
+                self._send_json(HTTPStatus.OK, self.server.service.resume_comparison(payload))
+                return
+            if path == "/api/corrections/history":
+                self._send_json(HTTPStatus.OK, self.server.service.correction_history(payload))
+                return
+            if path in {"/api/corrections/archive", "/api/corrections/restore", "/api/corrections/import"}:
+                self._send_json(HTTPStatus.OK, self.server.service.manage_correction(path.rsplit("/", 1)[1], payload))
+                return
             if path == "/api/corrections":
                 self._send_json(HTTPStatus.OK, self.server.service.save_correction(payload))
                 return

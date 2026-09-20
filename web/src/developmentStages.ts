@@ -1,5 +1,6 @@
 import type { DevelopmentActivity, LiveDocuments, Snapshot } from "./types";
-import type { PacketWorkItem } from "./packetWork";
+import { packetWorkSource, type PacketWorkItem } from "./packetWork";
+import { doctorResult } from "./doctorResult";
 
 export type ControlLoopStageId = "plan" | "route" | "implement" | "verify" | "report";
 export type ConditionalBranchId = "owner_gate" | "handoff";
@@ -31,7 +32,7 @@ export interface ConditionalBranchSignal {
 }
 
 export interface CurrentControlStageSignal {
-  status: "declared" | "undeclared" | "ambiguous";
+  status: "declared" | "undeclared" | "ambiguous" | "idle" | "deferred" | "unavailable";
   id: ControlLoopStageId | null;
   itemCount: number;
   sourcePath: string;
@@ -48,8 +49,27 @@ export interface WorktreeLensSignal {
 export const CONTROL_LOOP: ControlLoopStageId[] = ["plan", "route", "implement", "verify", "report"];
 export const WORKTREE_LENSES: WorktreeLensId[] = ["control", "implementation", "verification", "evidence", "documentation"];
 
-export function currentControlStage(work: PacketWorkItem[], todoPath = "docs/TODO-Open-Items.md"): CurrentControlStageSignal {
-  const current = work.filter((item) => item.current && !item.completed);
+export function isDeferredWorkItem(item: PacketWorkItem): boolean {
+  // Recognize the protocol's explicit ledger headings, not arbitrary task prose.
+  return (item.sectionPath ?? [item.section]).some(section => /^(?:future\s*\/\s*)?deferred(?:\s+(?:work|follow-ups?))?$/i.test(section.trim()));
+}
+
+export function currentControlStage(
+  work: PacketWorkItem[],
+  todoPath = "docs/TODO-Open-Items.md",
+  evidence?: {snapshot: Snapshot; documents: LiveDocuments | null},
+): CurrentControlStageSignal {
+  const empty = { id: null, itemCount: 0, sourcePath: todoPath };
+  if (evidence) {
+    const {snapshot,documents} = evidence;
+    if (!packetWorkSource(snapshot,documents).complete) {
+      return { ...empty, status: "unavailable" };
+    }
+    if (snapshot.state.active_packet?.status === "deferred") return { ...empty, status: "deferred" };
+  }
+  const active = work.filter((item) => !item.completed && !isDeferredWorkItem(item));
+  if (active.length === 0) return { ...empty, status: "idle" };
+  const current = active.filter((item) => item.current);
   if (current.length === 0) {
     return { status: "undeclared", id: null, itemCount: 0, sourcePath: todoPath };
   }
@@ -132,8 +152,9 @@ export function controlLoopSignals(
     && document.content !== null
   )).map((document) => document.path) ?? [];
 
-  const doctorVerified = snapshot.doctor.completed && snapshot.doctor.exit_code === 0;
-  const doctorFailed = snapshot.doctor.completed && snapshot.doctor.exit_code !== 0;
+  const structuralResult = doctorResult(snapshot);
+  const doctorVerified = structuralResult.passed;
+  const doctorFailed = structuralResult.available && snapshot.doctor.exit_code !== 0;
   const declaredValidationCount = snapshot.state.validation.length;
   // The normalized snapshot contract deliberately carries declarations only.
   // Structured execution evidence is not available in this product version.
@@ -147,9 +168,7 @@ export function controlLoopSignals(
       ? "failed"
       : declaredValidationCount > executedValidationCount
         ? "unverified"
-        : doctorVerified
-          ? "verified"
-          : "unobserved",
+        : "unobserved",
     report: "unobserved",
   };
 

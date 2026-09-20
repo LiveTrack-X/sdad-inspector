@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "authority": "SDAD Protocol tests/fixtures/verification-receipts",
+  "files": {
+    "cases.json": "87da9098178eb617a692ab59329014a0966ea4ffdc56629955c89ee93c33adbe",
+    "fixture_helper.py": "51027dab91de9e38f9b1a746d1f186c4db20b7852f22c80c51c7d4b2640fc0ef"
+  }
+}

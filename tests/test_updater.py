@@ -90,6 +90,20 @@ def zip_payload(name: str, content: bytes) -> bytes:
 
 
 class VersionAndReleaseTests(unittest.TestCase):
+    def test_candidate_provenance_asset_does_not_change_exact_archive_selection(self) -> None:
+        release = release_payload("0.0.4")
+        release["assets"].extend([
+            {"name": "candidate-manifest.json", "size": 1024},
+            {"name": "SHA256SUMS", "size": 300},
+            {"name": "SDAD-Inspector-0.0.4-linux-x64.tar.gz", "size": 200},
+            {"name": "SDAD-Inspector-0.0.4-macos-arm64.tar.gz", "size": 200},
+        ])
+        selected = select_release([release], current_version="0.0.3",
+                                 platform_name="windows", architecture="x64")
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected.asset_name, "SDAD-Inspector-0.0.4-windows-x64.zip")
+        self.assertEqual(selected.asset_sha256, "a" * 64)
+
     def test_versions_compare_prereleases_before_stable(self) -> None:
         self.assertLess(parse_public_version("v0.0.1-alpha.3"), parse_public_version("0.0.1-beta.1"))
         self.assertLess(parse_public_version("0.0.1-rc.2"), parse_public_version("0.0.1"))

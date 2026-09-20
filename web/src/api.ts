@@ -1,4 +1,4 @@
-import type { DevelopmentActivity, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, Rule5Candidate, Rule5Candidates, Rule5ExportResult, Rule5Preview, Snapshot } from "./types";
+import type { DevelopmentActivity, DocumentPage, InspectionProgress, LiveDocuments, ProductUpdateStatus, RecentProject, Rule5Candidate, Rule5Candidates, Rule5ExportResult, Rule5Preview, Snapshot } from "./types";
 
 export interface UiPreferences {
   schema_version: number;
@@ -41,12 +41,35 @@ export function getSnapshot(): Promise<Snapshot> {
   return request<Snapshot>("/api/snapshot");
 }
 
+export function resumeComparisonAction(projectRoot: string, inspectionId: string, action: "read" | "enable" | "observe" | "replace" | "clear" | "clear_all"): Promise<import("./resumeComparison").ResumeStore & { retained_projects: number }> {
+  return request("/api/resume-comparison", { method: "POST", body: JSON.stringify({ project_root: projectRoot, inspection_id: inspectionId, action }) });
+}
+
 export function getInspectionProgress(): Promise<InspectionProgress> {
   return request<InspectionProgress>("/api/progress");
 }
 
 export function getLiveDocuments(): Promise<LiveDocuments> {
   return request<LiveDocuments>("/api/documents");
+}
+
+export function getDocumentPage(projectRoot: string, path: string, start = 1, count = 100, expectedSha256?: string): Promise<DocumentPage> {
+  return request<DocumentPage>("/api/documents/page", {
+    method: "POST",
+    body: JSON.stringify({ project_root: projectRoot, path, start, lines: count, expected_sha256: expectedSha256 }),
+  });
+}
+
+export function getVerificationReceipts(project_root: string): Promise<import("./verificationReceipts").VerificationReceipts> {
+  return request("/api/verification-receipts", { method: "POST", body: JSON.stringify({ project_root }) });
+}
+
+export function getVerificationReceiptList(project_root: string, offset = 0, revision?: string): Promise<import("./verificationReceipts").VerificationReceiptList> {
+  return request("/api/verification-receipt-list", { method: "POST", body: JSON.stringify({ project_root, offset, revision }) });
+}
+
+export function inspectVerificationReceipt(project_root: string, path: string, revision: string): Promise<import("./verificationReceipts").VerificationReceiptInspection> {
+  return request("/api/verification-receipt-inspect", { method: "POST", body: JSON.stringify({ project_root, path, revision }) });
 }
 
 export function getDevelopmentActivity(): Promise<DevelopmentActivity> {
@@ -166,9 +189,21 @@ export function openRepository(): Promise<{ opened: boolean; url: string }> {
   });
 }
 
-export function getCorrections(): Promise<{schema_version: number; project_root: string; drafts: import("./interactions").Correction[]}> {
+export interface CorrectionUsage {active_count: number; active_limit: number; active_bytes: number; byte_limit: number; archived_count: number; project_archived_count: number}
+export interface CorrectionHistory {schema_version: number; project_root: string; drafts: import("./interactions").Correction[]; usage?: CorrectionUsage; has_more?: boolean; offset?: number; archived?: boolean; leaf_id?: string | null}
+export function getCorrections(): Promise<CorrectionHistory> {
   return request("/api/corrections");
 }
 export function saveCorrection(draft: import("./interactions").Correction): Promise<import("./interactions").Correction> {
   return request("/api/corrections", {method: "POST", body: JSON.stringify(draft)});
+}
+
+export function getCorrectionHistory(project_root: string, archived: boolean, offset = 0, packet?: string, request_id?: string): Promise<CorrectionHistory> {
+  return request("/api/corrections/history", {method: "POST", body: JSON.stringify({project_root, archived, offset, packet, request_id})});
+}
+export function manageCorrection(project_root: string, operation: 'archive' | 'restore', draft: import("./interactions").Correction): Promise<import("./interactions").Correction> {
+  return request(`/api/corrections/${operation}`, {method: "POST", body: JSON.stringify({project_root, draft, confirmed: true})});
+}
+export function importCorrection(project_root: string, bundle: unknown): Promise<import("./interactions").Correction> {
+  return request("/api/corrections/import", {method: "POST", body: JSON.stringify({project_root, bundle})});
 }

@@ -1,0 +1,8 @@
+.document-page-controls { max-width: 896px; margin: 0 auto 12px; padding: 12px; border: 1px solid var(--divider); border-radius: 6px; color: var(--text-body); background: var(--surface); }
+.document-page-controls p { margin: 6px 0; line-height: 1.5; }
+.document-page-controls code { display: block; color: var(--secondary); font-size: 11px; overflow-wrap: anywhere; }
+.document-page-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.document-page-actions button { min-height: 40px; padding: 7px 12px; color: var(--text-strong); background: var(--surface-input); border: 1px solid var(--divider-strong); border-radius: 5px; font: inherit; cursor: pointer; }
+.document-page-actions button:disabled { opacity: .55; cursor: default; }
+.document-page-actions button:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+.document-page-error { color: var(--stopped); }

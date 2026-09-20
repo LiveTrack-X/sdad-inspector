@@ -99,20 +99,16 @@ def _active_section(text: str | None, heading: str) -> list[str]:
 
 
 def _ledger_summary(root: Path, observer: ReadObserver | None = None) -> dict[str, Any]:
-    _observe(observer, "docs/TODO-Open-Items.md")
-    todo_text = read_bounded_text(
-        root,
-        "docs/TODO-Open-Items.md",
-        purpose="active TODO ledger",
-        required=False,
-    )
-    _observe(observer, "review-findings.md")
-    findings_text = read_bounded_text(
-        root,
-        "review-findings.md",
-        purpose="active review ledger",
-        required=False,
-    )
+    def ledger_text(path: str) -> tuple[str | None, bool]:
+        _observe(observer, path)
+        try:
+            content, truncated = read_bounded_text_preview(root, path, purpose="active ledger", required=False)
+            return content, content is not None and not truncated
+        except BoundedReadError:
+            return None, False
+
+    todo_text, todo_complete = ledger_text("docs/TODO-Open-Items.md")
+    findings_text, findings_complete = ledger_text("review-findings.md")
     todo_lines = _active_section(todo_text, "## Active Work")
     finding_lines = _active_section(findings_text, "## Active Findings")
     todos = [line for line in todo_lines if _TODO_PATTERN.match(line)]
@@ -126,6 +122,10 @@ def _ledger_summary(root: Path, observer: ReadObserver | None = None) -> dict[st
         "todo_open": len(todos),
         "review_findings_open": len(findings),
         "review_findings_by_severity": severity,
+        # Existing numeric fields remain observed prefix counts. A false flag
+        # means they are not complete totals and must not be presented as such.
+        "todo_complete": todo_complete,
+        "review_findings_complete": findings_complete,
     }
 
 
@@ -270,6 +270,7 @@ def load_live_documents(root: Path) -> dict[str, Any]:
             documents.append(
                 {
                     **metadata,
+                    "project_root": str(root),
                     "roles": document_roles,
                     "content": content,
                     "truncated": content_truncated,
@@ -280,6 +281,7 @@ def load_live_documents(root: Path) -> dict[str, Any]:
             documents.append(
                 {
                     "path": relative,
+                    "project_root": str(root),
                     "exists": False,
                     "roles": document_roles,
                     "content": None,

@@ -12,6 +12,11 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+try:
+    from scripts.receipt_portable_smoke import smoke_receipts
+except ModuleNotFoundError:
+    from receipt_portable_smoke import smoke_receipts
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -98,6 +103,7 @@ def smoke_archive(
     *,
     seconds: float = 2.0,
     timeout: float = 60.0,
+    verify_receipts: bool = False,
 ) -> dict[str, object]:
     platform_name = current_platform()
     if f"-{platform_name}-" not in archive.name:
@@ -109,6 +115,11 @@ def smoke_archive(
         executable = extract_single_executable(
             archive.resolve(strict=True), temporary / "extracted", platform_name
         )
+        if verify_receipts:
+            result = smoke_receipts(executable, seconds=seconds, timeout=timeout)
+            return {**result, "archive": archive.name, "archive_member_count": 1,
+                    "extracted_entries": [executable.name], "platform": platform_name,
+                    "python_runtime_installed_for_product": False}
         environment = os.environ.copy()
         environment.pop("PYTHONHOME", None)
         environment.pop("PYTHONPATH", None)
@@ -159,6 +170,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-dir", default="release-candidate")
     parser.add_argument("--seconds", type=float, default=2.0)
     parser.add_argument("--timeout", type=float, default=60.0)
+    parser.add_argument("--verify-receipts", action="store_true")
     return parser
 
 
@@ -173,6 +185,7 @@ def main() -> int:
         Path(arguments.project_root),
         seconds=arguments.seconds,
         timeout=arguments.timeout,
+        verify_receipts=arguments.verify_receipts,
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0 if payload["exit_code"] == 0 else int(payload["exit_code"])

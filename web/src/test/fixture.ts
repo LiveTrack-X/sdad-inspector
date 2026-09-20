@@ -1,5 +1,7 @@
 import type { DevelopmentActivity, LiveDocuments, Rule5Candidates, Snapshot } from "../types";
 
+export const emptyResumeComparisonFixture = { version: 1 as const, projects: [], retained_projects: 0 };
+
 export const snapshotFixture: Snapshot = {
   snapshot_schema_version: 2,
   inspector_version: "0.0.4",

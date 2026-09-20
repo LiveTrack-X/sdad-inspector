@@ -18,12 +18,12 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 しません。書き込みは Inspector 自身の設定、更新用データ、更新対象のポータブル
 実行ファイルに限定されます。
 
-> **0.0.4 は通常の GitHub Release ですが、未署名です。** インストーラーでは
+> **0.0.5 は通常の GitHub Release ですが、未署名です。** インストーラーでは
 > なく、コード署名と notarization はありません。実行前に `SHA256SUMS` を確認
 > してください。組織のポリシーが未署名ソフトウェアを禁止する場合は、保護を
 > 回避せず、ソースから実行してください。
 
-> **リリースとソース:** `v0.0.4` の実行ファイルは同じ immutable タグから
+> **リリースとソース:** `v0.0.5` の実行ファイルは同じ immutable タグから
 > ビルドされます。Windows、macOS、Linux のタグ検証がすべて成功した後にのみ、
 > アーカイブ、チェックサム、attestation を公開します。
 
@@ -33,7 +33,7 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 各アーカイブには、ランタイム、UI、認証済み SDAD 3.2.3 エンジンを含む
 **single portable executable** が一つだけ入っています。
 
-1. [`v0.0.4` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.4) を開きます。
+1. [`v0.0.5` Release](https://github.com/LiveTrack-X/sdad-inspector/releases/tag/v0.0.5) を開きます。
 2. 自分の環境用アーカイブと `SHA256SUMS` をダウンロードします。
 3. 下記のコマンドで SHA-256 を確認します。
 4. 展開して、唯一の実行ファイルを起動します。
@@ -41,9 +41,9 @@ SDAD Inspector は、SDAD リポジトリの「いま」を一つの画面で確
 
 | 環境 | ダウンロード | アーカイブ内の実行ファイル |
 | --- | --- | --- |
-| Windows x64 | `SDAD-Inspector-0.0.4-windows-x64.zip` | `SDAD-Inspector.exe` |
-| macOS Apple Silicon | `SDAD-Inspector-0.0.4-macos-arm64.tar.gz` | `SDAD-Inspector` |
-| Linux x64 | `SDAD-Inspector-0.0.4-linux-x64.tar.gz` | `SDAD-Inspector` |
+| Windows x64 | `SDAD-Inspector-0.0.5-windows-x64.zip` | `SDAD-Inspector.exe` |
+| macOS Apple Silicon | `SDAD-Inspector-0.0.5-macos-arm64.tar.gz` | `SDAD-Inspector` |
+| Linux x64 | `SDAD-Inspector-0.0.5-linux-x64.tar.gz` | `SDAD-Inspector` |
 
 Intel Mac など表にないアーキテクチャは、公開アセットとして検証済みとは主張
 しません。ソース実行が可能でも、配布アセットのビルドとスモークテストの証拠とは
@@ -54,7 +54,7 @@ Intel Mac など表にないアーキテクチャは、公開アセットとし�
 Windows PowerShell:
 
 ```powershell
-$archive = Get-Item .\SDAD-Inspector-0.0.4-windows-x64.zip
+$archive = Get-Item .\SDAD-Inspector-0.0.5-windows-x64.zip
 $expected = (Select-String .\SHA256SUMS -Pattern $archive.Name).Line.Split()[0]
 $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
@@ -120,7 +120,7 @@ fixture を使用しています。上部の言語メニューでは English、�
 標準の対象は [SDAD Protocol](https://github.com/LiveTrack-X/spec-driven-ai-development)
 `v3.2.3` です。
 
-| 契約 | 0.0.4 の範囲 |
+| 契約 | 0.0.5 の範囲 |
 | --- | --- |
 | バンドル実行基準 | Official SDAD Protocol `v3.2.3` |
 | 既定アダプター | `official-sdad-3` |
@@ -181,6 +181,24 @@ python scripts/validate_browser_contract.py --sdad-checkout .runtime/sdad-v3.2.3
 python scripts/validate_native_contract.py --sdad-checkout .runtime/sdad-v3.2.3
 ```
 
+## 今後のリリース保守
+
+現在のソースでは `sdad_inspector/version.py` をバージョンの唯一の原本とします。
+将来の承認済みバージョン変更では `python scripts/release_metadata.py --sync` で
+Windows リソースと現在の README を更新し、`--check` で整合性を確認します。
+過去のリリースノートは書き換えません。
+
+次の承認済みリリースでは、タグと同じコミットの `main` 候補を選択し、バージョンと
+アーカイブのハッシュを確認して、ダウンロード後の 3 OS スモークを再実行します。
+実行ファイルは再ビルドせず、3 個のアーカイブ、`SHA256SUMS`、候補の出所を示す
+manifest の計 5 資産を attestation とともに公開します。既存のタグや Release は
+置換しません。候補の保存期間は 3 日です。詳細は
+[リリース保守手順](docs/RELEASING.md)と[プラットフォーム契約](docs/CROSS_PLATFORM.md)
+を参照してください。
+
+変更後のホスト側昇格手順は、将来の承認済み CI 実行で検証する必要があります。
+公開済み `v0.0.5` のアーカイブや過去の検証結果は変更しません。
+
 ## 制限
 
 - インストーラー、コード署名、notarization、安定版サポート保証はありません。
@@ -198,3 +216,7 @@ SDAD Inspector は [MIT License](LICENSE) で提供されます。継続的な�
 問題を報告するときは、Inspector のバージョン、OS/アーキテクチャ、SDAD
 バージョン、Doctor exit code、再現手順を含めてください。`.env`、顧客データ、
 非公開リポジトリの内容、その他の秘密情報は添付しないでください。
+
+現在のソース候補の[訂正履歴と下書き復元](docs/CORRECTION_HISTORY.md)（英語）も
+参照してください。保管・復元と移動した出典の下書き復元はローカル候補の機能で、
+既存の公開バイナリには含まれていません。

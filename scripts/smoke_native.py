@@ -6,6 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    from scripts.receipt_portable_smoke import smoke_receipts
+except ModuleNotFoundError:
+    from receipt_portable_smoke import smoke_receipts
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -45,12 +50,17 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--dist-root", default="build/native/dist")
     parser.add_argument("--seconds", type=float, default=2.0)
     parser.add_argument("--timeout", type=float, default=45.0)
+    parser.add_argument("--verify-receipts", action="store_true")
     return parser
 
 
 def main() -> int:
     arguments = _parser().parse_args()
     executable = native_executable((ROOT / arguments.dist_root).resolve(strict=True))
+    if arguments.verify_receipts:
+        payload = smoke_receipts(executable, seconds=arguments.seconds, timeout=arguments.timeout)
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return int(payload["exit_code"])
     project = Path(arguments.project_root).resolve(strict=True)
     argv = [
         str(executable),

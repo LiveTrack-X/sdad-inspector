@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.release_metadata import VERSION, windows_resource
 from sdad_inspector.desktop import resource_root
 from sdad_inspector.engine import probe_engine
 from sdad_inspector.packaging import stage_release_engine
@@ -148,8 +149,8 @@ def main() -> int:
         if not asset.is_file() or asset.stat().st_size < 1024:
             raise AssertionError(f"missing or empty product brand asset: {asset.relative_to(ROOT)}")
     version_info = ROOT / "packaging" / "sdad-inspector-version.txt"
-    if not version_info.is_file() or "ProductVersion', '0.0.4'" not in version_info.read_text(encoding="utf-8"):
-        raise AssertionError("missing Windows 0.0.4 version resource")
+    if not version_info.is_file() or version_info.read_text(encoding="utf-8") != windows_resource():
+        raise AssertionError(f"missing or stale Windows {VERSION} version resource")
 
     simulated = ROOT / "bundle" / "_MEI12345" / "sdad_inspector" / "desktop.py"
     if resource_root(simulated) != ROOT / "bundle" / "_MEI12345":

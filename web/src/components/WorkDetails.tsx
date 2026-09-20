@@ -6,8 +6,9 @@ import type { LiveDocument, LiveDocuments, Snapshot } from '../types';
 import { workDetailCopy } from '../workDetailCopy';
 import { MarkdownViewer } from './MarkdownViewer';
 import { TargetCorrection } from './TargetCorrection';
+import { currentControlStage, isDeferredWorkItem } from '../developmentStages';
 
-export function WorkItemDetails({item, todoPath, onOpenSource}: {item: PacketWorkItem; todoPath: string; onOpenSource: () => void}) {
+export function WorkItemDetails({item, todoPath, onOpenSource, allowCurrentLabel=false}: {item: PacketWorkItem; todoPath: string; onOpenSource: () => void; allowCurrentLabel?:boolean}) {
   const {locale} = useI18n(); const c = workDetailCopy[locale];
   const excerpt: LiveDocument = {path:todoPath, exists:true, roles:['todo'], content:item.detail ?? item.text, error:null};
   return <details className="work-item-details">
@@ -16,7 +17,7 @@ export function WorkItemDetails({item, todoPath, onOpenSource}: {item: PacketWor
       <strong>{c.taskDetails}</strong>
       <MarkdownViewer document={excerpt}/>
       <dl>
-        <dt>{c.status}</dt><dd>{item.completed ? c.checked : item.current ? c.current : c.remaining}</dd>
+        <dt>{c.status}</dt><dd>{item.completed ? c.checked : item.current ? allowCurrentLabel ? c.current : c.recordedCurrent : c.remaining}</dd>
         <dt>{c.phase}</dt><dd>{item.phaseConflict ? c.conflict : item.phase ?? c.unknown}</dd>
         <dt>{c.section}</dt><dd>{item.section}</dd>
       </dl>
@@ -32,6 +33,8 @@ export function PlanDetails({snapshot, documents, work, onSelect}: {snapshot:Sna
   const sameProject = documents?.project_root === snapshot.project.root;
   const available = sameProject ? documents.documents : [];
   const planWork = sameProject ? work.filter(item => item.phase === 'plan' && !item.phaseConflict && !item.completed) : [];
+  const stage = currentControlStage(work,snapshot.protocol.todo_path,{snapshot,documents});
+  const currentAvailable = !['idle','deferred','unavailable'].includes(stage.status);
   // A route makes a document available; it does not make it an AI plan or authority.
   const eligible = new Set([snapshot.protocol.state_path, snapshot.protocol.todo_path, snapshot.state.active_spec?.path, ...snapshot.state.routed_docs]);
   const connected = available.filter(doc => eligible.has(doc.path));
@@ -42,7 +45,9 @@ export function PlanDetails({snapshot, documents, work, onSelect}: {snapshot:Sna
     <h4>{c.objective}</h4><p>{snapshot.state.active_packet?.objective ?? c.unknown}</p>
     {snapshot.state.active_packet?.objective && <TargetCorrection source={`${snapshot.protocol.state_path}#active_packet.objective`} before={snapshot.state.active_packet.objective}/>}
     <h4>{c.planWork}</h4>
-    {planWork.length ? <ul className="plan-task-list">{planWork.map((item,index) => <li key={index}><WorkItemDetails item={item} todoPath={snapshot.protocol.todo_path} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></li>)}</ul> : <p>{c.noPlanWork}</p>}
+    {stage.status === 'unavailable' && <p>{c.incompleteTodo}</p>}
+    {!currentAvailable && planWork.length > 0 && <p>{c.inactivePlan}</p>}
+    {planWork.length ? <ul className="plan-task-list">{planWork.map((item,index) => <li key={index}><WorkItemDetails item={item} todoPath={snapshot.protocol.todo_path} allowCurrentLabel={currentAvailable && !isDeferredWorkItem(item)} onOpenSource={() => onSelect(documentSelectionId(snapshot,snapshot.protocol.todo_path))}/></li>)}</ul> : stage.status === 'unavailable' ? null : <p>{c.noPlanWork}</p>}
     <h4>{c.documents}</h4>
     {!connected.length && <p>{c.noDocuments}</p>}
     <div className="plan-source-list">{connected.map(doc => <details key={doc.path}>

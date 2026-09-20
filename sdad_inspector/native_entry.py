@@ -18,16 +18,23 @@ from sdad_inspector.updater import (
 )
 
 INTERNAL_ENGINE_FLAG = "--sdad-internal-engine"
+INTERNAL_CONTEXT_FLAG = "--sdad-internal-context"
 
 
-def run_bundled_engine(arguments: Sequence[str]) -> int:
+def run_bundled_engine(arguments: Sequence[str], *, context: bool = False) -> int:
     engine_root = resource_root() / "sdad-engine"
     authenticate_release_archive(engine_root)
-    script = engine_root / "scripts" / "sdad.py"
+    script = engine_root / "scripts" / ("sdad_context.py" if context else "sdad.py")
+    if not script.is_file() or script.is_symlink():
+        raise InspectorError("The authenticated engine does not provide this reader.")
     previous_argv = sys.argv
+    previous_path = sys.path[:]
     previous_bytecode = sys.dont_write_bytecode
     sys.argv = [str(script), *arguments]
     sys.dont_write_bytecode = True
+    if context:
+        # sdad_context does not bootstrap its sibling validator package.
+        sys.path.insert(0, str(script.parent))
     try:
         try:
             runpy.run_path(str(script), run_name="__main__")
@@ -40,6 +47,7 @@ def run_bundled_engine(arguments: Sequence[str]) -> int:
         return 0
     finally:
         sys.argv = previous_argv
+        sys.path[:] = previous_path
         sys.dont_write_bytecode = previous_bytecode
 
 
@@ -75,6 +83,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--web-root", help="explicit built frontend directory")
     parser.add_argument("--hidden", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--smoke-seconds", type=float, help=argparse.SUPPRESS)
+    parser.add_argument("--smoke-preferences", help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=0, help=argparse.SUPPRESS)
     return parser
 
@@ -85,17 +94,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         if len(raw_arguments) != 2:
             return 2
         return apply_update_plan(raw_arguments[1])
-    if raw_arguments[:1] == [INTERNAL_ENGINE_FLAG]:
+    if raw_arguments[:1] in ([INTERNAL_ENGINE_FLAG], [INTERNAL_CONTEXT_FLAG]):
         try:
-            return run_bundled_engine(raw_arguments[1:])
+            return run_bundled_engine(raw_arguments[1:], context=raw_arguments[0] == INTERNAL_CONTEXT_FLAG)
         except InspectorError as exc:
             json.dump(exc.to_payload(), sys.stderr, ensure_ascii=False)
             sys.stderr.write("\n")
             return 2
     refresh_frozen_windows_icon()
-    arguments = _parser().parse_args(raw_arguments)
+    parser = _parser()
+    arguments = parser.parse_args(raw_arguments)
     project_root = arguments.project_root
-    preferences = RecentProjectsStore()
+    preferences_path = None
+    if arguments.smoke_preferences is not None:
+        if not (arguments.hidden and arguments.smoke_seconds is not None
+                and 0 < arguments.smoke_seconds < float("inf") and project_root):
+            parser.error("--smoke-preferences requires a bounded hidden smoke and an explicit project")
+        preferences_path = Path(arguments.smoke_preferences).resolve()
+        if preferences_path.is_relative_to(Path(project_root).resolve()):
+            parser.error("Smoke preferences must be outside the inspected project")
+    preferences = RecentProjectsStore(preferences_path) if preferences_path else RecentProjectsStore()
     try:
         if project_root is None:
             project_root = preferences.latest_existing_project()
