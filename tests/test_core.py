@@ -98,7 +98,10 @@ def tree_fingerprint(root: Path) -> dict[str, tuple[int, int, str]]:
 class WorkspaceCase(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="sdad-inspector-")
-        self.root = Path(self.temporary.name)
+        # Ordinary fixtures use the canonical directory; alias/symlink rejection
+        # tests create their own explicit unsafe paths. This also keeps app-owned
+        # stores outside macOS /var aliases and Windows short-name temp paths.
+        self.root = Path(self.temporary.name).resolve()
         self.engine = self.root / "engine"
         (self.engine / "scripts").mkdir(parents=True)
         (self.engine / "scripts" / "sdad.py").write_text(FAKE_ENGINE, encoding="utf-8")
