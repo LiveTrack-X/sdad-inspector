@@ -12,6 +12,12 @@ from test_receipts import fixture_receipt
 
 class ReceiptEndpointTests(LoopbackServerTests):
     # Reuse the real server fixture; load_tests selects the new regression only.
+    def setUp(self):
+        super().setUp()
+        # The renderer sends the service's canonical project identity. macOS
+        # temporary paths may arrive through /var -> /private/var aliases.
+        self.project = self.server.service.project_root
+
     def test_receipt_read_requires_session_origin_and_selected_project(self):
         before = tree_fingerprint(self.project)
         payload = {"project_root": str(self.project)}
